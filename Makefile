@@ -36,10 +36,10 @@ build: ${Prdir}/${PjN}/build
 .Phony: clean
 clean:
 	@clear
-	@rm -rf ${Sources}/*.o
-	@rm -rf ${Sources}/*/*.o
 	@rm -rf ${Prdir}/${PjN}
 	@rm -rf ${Prdir}/*.o
+	@rm -rf ${Prdir}/*/*.o
+	@rm -rf ${Prdir}/*/*/*.o
 
 .Phony: cmakeClean
 cmakeClean:
