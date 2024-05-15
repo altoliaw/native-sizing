@@ -50,10 +50,33 @@ void LinuxPCAP::open(const char* device, const int snaplen, const int promisc, c
 }
 
 /**
+ * Looping for obtaining packets
+ */
+void LinuxPCAP::execute() {
+    pcap_loop(pcapHandle, 0, LinuxPCAP::packetHandler, reinterpret_cast<u_char*>(&rxPacketNumber));
+}
+
+/**
  * Closing the PCAP
  */
 void LinuxPCAP::close(void) {
 	pcap_close(pcapHandle);
+}
+
+
+/**
+ * Calculating the amount of the packets
+ * 
+ * @param userData [u_char*]
+ * @param pkthdr [const struct pcap_pkthdr*]
+ * @param packet [const u_char*]
+ */
+static void packetHandler (u_char* userData, const struct pcap_pkthdr* pkthdr, const u_char* packet) {
+    int* packetCount = (int*)userData;
+    (*packetCount)++;
+
+    long* totalSize = (long*)(userData + sizeof(int));
+    *totalSize += pkthdr->len;
 }
 
 }  // namespace PCAP

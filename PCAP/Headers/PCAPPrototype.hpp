@@ -22,11 +22,12 @@ class PCAPPrototype {
     std::string deviceInterface;     // The interface name
     long rxSize;                     // The size of the rx channel
     long txSize;                     // The size of the rx channel
-    long rxPacketNumber;             // The number of the packets in the rx channel
-    long txPacketNumber;             // The number of the packets in the rx channel
+    int rxPacketNumber;              // The number of the packets in the rx channel
+    int txPacketNumber;              // The number of the packets in the rx channel
     virtual void open(const char*, const int,
                       const int, const int) = 0;  // "open(.)" approach
-                                                  //  virtual void getRX(std::string) = 0;  // Obtaining the contents of the RX
+    virtual void execute(void) = 0;               // Executing the loop for obtaining the packets
+                                                  // virtual void getRX(std::string) = 0;  // Obtaining the contents of the RX
                                                   //	virtual void getTX(std::string) = 0;  // Obtaining the contents of the TX
     virtual void close(void) = 0;                 // "close(.)" approach
 };

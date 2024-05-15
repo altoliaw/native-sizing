@@ -27,7 +27,6 @@ PjN:= $(word $(words $(subst /, ,${Prdir})), $(subst /, ,${Prdir}))
 
 .Phony: all
 all: ${Prdir}/${PjN}
-	@make clean
 	@make run
 
 .Phony: build
@@ -67,16 +66,13 @@ ${Prdir}/${PjN}: 	${Prdir}/Main.o \
 
 # Main
 ${Prdir}/Main.o:	${Headers}/MainCaller.hpp ${Prdir}/Main.cpp
-
 	${Cmp} ${Stdlib} ${Cmpopt} ${Detinfo} ${Wall} ${Prdir}/Main.cpp -c ${Fsg} -o ${Prdir}/Main.o
 
 # MainCaller
 ${Sources}/MainCaller.o:	${Headers}/MainCaller.hpp ${Sources}/MainCaller.cpp
-
 	${Cmp} ${Stdlib} ${Cmpopt} ${Detinfo} ${Wall} ${Sources}/MainCaller.cpp -c ${Fsg} -o ${Sources}/MainCaller.o
 
 
 # PCAP.LinuxPCAP
 ${PCAP.Headers}/LinuxPCAP.o:	${PCAP.Headers}/PCAPPrototype.hpp ${PCAP.Headers}/LinuxPCAP.hpp ${PCAP.Sources}/LinuxPCAP.cpp
-
 	${Cmp} ${Stdlib} ${Cmpopt} ${Detinfo} ${Wall} ${PCAP.Sources}/LinuxPCAP.cpp -c ${Fsg} -o ${PCAP.Sources}/LinuxPCAP.o

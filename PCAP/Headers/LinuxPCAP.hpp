@@ -22,7 +22,11 @@ class LinuxPCAP : public PCAPPrototype {
     LinuxPCAP();
     ~LinuxPCAP();
     void open(const char*, const int, const int, const int);
+    void execute(void);
     void close(void);
+   
+   private:
+    static void packetHandler (u_char*, const struct pcap_pkthdr*, const u_char*);
 };
 
 }  // namespace PCAP
