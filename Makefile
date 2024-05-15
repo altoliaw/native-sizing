@@ -3,18 +3,21 @@ Prdir:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 Headers=${Prdir}/Headers
 Sources=${Prdir}/Sources
 
+PCAP.Headers=${Prdir}/PCAP/Headers
+PCAP.Sources=${Prdir}//PCAP/Sources
+
 # Setting of the general compiled grammer
 ## The Compiler, library, level of the compiler optimization, detected information, wall and message
 Cmp=g++
 #Stdlib=-std=c99
-Stdlib=-std=c++98
+Stdlib=-std=c++11
 Cmpopt=-O0
 Detinfo=-g0
 Wall=-Wall
 Fsg=-fmessage-length=0 -pthread
 CFlags=
 LDFlags=
-ThirdLibDefinition=
+ThirdLibDefinition=-lpcap
 
 ## Project execution's name
 PjN:= $(word $(words $(subst /, ,${Prdir})), $(subst /, ,${Prdir}))
@@ -24,6 +27,7 @@ PjN:= $(word $(words $(subst /, ,${Prdir})), $(subst /, ,${Prdir}))
 
 .Phony: all
 all: ${Prdir}/${PjN}
+	@make clean
 	@make run
 
 .Phony: build
@@ -52,10 +56,13 @@ ${Prdir}/${PjN}/build :
 			
 
 # Create a application
-${Prdir}/${PjN}: 	${Prdir}/Main.o ${Sources}/MainCaller.o
+${Prdir}/${PjN}: 	${Prdir}/Main.o \
+					${Sources}/MainCaller.o \
+					${PCAP.Headers}/LinuxPCAP.o
 
 	${Cmp} ${Stdlib} ${Cmpopt} ${Detinfo} ${Wall} ${Fsg} -o ${Prdir}/${PjN} ${Prdir}/Main.o \
 	${Sources}/MainCaller.o \
+	${PCAP.Sources}/LinuxPCAP.o \
 	${ThirdLibDefinition}
 
 # Main
@@ -67,3 +74,9 @@ ${Prdir}/Main.o:	${Headers}/MainCaller.hpp ${Prdir}/Main.cpp
 ${Sources}/MainCaller.o:	${Headers}/MainCaller.hpp ${Sources}/MainCaller.cpp
 
 	${Cmp} ${Stdlib} ${Cmpopt} ${Detinfo} ${Wall} ${Sources}/MainCaller.cpp -c ${Fsg} -o ${Sources}/MainCaller.o
+
+
+# PCAP.LinuxPCAP
+${PCAP.Headers}/LinuxPCAP.o:	${PCAP.Headers}/PCAPPrototype.hpp ${PCAP.Headers}/LinuxPCAP.hpp ${PCAP.Sources}/LinuxPCAP.cpp
+
+	${Cmp} ${Stdlib} ${Cmpopt} ${Detinfo} ${Wall} ${PCAP.Sources}/LinuxPCAP.cpp -c ${Fsg} -o ${PCAP.Sources}/LinuxPCAP.o

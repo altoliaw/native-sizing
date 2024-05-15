@@ -1,5 +1,5 @@
 #pragma once
-/** @file error.h
+/** @file POSIXError.hpp
  * The definition of the errors in the POSIX format
  *
  * @author Nick, Liao
