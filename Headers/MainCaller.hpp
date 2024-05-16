@@ -10,5 +10,6 @@
 #include <iostream>
 
 #include "../Commons/Headers/POSIXErrors.hpp"
+#include "../PCAP/Headers/LinuxPCAP.hpp"
 
 int start(int, char**);

@@ -18,7 +18,7 @@ namespace PCAP {
 class PCAPPrototype {
    public:
     char errBuff[PCAP_ERRBUF_SIZE];  // For error message
-    void* handle;                    // PCAP handler
+    void* descriptor;                // PCAP descriptor
     std::string deviceInterface;     // The interface name
     long rxSize;                     // The size of the rx channel
     long txSize;                     // The size of the rx channel

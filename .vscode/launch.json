@@ -37,7 +37,7 @@
 			],
 			"externalConsole": false,
 			"MIMode": "gdb",
-			"miDebuggerPath": "${workspaceFolder}/rootGdb.sh",
+			"miDebuggerPath": "${workspaceFolder}/Tests/Shells/rootGdb.sh",
 			"setupCommands": [
 				{
 					"description": "Enable pretty-printing for gdb",

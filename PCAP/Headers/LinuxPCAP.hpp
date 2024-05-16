@@ -6,7 +6,9 @@
  * @date 2024/05/15
  */
 
+#include <iostream>
 #include <string>
+#include <unistd.h>
 // The linux's pcap file, not PF-RING's one
 #include <pcap.h>
 
@@ -18,15 +20,15 @@ namespace PCAP {
  */
 class LinuxPCAP : public PCAPPrototype {
    public:
-	pcap_t* pcapHandle; // The pointer for referring to the variable "handle" from the prototype
+    pcap_t* pcapDescriptor;  // The pointer for referring to the variable "handle" from the prototype
     LinuxPCAP();
     ~LinuxPCAP();
     void open(const char*, const int, const int, const int);
     void execute(void);
     void close(void);
-   
+
    private:
-    static void packetHandler (u_char*, const struct pcap_pkthdr*, const u_char*);
+    static void packetHandler(u_char*, const struct pcap_pkthdr*, const u_char*);
 };
 
 }  // namespace PCAP

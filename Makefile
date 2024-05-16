@@ -27,6 +27,8 @@ PjN:= $(word $(words $(subst /, ,${Prdir})), $(subst /, ,${Prdir}))
 
 .Phony: all
 all: ${Prdir}/${PjN}
+	@sudo chown root:root ${Prdir}/${PjN}
+	@sudo chmod 4755 ${Prdir}/${PjN}
 	@make run
 
 .Phony: build
@@ -35,18 +37,23 @@ build: ${Prdir}/${PjN}/build
 .Phony: clean
 clean:
 	@clear
-	@rm -rf ${Prdir}/${PjN}
 	@rm -rf ${Prdir}/*.o
 	@rm -rf ${Prdir}/*/*.o
 	@rm -rf ${Prdir}/*/*/*.o
+	@sudo rm -rf ${Prdir}/${PjN}
 
 .Phony: cmakeClean
 cmakeClean:
 	@clear
 	@rm -rf ${Prdir}/build/*
 
+
+##----------------------------------------------------------------------
+## Nick editted manually
+## ---------------------------------------------------------------------
+##dbsecure ALL=NOPASSWD: /bin/rm -rf /home/dbsecure/trafficMonitor/trafficMonitor
 .Phony: run
-run:
+run:	
 	${Prdir}/${PjN}
 
 ##================================================================
