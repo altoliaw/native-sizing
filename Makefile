@@ -4,7 +4,7 @@ Headers=${Prdir}/Headers
 Sources=${Prdir}/Sources
 
 PCAP.Headers=${Prdir}/PCAP/Headers
-PCAP.Sources=${Prdir}//PCAP/Sources
+PCAP.Sources=${Prdir}/PCAP/Sources
 
 # Setting of the general compiled grammer
 ## The Compiler, library, level of the compiler optimization, detected information, wall and message

@@ -15,7 +15,7 @@ int start(int argC, char** argV) {
 
     // Creating an object
     PCAP::LinuxPCAP pcapObject;
-    pcapObject.open("ens224", BUFSIZ, 1, 1000);
+    pcapObject.open("ens2f1", BUFSIZ, 1, 1000);
 	pcapObject.execute();
 	pcapObject.close();
 

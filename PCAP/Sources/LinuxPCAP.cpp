@@ -49,8 +49,8 @@ LinuxPCAP::~LinuxPCAP() {
  */
 void LinuxPCAP::open(const char* device, const int snaplen, const int promisc, const int timeout) {
     pcapDescriptor = pcap_open_live(device, snaplen, promisc, timeout, errBuff);
-    if (pcapDescriptor ==  nullptr) {
-        std::cerr << "PCAP open failed; please verifying if the permission is root\n";
+    if (pcapDescriptor == nullptr) {
+        std::cerr << "[Error] PCAP open failed; please verifying if the permission is root\n";
     }
     descriptor = (void*)pcapDescriptor;
 }
@@ -59,7 +59,9 @@ void LinuxPCAP::open(const char* device, const int snaplen, const int promisc, c
  * Looping for obtaining packets
  */
 void LinuxPCAP::execute() {
-    pcap_loop(pcapDescriptor, 0, LinuxPCAP::packetHandler, reinterpret_cast<u_char*>(&rxPacketNumber));
+    if (pcapDescriptor != nullptr) {
+        pcap_loop(pcapDescriptor, 0, LinuxPCAP::packetHandler, reinterpret_cast<u_char*>(&rxPacketNumber));
+    }
 }
 
 /**
@@ -83,11 +85,11 @@ void LinuxPCAP::close() {
 void LinuxPCAP::packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, const u_char* packet) {
     int* packetCount = (int*)userData;
     (*packetCount)++;
-    std::cout<< *packetCount << "  packets\t";
+    std::cout << *packetCount << "  packets\t";
 
     long* totalSize = (long*)(userData + sizeof(int));
     *totalSize += pkthdr->len;
-    std::cout<< pkthdr->len << "  total size\n";
+    std::cout << pkthdr->len << "  total size\n";
     sleep(2);
 }
 
