@@ -9,7 +9,7 @@
 #include <algorithm>
 #include <iostream>
 
-#include "../Commons/Headers/POSIXErrors.hpp"
-#include "../PCAP/Headers/LinuxPCAP.hpp"
+#include "../Models/Commons/Headers/POSIXErrors.hpp"
+#include "../Models/PCAP/Headers/LinuxPCAP.hpp"
 
 int start(int, char**);
