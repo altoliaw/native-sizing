@@ -21,12 +21,12 @@ class IOSpecification {
     int current;
 
     // For the output file descriptor
-    int fileDescriptor;
+    int deviceID;
 
     ~IOSpecification();
     static IOSpecification* getSingleton();
     int migrateOutput(int, int);
-    int recoverOutput(int);
+    int recoverOutput();
 
    private:
     IOSpecification();

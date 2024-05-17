@@ -20,10 +20,10 @@ IOSpecification::~IOSpecification() {
     current = -1;
 
     // The migration flag
-    if (fileDescriptor >= 0) {
-        IOSpecification::recoverOutput(fileDescriptor);
+    if (deviceID >= 0) {
+        IOSpecification::recoverOutput();
     }
-	fileDescriptor = -1;
+    deviceID = -1;
 }
 
 /**
@@ -43,34 +43,34 @@ IOSpecification* IOSpecification::getSingleton() {
  *
  * @param deviceID [int] The device from the standard device (e.g., stderr or stdout ID)
  * @param fileDescriptor [int] The output descriptor ID
- * 
+ *
  * @return [int] The state defines in the POSIXErrors.hpp
  */
 int IOSpecification::migrateOutput(int deviceID, int fileDescriptor) {
-	if (deviceID < 0 || fileDescriptor < 0) {
-		std::cerr << "\"deviceID | fileDescriptor\" error";
-		return Commons::POSIXErrors::E_BADF;
-	}
-	// current = dup(deviceID);
-	// if(dup2(fileDescriptor, deviceID) < 0) {
-	// 	std::cerr << "\"deviceID\" redirection failed";
-	// 	return Commons::POSIXErrors::E_BADF;
-	// }
-	return Commons::POSIXErrors::OK;
+    if (deviceID < 0 || fileDescriptor < 0) {
+        std::cerr << "\"deviceID | fileDescriptor\" error";
+        return Commons::POSIXErrors::E_BADF;
+    }
+    this->deviceID = deviceID;
+    current = dup(deviceID);
+    if (dup2(fileDescriptor, deviceID) < 0) {
+        std::cerr << "\"deviceID\" redirection failed";
+        return Commons::POSIXErrors::E_BADF;
+    }
+    return Commons::POSIXErrors::OK;
 }
 
 /**
  * Recovering the descriptor to the original one
- * 
- * @param int [fileDescriptor] The output descriptor ID 
+ *
  * @return [int] The state defines in the POSIXErrors.hpp
  */
-int IOSpecification::recoverOutput(int fileDescriptor) {
-	// if(dup2(current, fileDescriptor) < 0) {
-	// 	std::cerr << "\"fileDescriptor\" redirection failed";
-	// 	return Commons::POSIXErrors::E_BADF;
-	// }
-	return Commons::POSIXErrors::OK;
+int IOSpecification::recoverOutput() {
+    if(dup2(current, deviceID) < 0) {
+    	std::cerr << "\"fileDescriptor\" redirection failed";
+    	return Commons::POSIXErrors::E_BADF;
+    }
+    return Commons::POSIXErrors::OK;
 }
 
 }  // namespace Commons
