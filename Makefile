@@ -21,6 +21,9 @@ LDLIBS		=$(shell source ${Prdir}/Shells/iniParser.sh && echo $$(getVariableValue
 Headers=${Prdir}/Headers
 Sources=${Prdir}/Sources
 
+Commons.Headers=${Prdir}/Models/Commons/Headers
+Commons.Sources=${Prdir}/Models/Commons/Sources
+
 PCAP.Headers=${Prdir}/Models/PCAP/Headers
 PCAP.Sources=${Prdir}/Models/PCAP/Sources
 
@@ -47,7 +50,7 @@ clean:
 	@rm -rf ${Prdir}/*.o
 	@rm -rf ${Prdir}/*/*.o
 	@rm -rf ${Prdir}/*/*/*.o
-	@rm -rf ${Prdir}/*/*/*.o
+	@rm -rf ${Prdir}/*/*/*/*.o
 	@sudo rm -rf ${Prdir}/${PjN}
 
 .Phony: cmakeClean
@@ -72,10 +75,12 @@ ${Prdir}/${PjN}/build :
 # Create a application
 ${Prdir}/${PjN}: 	${Prdir}/Main.o \
 					${Sources}/MainCaller.o \
-					${PCAP.Headers}/LinuxPCAP.o
+					${Commons.Sources}/IOSpecification.o \
+					${PCAP.Sources}/LinuxPCAP.o
 
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${FMSG} -o ${Prdir}/${PjN} ${Prdir}/Main.o \
 	${Sources}/MainCaller.o \
+	${Commons.Sources}/IOSpecification.o \
 	${PCAP.Sources}/LinuxPCAP.o \
 	${LDLIBS}
 
@@ -84,10 +89,13 @@ ${Prdir}/Main.o:	${Headers}/MainCaller.hpp ${Prdir}/Main.cpp
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${Prdir}/Main.cpp -c ${FMSG} -o ${Prdir}/Main.o
 
 # MainCaller
-${Sources}/MainCaller.o:	${Headers}/MainCaller.hpp ${Sources}/MainCaller.cpp
+${Sources}/MainCaller.o:	${Commons.Headers}/POSIXErrors.hpp ${Commons.Headers}/IOSpecification.hpp ${Headers}/MainCaller.hpp ${Sources}/MainCaller.cpp
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${Sources}/MainCaller.cpp -c ${FMSG} -o ${Sources}/MainCaller.o
 
+# Commons.IOSpecification
+${Commons.Sources}/IOSpecification.o:	${Commons.Headers}/POSIXErrors.hpp ${Commons.Headers}/IOSpecification.hpp ${Commons.Sources}/IOSpecification.cpp
+	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${Commons.Sources}/IOSpecification.cpp -c ${FMSG} -o ${Commons.Sources}/IOSpecification.o
 
 # PCAP.LinuxPCAP
-${PCAP.Headers}/LinuxPCAP.o:	${PCAP.Headers}/PCAPPrototype.hpp ${PCAP.Headers}/LinuxPCAP.hpp ${PCAP.Sources}/LinuxPCAP.cpp
+${PCAP.Sources}/LinuxPCAP.o:	${PCAP.Headers}/PCAPPrototype.hpp ${PCAP.Headers}/LinuxPCAP.hpp ${PCAP.Sources}/LinuxPCAP.cpp
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${PCAP.Sources}/LinuxPCAP.cpp -c ${FMSG} -o ${PCAP.Sources}/LinuxPCAP.o
