@@ -26,10 +26,10 @@ class PCAPPrototype {
     int txPacketNumber;              // The number of the packets in the rx channel
     virtual void open(const char*, const int,
                       const int, const int) = 0;  // "open(.)" approach
-    virtual void execute(void) = 0;               // Executing the loop for obtaining the packets
-                                                  // virtual void getRX(std::string) = 0;  // Obtaining the contents of the RX
-                                                  //	virtual void getTX(std::string) = 0;  // Obtaining the contents of the TX
-    virtual void close(void) = 0;                 // "close(.)" approach
+    virtual void execute(void (*)(u_char*, const pcap_pkthdr*,
+                                  const u_char*)) = 0;  // Executing the loop for obtaining the packets;
+                                                        // here the type pcap_pkthdr is for user-defined function
+    virtual void close(void) = 0;                       // "close(.)" approach
 };
 
 }  // namespace PCAP

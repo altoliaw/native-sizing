@@ -24,7 +24,7 @@ class LinuxPCAP : public PCAPPrototype {
     LinuxPCAP();
     ~LinuxPCAP();
     void open(const char*, const int, const int, const int);
-    void execute(void);
+    void execute(void (*)(u_char*, const pcap_pkthdr*, const u_char*) = nullptr);
     void close(void);
 
    private:

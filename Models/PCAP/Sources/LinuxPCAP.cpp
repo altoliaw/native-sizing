@@ -56,11 +56,18 @@ void LinuxPCAP::open(const char* device, const int snaplen, const int promisc, c
 }
 
 /**
- * Looping for obtaining packets
+ * Looping for obtaining packets; if the developer does not pass the argument, the default static function, LinuxPCAP::packetHandler, 
+ * defined in class will be injected; otherwise, the user-defined function will be referred
+ * 
+ * @param callback [void (*)(u_char*, const pcap_pkthdr*, const u_char*)] The callback function for pcap_loop;
+ * the default value of the function is "nullptr" (has been initialized in the declaration)
  */
-void LinuxPCAP::execute() {
+void LinuxPCAP::execute(void (*callback)(u_char*, const pcap_pkthdr*, const u_char*)) {
     if (pcapDescriptor != nullptr) {
-        pcap_loop(pcapDescriptor, 0, LinuxPCAP::packetHandler, reinterpret_cast<u_char*>(&rxPacketNumber));
+        pcap_loop(pcapDescriptor,
+                  0,
+                  ((callback == nullptr) ? LinuxPCAP::packetHandler : callback),
+                  reinterpret_cast<u_char*>(&rxPacketNumber));
     }
 }
 
