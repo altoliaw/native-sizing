@@ -6,12 +6,13 @@
  * @date 2024/05/24
  */
 #include <string.h>
+
 #include "./POSIXErrors.hpp"
 
 namespace Commons {
 /**
- * The hash table (Some customers have old platforms; that implies users 
- * can not use container in C++) 
+ * The hash table (Some customers have old platforms; that implies users
+ * can not use container in C++)
  */
 class HashTable {
    public:
@@ -29,9 +30,11 @@ class HashTable {
         // The next address of the element in queuing for
         // the situation when all elements will be removed
         element* nextInQueue;
-		// The next address of the element in queuing for
+        // The next address of the element in queuing for
         // the situation when all elements will be removed (easily maintain the structure in the queue)
-		element* previousInQueue;
+        element* previousInQueue;
+		element(char* columnName, char* value);
+		~element();
     };
 
     // The size of the size of the hash table
@@ -44,17 +47,14 @@ class HashTable {
     // The address of the last element in the queue
     element* lastElement;
 
-	HashTable(int = 97);
-	~HashTable();
-    virtual char* getValueByName(char*);
+    HashTable(int = 97);
+    virtual ~HashTable();
+    virtual char getValueByName(char*, char**);
     virtual POSIXErrors removeElementByName(char*);
-	virtual POSIXErrors addElementIntoHashTable(char*, char*);
+    virtual POSIXErrors addElementIntoHashTable(char*, char*);
 
    protected:
-    virtual void elementConstructor(element*);
-    virtual void elementDestructor(element*);
     virtual unsigned int getHashIndex(char*);
-
 };
 
-}  // namespace FileInputs
+}  // namespace Commons

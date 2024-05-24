@@ -9,8 +9,9 @@
 #include <algorithm>
 #include <iostream>
 
-#include "../Models/Commons/Headers/IOSpecification.hpp"
 #include "../Models/Commons/Headers/POSIXErrors.hpp"
+#include "../Models/Commons/Headers/IOSpecification.hpp"
+#include "../Models/Commons/Headers/HashTable.hpp"
 #include "../Models/PCAP/Headers/LinuxPCAP.hpp"
 
 int start(int, char**);

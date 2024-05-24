@@ -29,7 +29,6 @@ HashTable::~HashTable() {
         current = queue;
         queue = queue->nextInQueue;
         // Releasing the element's memory
-        elementDestructor(current);
         delete current;
         current = nullptr;
     }
@@ -45,20 +44,54 @@ HashTable::~HashTable() {
 }
 
 /**
+ * Constructor of the element
+ * 
+ * @param columnName [char*]
+ * @param value [char*]
+ */
+HashTable::element::element(char* columnName, char* value) {
+    this->columnName = columnName;
+    this->value = value;
+    nextInHashTable = nullptr;
+    nextInQueue = nullptr;
+    previousInQueue = nullptr;
+}
+
+/**
+ * Destructor of the element
+ */
+HashTable::element::~element() {
+    // Removing the memories for the "char" arrays
+    if (columnName != nullptr) {
+        delete[] columnName;
+        columnName = nullptr;
+    }
+    if (value != nullptr) {
+        delete[] value;
+        value = nullptr;
+    }
+    nextInQueue = nullptr;
+    previousInQueue = nullptr;
+    nextInHashTable = nullptr;
+}
+
+/**
  * Obtaining the result from the hash table
  *
  * @param columnName [char*] The column name
- * @return [char*] The value; if the name does not in the hash table, the nullptr will be returned
+ * @param value [char**] The address of the value of the column name
+ * @return [char*] The number of the hitted element; if the element does not exist, the value will be 0x0; otherwise 0x1
  */
-char* HashTable::getValueByName(char* columnName) {
-    char* result = nullptr;
+char HashTable::getValueByName(char* columnName, char** value) {
+    char result = 0x0;
     unsigned int index = getHashIndex(columnName);
     element* current = hashTable[index];
     for (; current != nullptr;) {
         if (strcmp(current->columnName, columnName) != 0) {  // If the two string are equal, ...
             current = current->nextInHashTable;
         } else {
-            result = current->value;
+            result = 0x1;			
+			*value = current->value;
             break;
         }
     }
@@ -126,8 +159,8 @@ POSIXErrors HashTable::removeElementByName(char* columnName) {
         }
     }
 
-	// Deleting the removedItem
-	elementDestructor(removedItem);
+    // Deleting the removedItem
+    delete removedItem;
     return POSIXErrors::OK;
 }
 
@@ -140,11 +173,10 @@ POSIXErrors HashTable::removeElementByName(char* columnName) {
  */
 POSIXErrors HashTable::addElementIntoHashTable(char* columnName, char* value) {
     // Creating an element instance by using dynamic memory allocation
-    element* instance = new element{columnName, value, nullptr, nullptr, nullptr};
+    element* instance = new element(columnName, value);  // Initialization
     if (instance == nullptr) {
         return POSIXErrors::E_NOMEM;
     }
-    elementConstructor(instance);  // Initialization
 
     // Registering the element into the queue
     if (queue == nullptr) {
@@ -172,39 +204,6 @@ POSIXErrors HashTable::addElementIntoHashTable(char* columnName, char* value) {
     }
 
     return POSIXErrors::OK;
-}
-
-/**
- * Element constructor
- *
- * @param object [element*] The address of the element object
- */
-void HashTable::elementConstructor(element* object) {
-    object->columnName = nullptr;
-    object->nextInHashTable = nullptr;
-    object->nextInQueue = nullptr;
-    object->previousInQueue = nullptr;
-    object->value = nullptr;
-}
-
-/**
- * Element destructor
- *
- * @param object [element*] The address of the element object
- */
-void HashTable::elementDestructor(element* object) {
-    // Removing the memories for the "char" arrays
-    if (object->columnName != nullptr) {
-        delete[] object->columnName;
-        object->columnName = nullptr;
-    }
-    if (object->value != nullptr) {
-        delete[] object->value;
-        object->value = nullptr;
-    }
-    object->nextInQueue = nullptr;
-    object->previousInQueue = nullptr;
-    object->nextInHashTable = nullptr;
 }
 
 /**
