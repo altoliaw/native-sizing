@@ -6,6 +6,7 @@
  * @date 2024/05/24
  */
 #include <string.h>
+#include <iostream>
 
 #include "./POSIXErrors.hpp"
 
