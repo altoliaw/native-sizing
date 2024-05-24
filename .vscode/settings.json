@@ -6,7 +6,8 @@
     "cspcap.h": "c",
     "ip.h": "c",
     "socket.h": "c",
-    "signal.h": "c"
+    "signal.h": "c",
+    "thread": "cpp"
   },
   "C_Cpp_Runner.cCompilerPath": "gcc",
   "C_Cpp_Runner.cppCompilerPath": "g++",
