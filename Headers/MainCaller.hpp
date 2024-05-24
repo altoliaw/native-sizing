@@ -6,8 +6,10 @@
  * @date 2024/05/15
  */
 
+#include <unistd.h>
 #include <signal.h>
 #include <thread>
+#include <time.h>
 
 #include "../Models/Commons/Headers/IOSpecification.hpp"
 #include "../Models/Commons/Headers/POSIXErrors.hpp"
@@ -17,4 +19,5 @@
 //===Function Declaration===
 
 int start(int, char**);
-void signalHandler(int);
+void signalInterruptedHandler(int);
+void signalAlarmHandler(int);
