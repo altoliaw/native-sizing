@@ -38,6 +38,8 @@ PjN:= $(word $(words $(subst /, ,${Prdir})), $(subst /, ,${Prdir}))
 all:	${Prdir}/${PjN}
 	@sudo chown root:root ${Prdir}/${PjN}
 	@sudo chmod 4755 ${Prdir}/${PjN}
+	@echo ""
+	@echo "=================[Execution]===================="
 	@make run
 	
 
