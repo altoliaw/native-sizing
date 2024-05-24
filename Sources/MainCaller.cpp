@@ -21,16 +21,6 @@ int start(int argC, char** argV) {
     //     std::cerr << "The result2:" << instance << "\n";
     // }
 
-    // {
-    //     Commons::HashTable* hashtable = new Commons::HashTable();
-    //     hashtable->addElementIntoHashTable((char*)"AE.NO", (char*)"3");
-    //     hashtable->addElementIntoHashTable((char*)"AE.NO2", (char*)"4");
-    //     char* result = nullptr;
-    //     int number = hashtable->getValueByName((char*)"AE.NO", &result);
-    //     std::cerr << (int)number << "," << ((result == nullptr) ? (char*)"No item" : result) << "\n";
-    //     delete hashtable;
-    // }
-
     // {   // Creating an object, opening the interface, executing the packet calculations
     //     // and closing the interface
     //     PCAP::LinuxPCAP pcapObject;
