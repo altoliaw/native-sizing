@@ -24,6 +24,7 @@ enum POSIXErrors {
     E_INTR,    // Operations suspended/interrupted
     E_IO,      // IO error
     E_NOTTY,   // Not a teletypewriter (tty)
+    E_NOITEM,  // No item
 };
 
 }

@@ -75,11 +75,13 @@ ${Prdir}/${PjN}/build :
 # Create a application
 ${Prdir}/${PjN}: 	${Prdir}/Main.o \
 					${Sources}/MainCaller.o \
+					${Commons.Sources}/HashTable.o \
 					${Commons.Sources}/IOSpecification.o \
 					${PCAP.Sources}/LinuxPCAP.o
 
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${FMSG} -o ${Prdir}/${PjN} ${Prdir}/Main.o \
 	${Sources}/MainCaller.o \
+	${Commons.Sources}/HashTable.o \
 	${Commons.Sources}/IOSpecification.o \
 	${PCAP.Sources}/LinuxPCAP.o \
 	${LDLIBS}
@@ -91,6 +93,10 @@ ${Prdir}/Main.o:	${Headers}/MainCaller.hpp ${Prdir}/Main.cpp
 # MainCaller
 ${Sources}/MainCaller.o:	${Commons.Headers}/POSIXErrors.hpp ${Commons.Headers}/IOSpecification.hpp ${Headers}/MainCaller.hpp ${Sources}/MainCaller.cpp
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${Sources}/MainCaller.cpp -c ${FMSG} -o ${Sources}/MainCaller.o
+
+# Commons.HashTable
+${Commons.Sources}/HashTable.o:	${Commons.Headers}/POSIXErrors.hpp ${Commons.Headers}/HashTable.hpp ${Commons.Sources}/HashTable.cpp
+	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${Commons.Sources}/HashTable.cpp -c ${FMSG} -o ${Commons.Sources}/HashTable.o
 
 # Commons.IOSpecification
 ${Commons.Sources}/IOSpecification.o:	${Commons.Headers}/POSIXErrors.hpp ${Commons.Headers}/IOSpecification.hpp ${Commons.Sources}/IOSpecification.cpp
