@@ -18,7 +18,7 @@ namespace Commons {
  */
 class StringImplment {
    public:
-    static int obtainFirstNotSpaceCharLocation(const char*);
+    static int obtainFirstNotSpaceCharLocation(const char*, const char = 0x0);
 	static int trimLeftSpace(char**);
     static int trimRightSpace(char**);
 	static int mergeRedundantSpace(char**);
