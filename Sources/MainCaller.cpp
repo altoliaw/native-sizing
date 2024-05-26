@@ -30,16 +30,17 @@ static void packetFileTask(FILE**);
 int start(int argC, char** argV) {
     int result = Commons::POSIXErrors::OK;
     char* interfaceName = (argC <= 1) ? (char*)"eno2" : argV[0];
+    int port = (argC <= 2) ? 1521 : atoi(argV[1]);  // The server port
 
     // Installing a signal handler, interrupt
-    signal(SIGINT, signalInterruptedHandler);    
+    signal(SIGINT, signalInterruptedHandler);
 
     {  // Creating an object, opening the interface, executing the packet calculations
         // and closing the interface
         PCAP::LinuxPCAP pcapObject;
-        pcapObject.open(interfaceName, BUFSIZ, 1, 1000);
+        pcapObject.open(interfaceName, BUFSIZ, 1, 1000, (const int)port);
 
-        FILE* fileDescriptor = nullptr;        
+        FILE* fileDescriptor = nullptr;
         // Two threads; the values in the thread imply function name, argument 1, argument2 and so on
         std::thread packetThread{packetTask, &pcapObject, packetHandler};
         std::thread writePacketFileThread{packetFileTask, &fileDescriptor};
@@ -49,7 +50,7 @@ int start(int argC, char** argV) {
         packetThread.join();
         writePacketFileThread.join();
         pcapObject.close();
-        if(fileDescriptor != nullptr) {
+        if (fileDescriptor != nullptr) {
             fclose(fileDescriptor);
         }
     }
@@ -76,7 +77,7 @@ static void packetTask(PCAP::LinuxPCAP* pcap, void (*packetHandler)(u_char*, con
 static void packetFileTask(FILE** fileDescriptor) {
     // Installing a signal handler, alarm
     signal(SIGALRM, signalAlarmHandler);
-    _FILE_POINTER_ = fileDescriptor; // Passing to the global variable
+    _FILE_POINTER_ = fileDescriptor;  // Passing to the global variable
     // _PCAP_POINTER_
 
     // The first calling the function
@@ -84,7 +85,7 @@ static void packetFileTask(FILE** fileDescriptor) {
 
     // Using a gloal variable to verify if the interrupt occurs
     while (_IS_ALARM_WORKED_ == 0x1) {
-        sleep(5); // A routine clock checker
+        sleep(5);  // A routine clock checker
     }
 }
 /**
@@ -96,13 +97,54 @@ static void packetFileTask(FILE** fileDescriptor) {
  * @param [void]
  */
 static void packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, const u_char* packet) {
-    int* packetCount = (int*)userData;
-    (*packetCount)++;
-    std::cout << *packetCount << " packets\t";
+    static char previousPacketType = 0x0;  // 0x0: TX, 0x1: RX
 
-    long* totalSize = (long*)(userData + sizeof(int));
-    *totalSize += pkthdr->len;
-    std::cout << pkthdr->len << "  total size\n";
+    // Obtaining the IP header; the ip_p column implies the protocol;
+    // the number of the TCP is 6, and the UDP is 17
+    ip* ip_header = (ip*)(packet + sizeof(ether_header));
+
+    // Preparing the headers and the packet source/destination port variables
+    tcphdr* tcpHeader = nullptr;
+    udphdr* udpHeader = nullptr;
+    uint16_t packetSourcePort = 0;
+    uint16_t packetDestinationPort = 0;
+
+    // Determining the protocol (TCP or UDP)
+    switch (ip_header->ip_p) {
+        case IPPROTO_TCP:  // TCP
+            tcpHeader = (tcphdr*)(packet + sizeof(ether_header) + sizeof(ip));
+            packetSourcePort = ntohs(tcpHeader->th_sport);
+            packetDestinationPort = ntohs(tcpHeader->th_dport);
+            break;
+        case IPPROTO_UDP:  // UDP
+            udpHeader = (udphdr*)(packet + sizeof(ether_header) + sizeof(ip));
+            packetSourcePort = ntohs(udpHeader->uh_sport);
+            packetDestinationPort = ntohs(udpHeader->uh_dport);
+            break;
+        default:
+            tcpHeader = (tcphdr*)(packet + sizeof(ether_header) + sizeof(ip));
+            packetSourcePort = ntohs(tcpHeader->th_sport);
+            packetDestinationPort = ntohs(tcpHeader->th_dport);
+    }
+
+    // Comparing source and destination ports with the port to determine the direction
+    if (packetSourcePort == _PCAP_POINTER_->port) {  // TX packet
+        previousPacketType = 0x0;
+        _PCAP_POINTER_->txPacketNumber++;
+        _PCAP_POINTER_->txSize += (long long)(pkthdr->len);
+    } else if (packetDestinationPort == _PCAP_POINTER_->port) {  // RX packet
+        previousPacketType = 0x1;
+        _PCAP_POINTER_->rxPacketNumber++;
+        _PCAP_POINTER_->rxSize += (long long)(pkthdr->len);
+    } else {                              // Obtaining no type; as a result, the packet will belong to the previous one
+        if (previousPacketType == 0x0) {  // TX packet
+            _PCAP_POINTER_->txPacketNumber++;
+            _PCAP_POINTER_->txSize += (long long)(pkthdr->len);
+        } else {  // RX packet
+            _PCAP_POINTER_->rxPacketNumber++;
+            _PCAP_POINTER_->rxSize += (long long)(pkthdr->len);
+        }
+    }
 
     // Verifying if the "pcap_loop" shall be stopped; "_IS_PCAP_WORKED_" is
     // a global variable and is controlled by the signal mechanism
@@ -117,18 +159,19 @@ static void packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, co
  * @param [int] The signal type (ignore)
  */
 void signalInterruptedHandler(int) {
-    std::cerr << "\n" <<"Interrupted signal occurs, please wait.\n";
+    std::cerr << "\n"
+              << "Interrupted signal occurs, please wait.\n";
     _IS_PCAP_WORKED_ = 0x0;
     _IS_ALARM_WORKED_ = 0x0;
     alarm(0);
 }
 
 /**
- * A handler when receiving the SIGALRM signal; in the function, the main task is 
+ * A handler when receiving the SIGALRM signal; in the function, the main task is
  * writing the packet information to the file
  */
 void signalAlarmHandler(int) {
     std::cerr << "signalAlarmHandler called\n";
-    // TODO File writing 
+    // TODO File writing
     alarm(_WRITING_FILE_SECOND_);
 }

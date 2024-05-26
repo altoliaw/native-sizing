@@ -23,7 +23,7 @@ class LinuxPCAP : public PCAPPrototype {
     pcap_t* pcapDescriptor;  // The pointer for referring to the variable "handle" from the prototype
     LinuxPCAP();
     ~LinuxPCAP();
-    void open(const char*, const int, const int, const int);
+    void open(const char*, const int, const int, const int, int);
     void execute(void (*)(u_char*, const pcap_pkthdr*, const u_char*) = nullptr);
     void close(void);
 

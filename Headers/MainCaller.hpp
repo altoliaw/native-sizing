@@ -10,6 +10,11 @@
 #include <signal.h>
 #include <thread>
 #include <time.h>
+#include <stdlib.h>
+#include <netinet/if_ether.h> // For Ethernet header structure
+#include <netinet/ip.h>       // For IP header structure
+#include <netinet/tcp.h>      // For TCP header structure
+#include <netinet/udp.h>      // For UDP header structure
 
 #include "../Models/Commons/Headers/IOSpecification.hpp"
 #include "../Models/Commons/Headers/POSIXErrors.hpp"

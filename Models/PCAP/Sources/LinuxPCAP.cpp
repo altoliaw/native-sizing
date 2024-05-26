@@ -11,6 +11,7 @@ LinuxPCAP::LinuxPCAP() {
     descriptor = nullptr;
     pcapDescriptor = (pcap_t*)descriptor;
     deviceInterface = "";
+    port = 0;
     rxSize = 0;
     txSize = 0;
     rxPacketNumber = 0;
@@ -31,6 +32,7 @@ LinuxPCAP::~LinuxPCAP() {
         descriptor = nullptr;
     }
     deviceInterface = "";
+    port = 0;
     rxSize = 0;
     txSize = 0;
     rxPacketNumber = 0;
@@ -46,19 +48,23 @@ LinuxPCAP::~LinuxPCAP() {
  * @param promisc [const int] Specifying that the device is to be put into promiscuous mode.
  * A value of 1 (True) turns promiscuous mode on.
  * @param timeout [const int] Timeout (milliseconds)
+ * @param port [const int] The port of the server for distinguishing with the packets from rx and tx
  */
-void LinuxPCAP::open(const char* device, const int snaplen, const int promisc, const int timeout) {
+void LinuxPCAP::open(const char* device, const int snaplen, const int promisc, const int timeout, const int port) {
     pcapDescriptor = pcap_open_live(device, snaplen, promisc, timeout, errBuff);
     if (pcapDescriptor == nullptr) {
         std::cerr << "[Error] PCAP open failed; please verifying if the permission is root\n";
     }
+    std::string deviceInterface(device);
+    this->deviceInterface = deviceInterface;
+    this->port = (int)port;
     descriptor = (void*)pcapDescriptor;
 }
 
 /**
- * Looping for obtaining packets; if the developer does not pass the argument, the default static function, LinuxPCAP::packetHandler, 
+ * Looping for obtaining packets; if the developer does not pass the argument, the default static function, LinuxPCAP::packetHandler,
  * defined in class will be injected; otherwise, the user-defined function will be referred
- * 
+ *
  * @param callback [void (*)(u_char*, const pcap_pkthdr*, const u_char*)] The callback function for pcap_loop;
  * the default value of the function is "nullptr" (has been initialized in the declaration)
  */
