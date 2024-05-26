@@ -16,21 +16,23 @@ namespace Commons {
  */
 int StringImplment::obtainFirstNotSpaceCharLocation(const char* string, const char direction) {
     int index = -2;  // Final result
-    unsigned int stringLength = strlen(string);
-    if (string != nullptr) {
-        index = -1;
-        if (direction == 0x0) {
-            for (unsigned int i = 0; i < stringLength; i++) {
-                if (string[i] != ' ') {
-                    index = (int)i;
-                    break;
+    if(string != nullptr) {
+        unsigned int stringLength = strlen(string);
+        if (string != nullptr) {
+            index = -1;
+            if (direction == 0x0) {
+                for (unsigned int i = 0; i < stringLength; i++) {
+                    if (string[i] != ' ') {
+                        index = (int)i;
+                        break;
+                    }
                 }
-            }
-        } else if (direction == 0x1) {
-            for (unsigned int i = 0; i < stringLength; i++) {
-                if (string[stringLength - 1 - i] != ' ') {
-                    index = (int)(stringLength - 1 - i);
-                    break;
+            } else if (direction == 0x1) {
+                for (unsigned int i = 0; i < stringLength; i++) {
+                    if (string[stringLength - 1 - i] != ' ') {
+                        index = (int)(stringLength - 1 - i);
+                        break;
+                    }
                 }
             }
         }
@@ -92,9 +94,9 @@ int StringImplment::trimRightSpace(char** string) {
  */
 int StringImplment::mergeRedundantSpace(char** string) {
     int length = -1;
-    int fianlLength = (int)strlen(*string);
     // Using the shifted concept which the string comes from the two substrings
     if (*string != nullptr) {
+        int fianlLength = (int)strlen(*string);
         int checkedIndex = 0;
         for (unsigned int i = 0, j = 0; i < (unsigned int)fianlLength; i++) {
             // When the pivot is a space and the previous checked character is a space as well,
