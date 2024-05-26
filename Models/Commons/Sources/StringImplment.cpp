@@ -55,7 +55,7 @@ int StringImplment::trimLeftSpace(char** string) {
     if (index >= -1 && index <= 0) {
         length = (int)strlen(*string);
     } else if (index > 0) {
-        length = (int)strlen(*string) - index + 1;
+        length = (int)strlen(*string) - index;
         memmove(*string, (*string) + index, length);
         (*string)[length] = '\0';
     }
