@@ -10,6 +10,10 @@ volatile char _IS_PCAP_WORKED_ = 0x1;
 volatile char _IS_ALARM_WORKED_ = 0x1;
 // The time interval, s (the file will be recorded every s second(s))
 unsigned int _WRITING_FILE_SECOND_ = 30;
+// Mutual locker
+std::mutex _MUTEX_;
+// Writing file path
+char* _WRITING_FILE_LOCATION_ = nullptr;
 
 // Referring to the object for stopping "pcap_loop"
 PCAP::LinuxPCAP* _PCAP_POINTER_ = nullptr;
@@ -18,7 +22,7 @@ FILE** _FILE_POINTER_ = nullptr;
 
 static void packetHandler(u_char*, const struct pcap_pkthdr*, const u_char*);
 static void packetTask(PCAP::LinuxPCAP*, void (*)(u_char*, const pcap_pkthdr*, const u_char*));
-static void packetFileTask(FILE**);
+static void packetFileTask(FILE**, const char*);
 
 /**
  * The starting process
@@ -28,10 +32,15 @@ static void packetFileTask(FILE**);
  * @return [int]
  */
 int start(int argC, char** argV) {
-    int result = Commons::POSIXErrors::OK;
+    // Preparing some information
     char* interfaceName = (argC <= 1) ? (char*)"eno2" : argV[0];
-    int port = (argC <= 2) ? 1521 : atoi(argV[1]);  // The server port
+    int port = (argC <= 2) ? 1521 : atoi(argV[1]);                                               // The server port
+    char* OutputFilePathRule = (argC <= 3) ? (char*)"Outputs/trafficMonitor_%lu.tsv" : argV[2];  // The ouytput path
+    char OuputFilePathWithTime[100] = {'\0'};
+    sprintf(OuputFilePathWithTime, OutputFilePathRule, Commons::UTCTime::getEpoch());
+    _WRITING_FILE_LOCATION_ = OuputFilePathWithTime;
 
+    int result = Commons::POSIXErrors::OK;
     // Installing a signal handler, interrupt
     signal(SIGINT, signalInterruptedHandler);
 
@@ -43,7 +52,7 @@ int start(int argC, char** argV) {
         FILE* fileDescriptor = nullptr;
         // Two threads; the values in the thread imply function name, argument 1, argument2 and so on
         std::thread packetThread{packetTask, &pcapObject, packetHandler};
-        std::thread writePacketFileThread{packetFileTask, &fileDescriptor};
+        std::thread writePacketFileThread{packetFileTask, &fileDescriptor, OuputFilePathWithTime};
 
         // When the functions finish or interrupt, those two threads shall
         // be joined into the main procrss
@@ -73,8 +82,10 @@ static void packetTask(PCAP::LinuxPCAP* pcap, void (*packetHandler)(u_char*, con
  * The function for the thread, packetThread; the task is to executing the "pcap_loop"
  *
  * @param fileDescriptor [FILE**] The address of the pointer of the FILE descriptor
+ * @param filePath [const char*] The file path for recording the information
  */
-static void packetFileTask(FILE** fileDescriptor) {
+static void packetFileTask(FILE** fileDescriptor, const char* filePath) {
+    std::cerr << filePath << "\n";
     // Installing a signal handler, alarm
     signal(SIGALRM, signalAlarmHandler);
     _FILE_POINTER_ = fileDescriptor;  // Passing to the global variable
@@ -83,9 +94,31 @@ static void packetFileTask(FILE** fileDescriptor) {
     // The first calling the function
     alarm(_WRITING_FILE_SECOND_);
 
+    // Opening the file with the file descriptor
+    if (*_FILE_POINTER_ == nullptr) {
+        *_FILE_POINTER_ = fopen(filePath, "a+");
+        if (*_FILE_POINTER_ == nullptr) {
+            std::cerr << "Error opening the file!\n";
+            signalInterruptedHandler(0);  // Going to the end of the thread
+        } else {                          // Adding the header in the file
+            char output[1024] = {'\0'};
+            int length = sprintf(output, "UTC\tType\tNumber(amount)\tSize(byte)\teps(SQL number per time interval)\n");
+            fwrite(output, sizeof(char), length, *_FILE_POINTER_);
+            if (*_FILE_POINTER_ != nullptr) {
+                fclose(*_FILE_POINTER_);
+                *_FILE_POINTER_ = nullptr;
+            }
+        }
+    }
+
     // Using a gloal variable to verify if the interrupt occurs
     while (_IS_ALARM_WORKED_ == 0x1) {
         sleep(5);  // A routine clock checker
+    }
+
+    // Closing the file
+    if (*_FILE_POINTER_ != nullptr) {
+        fclose(*_FILE_POINTER_);
     }
 }
 /**
@@ -127,6 +160,8 @@ static void packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, co
             packetDestinationPort = ntohs(tcpHeader->th_dport);
     }
 
+    // Critical section, accessing the data area
+    _MUTEX_.lock();
     // Comparing source and destination ports with the port to determine the direction
     if (packetSourcePort == _PCAP_POINTER_->port) {  // TX packet
         previousPacketType = 0x0;
@@ -145,6 +180,8 @@ static void packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, co
             _PCAP_POINTER_->rxSize += (long long)(pkthdr->len);
         }
     }
+    // Critical section end
+    _MUTEX_.unlock();
 
     // Verifying if the "pcap_loop" shall be stopped; "_IS_PCAP_WORKED_" is
     // a global variable and is controlled by the signal mechanism
@@ -171,7 +208,47 @@ void signalInterruptedHandler(int) {
  * writing the packet information to the file
  */
 void signalAlarmHandler(int) {
-    std::cerr << "signalAlarmHandler called\n";
-    // TODO File writing
-    alarm(_WRITING_FILE_SECOND_);
+    // File writing
+    char output[1024] = {"\0"};
+    if (*_FILE_POINTER_ == nullptr) {
+        std:: cerr << _WRITING_FILE_LOCATION_ << "\n";
+        *_FILE_POINTER_ = fopen(_WRITING_FILE_LOCATION_, "a+");
+        if (*_FILE_POINTER_ == nullptr) {
+            std::cerr << "Error opening the file!\n";
+            signalInterruptedHandler(0);  // Going to the end of the thread
+        } else {
+            _MUTEX_.lock();
+            // TX part
+            int length = sprintf(output,
+                                 "%lu\tTX\t%lu\t%llu\t%llu\n",
+                                 Commons::UTCTime::getEpoch(),
+                                 _PCAP_POINTER_->txPacketNumber,
+                                 _PCAP_POINTER_->txSize / 8,
+                                 _PCAP_POINTER_->txSize / (long long)_WRITING_FILE_SECOND_) / 8;
+            fwrite(output, sizeof(char), length, *_FILE_POINTER_);
+            _PCAP_POINTER_->txPacketNumber = 0;
+            _PCAP_POINTER_->txSize = 0;
+            // RX part
+            length = sprintf(output,
+                             "%lu\tRX\t%lu\t%llu\t%llu\n",
+                             Commons::UTCTime::getEpoch(),
+                             _PCAP_POINTER_->rxPacketNumber,
+                             _PCAP_POINTER_->rxSize / 8,
+                             _PCAP_POINTER_->rxSize / (long long)_WRITING_FILE_SECOND_) / 8;
+            fwrite(output, sizeof(char), length, *_FILE_POINTER_);
+            _PCAP_POINTER_->rxPacketNumber = 0;
+            _PCAP_POINTER_->rxSize = 0;
+
+            _MUTEX_.unlock();
+            alarm(_WRITING_FILE_SECOND_);
+            // Closing the file
+            if (*_FILE_POINTER_ != nullptr) {
+                fclose(*_FILE_POINTER_);
+                *_FILE_POINTER_ = nullptr;
+            }
+        }
+    } else { // Closing the descriptor and skipping the handling in the ith loop
+        fclose(*_FILE_POINTER_);
+        *_FILE_POINTER_ = nullptr;
+    }
 }

@@ -77,12 +77,14 @@ ${Prdir}/${PjN}/build :
 # Create a application
 ${Prdir}/${PjN}: 	${Prdir}/Main.o \
 					${Sources}/MainCaller.o \
+					${Commons.Sources}/UTCTime.o \
 					${Commons.Sources}/HashTable.o \
 					${Commons.Sources}/IOSpecification.o \
 					${PCAP.Sources}/LinuxPCAP.o
 
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${FMSG} -o ${Prdir}/${PjN} ${Prdir}/Main.o \
 	${Sources}/MainCaller.o \
+	${Commons.Sources}/UTCTime.o \
 	${Commons.Sources}/HashTable.o \
 	${Commons.Sources}/IOSpecification.o \
 	${PCAP.Sources}/LinuxPCAP.o \
@@ -99,6 +101,10 @@ ${Sources}/MainCaller.o:	${Commons.Headers}/POSIXErrors.hpp ${Commons.Headers}/I
 # Commons.HashTable
 ${Commons.Sources}/HashTable.o:	${Commons.Headers}/POSIXErrors.hpp ${Commons.Headers}/HashTable.hpp ${Commons.Sources}/HashTable.cpp
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${Commons.Sources}/HashTable.cpp -c ${FMSG} -o ${Commons.Sources}/HashTable.o
+
+# Commons.UTCTime
+${Commons.Sources}/UTCTime.o:	${Commons.Headers}/POSIXErrors.hpp ${Commons.Headers}/UTCTime.hpp ${Commons.Sources}/UTCTime.cpp
+	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${Commons.Sources}/UTCTime.cpp -c ${FMSG} -o ${Commons.Sources}/UTCTime.o
 
 # Commons.IOSpecification
 ${Commons.Sources}/IOSpecification.o:	${Commons.Headers}/POSIXErrors.hpp ${Commons.Headers}/IOSpecification.hpp ${Commons.Sources}/IOSpecification.cpp
