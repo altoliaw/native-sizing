@@ -211,7 +211,7 @@ void signalAlarmHandler(int) {
     // File writing
     char output[1024] = {"\0"};
     if (*_FILE_POINTER_ == nullptr) {
-        std:: cerr << _WRITING_FILE_LOCATION_ << "\n";
+        std::cerr << _WRITING_FILE_LOCATION_ << "\n";
         *_FILE_POINTER_ = fopen(_WRITING_FILE_LOCATION_, "a+");
         if (*_FILE_POINTER_ == nullptr) {
             std::cerr << "Error opening the file!\n";
@@ -224,7 +224,7 @@ void signalAlarmHandler(int) {
                                  Commons::UTCTime::getEpoch(),
                                  _PCAP_POINTER_->txPacketNumber,
                                  _PCAP_POINTER_->txSize / 8,
-                                 _PCAP_POINTER_->txSize / (long long)_WRITING_FILE_SECOND_) / 8;
+                                 _PCAP_POINTER_->txSize / (long long)_WRITING_FILE_SECOND_ / 8);
             fwrite(output, sizeof(char), length, *_FILE_POINTER_);
             _PCAP_POINTER_->txPacketNumber = 0;
             _PCAP_POINTER_->txSize = 0;
@@ -234,7 +234,7 @@ void signalAlarmHandler(int) {
                              Commons::UTCTime::getEpoch(),
                              _PCAP_POINTER_->rxPacketNumber,
                              _PCAP_POINTER_->rxSize / 8,
-                             _PCAP_POINTER_->rxSize / (long long)_WRITING_FILE_SECOND_) / 8;
+                             _PCAP_POINTER_->rxSize / (long long)_WRITING_FILE_SECOND_ / 8);
             fwrite(output, sizeof(char), length, *_FILE_POINTER_);
             _PCAP_POINTER_->rxPacketNumber = 0;
             _PCAP_POINTER_->rxSize = 0;
@@ -247,7 +247,7 @@ void signalAlarmHandler(int) {
                 *_FILE_POINTER_ = nullptr;
             }
         }
-    } else { // Closing the descriptor and skipping the handling in the ith loop
+    } else {  // Closing the descriptor and skipping the handling in the ith loop
         fclose(*_FILE_POINTER_);
         *_FILE_POINTER_ = nullptr;
     }
