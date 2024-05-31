@@ -19,4 +19,5 @@ enable_testing()
 
 # Opening the subdirectory for the next works
 add_subdirectory(Models)
+add_subdirectory(Sources)
 add_subdirectory(Tests)
