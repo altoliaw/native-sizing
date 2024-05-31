@@ -29,13 +29,15 @@ static void packetFileTask(FILE**, const char*);
  *
  * @param argC [int] The number of the argument
  * @param argV [char**] The array of the argument
- * @return [int]
+ * @return [int] The result defined in "POSIXErrors.hpp"
  */
 int start(int argC, char** argV) {
     // Preparing some information
     char* interfaceName = (argC <= 1) ? (char*)"eno2" : argV[0];
     int port = (argC <= 2) ? 1521 : atoi(argV[1]);                                               // The server port
     char* OutputFilePathRule = (argC <= 3) ? (char*)"Outputs/trafficMonitor_%lu.tsv" : argV[2];  // The ouytput path
+    
+    // Obtaining the epoch
     char OuputFilePathWithTime[100] = {'\0'};
     sprintf(OuputFilePathWithTime, OutputFilePathRule, Commons::UTCTime::getEpoch());
     _WRITING_FILE_LOCATION_ = OuputFilePathWithTime;
@@ -85,11 +87,9 @@ static void packetTask(PCAP::LinuxPCAP* pcap, void (*packetHandler)(u_char*, con
  * @param filePath [const char*] The file path for recording the information
  */
 static void packetFileTask(FILE** fileDescriptor, const char* filePath) {
-    std::cerr << filePath << "\n";
     // Installing a signal handler, alarm
     signal(SIGALRM, signalAlarmHandler);
     _FILE_POINTER_ = fileDescriptor;  // Passing to the global variable
-    // _PCAP_POINTER_
 
     // The first calling the function
     alarm(_WRITING_FILE_SECOND_);
@@ -127,8 +127,7 @@ static void packetFileTask(FILE** fileDescriptor, const char* filePath) {
  *
  * @param userData [u_char*]
  * @param pkthdr [const struct pcap_pkthdr*] The address of the packet header
- * @param packet [const u_char*]
- * @param [void]
+ * @param packet [const u_char*] The address of the packet
  */
 static void packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, const u_char* packet) {
     static char previousPacketType = 0x0;  // 0x0: TX, 0x1: RX
