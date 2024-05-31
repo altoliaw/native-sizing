@@ -121,11 +121,12 @@ static void packetFileTask(FILE** fileDescriptor, const char* filePath) {
         fclose(*_FILE_POINTER_);
     }
 }
+
 /**
  * Calculating the amount of the packets
  *
  * @param userData [u_char*]
- * @param pkthdr [const struct pcap_pkthdr*]
+ * @param pkthdr [const struct pcap_pkthdr*] The address of the packet header
  * @param packet [const u_char*]
  * @param [void]
  */
