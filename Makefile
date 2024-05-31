@@ -60,6 +60,12 @@ cmakeClean:
 	@clear
 	@rm -rf ${Prdir}/build/*
 
+.Phony: cmake
+cmake:
+	cmake -S . -B build
+	cmake --build build
+	cd build && ctest -V
+
 
 ##----------------------------------------------------------------------
 ## Nick editted manually
