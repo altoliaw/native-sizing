@@ -14,7 +14,7 @@ namespace Commons {
  * 
  * @return [long] The GMT epoch value; if the value is -1, the error orccurs
  */
-long PSTTime::getEpoch_NST() {
+string PSTTime::getEpoch_NST() {
 	time_t now = time(NULL);
 	time_t nst_timestamp = (long)now + 8 * 3600;
 	tm nst_time;
