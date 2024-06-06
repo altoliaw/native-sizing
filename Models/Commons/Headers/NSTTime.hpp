@@ -7,10 +7,13 @@
  */
 
 #include <time.h>
+#include "/root/GitPj/trafficMonitor/Models/Commons/Headers/TimePrototype.hpp"
 
 namespace Commons {
-class NSTTTime {
+class NSTTTime:TimeStamp {
    public:
-	static string getEpoch_NST();
+   long Timestamp(std::string datetime);
+   std::string chageDatetime(long timestamp);
+	//static string getEpoch_NST();
 };
 }  // namespace Commons
