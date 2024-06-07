@@ -1,10 +1,13 @@
 /**
  * @see GMTTime.hpp
  */
-#include "../Headers/GMTTime.hpp"
+#include "../Headers/NSTTime.hpp"
 #include <time.h>
-#include <iomanip>
+#include <string>
+#include <iostream>
 #include <sstream>
+#include <iomanip>
+
 
 namespace Commons {
 
@@ -13,12 +16,12 @@ namespace Commons {
  * 
  * @return [long] The GMT epoch value; if the value is -1, the error orccurs
  */
-string NSTTTime::chageDatetime(long timestamp){
+std::string NSTTTime::changeDatetime(long timestamp){
 	//time_t now = time(NULL);
 	time_t nst_timestamp = (long)timestamp + 8 * 3600;
 	tm* nst_time = gmtime(&nst_timestamp);
 	std::stringstream ss;
-	ss << std::put_time(&nst_time, "%Y-%m-%d %H:%M:%S");
+	ss << std::put_time(nst_time, "%Y-%m-%d %H:%M:%S");
 	return ss.str();
 }
 

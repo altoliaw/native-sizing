@@ -6,14 +6,15 @@
  * @date 2024/06/01
  */
 
+#include "../Headers/TimePrototype.hpp"
 #include <time.h>
-#include "/root/GitPj/trafficMonitor/Models/Commons/Headers/TimePrototype.hpp"
+//#include "/root/GitPj/trafficMonitor/Models/Commons/Headers/TimePrototype.hpp"
 
 namespace Commons {
 class NSTTTime:TimeStamp {
    public:
    long Timestamp(std::string datetime);
-   std::string chageDatetime(long timestamp);
+   std::string changeDatetime(long timestamp);
 	//static string getEpoch_NST();
 };
 }  // namespace Commons

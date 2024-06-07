@@ -6,7 +6,9 @@
         "${workspaceFolder}/**",
         "${workspaceFolder}/googletest/googletest/include",
         "/usr/include",
-        "/usr/include/c++/8",        
+        "/usr/include/linux",
+        "/usr/include/c++/8",
+        "/usr/local/3rdParty.64/include/"       
       ],
       "compilerPath": "/usr/bin/gcc",
       "cStandard": "${default}",

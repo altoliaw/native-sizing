@@ -13,7 +13,10 @@
     "fstream": "cpp",
     "sstream": "cpp",
     "iostream": "cpp",
-    "string_view": "cpp"
+    "string_view": "cpp",
+    "string": "cpp",
+    "iomanip": "cpp",
+    "ctime": "cpp"
   },
   "C_Cpp_Runner.cCompilerPath": "gcc",
   "C_Cpp_Runner.cppCompilerPath": "g++",
