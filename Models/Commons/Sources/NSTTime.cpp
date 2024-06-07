@@ -16,16 +16,16 @@ namespace Commons {
  * 
  * @return [long] The GMT epoch value; if the value is -1, the error orccurs
  */
-std::string NSTTTime::changeDatetime(long timestamp){
+std::string NSTTime::changeDatetime(long timestamp){
 	//time_t now = time(NULL);
-	time_t nst_timestamp = (long)timestamp + 8 * 3600;
+	time_t nst_timestamp = timestamp + 8 * 3600;
 	tm* nst_time = gmtime(&nst_timestamp);
 	std::stringstream ss;
 	ss << std::put_time(nst_time, "%Y-%m-%d %H:%M:%S");
 	return ss.str();
 }
 
-long NSTTTime::Timestamp(std::string datetime){
+long NSTTime::Timestamp(std::string datetime){
 	return 0;
 }
 

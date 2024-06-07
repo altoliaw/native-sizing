@@ -11,7 +11,7 @@
 //#include "/root/GitPj/trafficMonitor/Models/Commons/Headers/TimePrototype.hpp"
 
 namespace Commons {
-class NSTTTime:TimeStamp {
+class NSTTime:TimeStamp {
    public:
    long Timestamp(std::string datetime);
    std::string changeDatetime(long timestamp);

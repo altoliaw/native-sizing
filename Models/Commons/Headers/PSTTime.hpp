@@ -3,14 +3,15 @@
  * The timestamp in GMT
  *
  * @author William, Chiu
- * @date 2024/06/01
+ * @date 2024/06/07
  */
-
+#include "../Headers/TimePrototype.hpp"
 #include <time.h>
 
 namespace Commons {
-class PSTTTime {
+class PSTTime:TimeStamp {
    public:
-	static string getEpoch_PST();
+	std::string changeDatetime(long timestamp);
+   long Timestamp(std::string datetime);
 };
 }  // namespace Commons
