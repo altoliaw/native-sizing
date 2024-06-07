@@ -96,7 +96,7 @@ std::string Time::getEpochToString(const char* format, Time::TimeZone zone, long
     // Copying the time string into the buffer
     int length = (int)strlen(format) * 4;
     char buffer[length] = {'\0'};
-    strftime(buffer, (size_t)length, "%Y-%m-%d %H:%M:%S %Z", tm);
+    strftime(buffer, (size_t)length, format, tm);
     std::string timeString(buffer);
     *(Time::timeEpochPointer) = timeEpoch;
 
