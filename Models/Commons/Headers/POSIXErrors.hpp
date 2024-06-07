@@ -12,7 +12,7 @@ namespace Commons{
  */
 enum POSIXErrors {
     OK = 0,
-    E_ACCESS,   // No permission
+    E_ACCESS,  // No permission
     E_AGAIN,   // Resource cannot be accessed.
     E_BADF,    // Invalid descriptor
     E_NOMEM,   // No memory

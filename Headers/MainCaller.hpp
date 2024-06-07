@@ -20,8 +20,8 @@
 
 #include "../Models/Commons/Headers/IOSpecification.hpp"
 #include "../Models/Commons/Headers/POSIXErrors.hpp"
-#include "../Models/Commons/Headers/UTCTime.hpp"
 #include "../Models/PCAP/Headers/LinuxPCAP.hpp"
+#include "../Models/Commons/Headers/Time.hpp"
 
 //===Function Declaration===
 

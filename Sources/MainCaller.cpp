@@ -38,8 +38,9 @@ int start(int argC, char** argV) {
     char* OutputFilePathRule = (argC <= 3) ? (char*)"Outputs/trafficMonitor_%lu.tsv" : argV[2];  // The ouytput path
     
     // Obtaining the epoch
+    Commons::Time::getTimeInitialization();
     char OuputFilePathWithTime[100] = {'\0'};
-    sprintf(OuputFilePathWithTime, OutputFilePathRule, Commons::UTCTime::getEpoch());
+    sprintf(OuputFilePathWithTime, OutputFilePathRule, Commons::Time::getEpoch());
     _WRITING_FILE_LOCATION_ = OuputFilePathWithTime;
 
     int result = Commons::POSIXErrors::OK;
@@ -218,10 +219,11 @@ void signalAlarmHandler(int) {
             signalInterruptedHandler(0);  // Going to the end of the thread
         } else {
             _MUTEX_.lock();
+            time_t timeEpoch = Commons::Time::getEpoch();
             // TX part
             int length = sprintf(output,
                                  "%lu\tTX\t%lu\t%llu\t%llu\n",
-                                 Commons::UTCTime::getEpoch(),
+                                 timeEpoch,
                                  _PCAP_POINTER_->txPacketNumber,
                                  _PCAP_POINTER_->txSize / 8,
                                  _PCAP_POINTER_->txSize / (long long)_WRITING_FILE_SECOND_ / 8);
@@ -231,7 +233,7 @@ void signalAlarmHandler(int) {
             // RX part
             length = sprintf(output,
                              "%lu\tRX\t%lu\t%llu\t%llu\n",
-                             Commons::UTCTime::getEpoch(),
+                             timeEpoch,
                              _PCAP_POINTER_->rxPacketNumber,
                              _PCAP_POINTER_->rxSize / 8,
                              _PCAP_POINTER_->rxSize / (long long)_WRITING_FILE_SECOND_ / 8);
