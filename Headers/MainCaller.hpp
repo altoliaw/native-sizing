@@ -23,8 +23,10 @@
 #include "../Models/PCAP/Headers/LinuxPCAP.hpp"
 #include "../Models/Commons/Headers/Time.hpp"
 
+namespace MainCaller{
 //===Function Declaration===
-
 int start(int, char**);
 void signalInterruptedHandler(int);
 void signalAlarmHandler(int);
+
+}

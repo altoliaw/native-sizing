@@ -3,6 +3,7 @@
  */
 #include "../Headers/MainCaller.hpp"
 
+namespace MainCaller {
 //===Global Declaration===
 // Determining if the "pcap_loop" shall be still working, 0x0: halting, 0x1: working
 volatile char _IS_PCAP_WORKED_ = 0x1;
@@ -25,7 +26,7 @@ static void packetTask(PCAP::LinuxPCAP*, void (*)(u_char*, const pcap_pkthdr*, c
 static void packetFileTask(FILE**, const char*);
 
 /**
- * The starting process
+ * The starting process, the entry of the process
  *
  * @param argC [int] The number of the argument
  * @param argV [char**] The array of the argument
@@ -35,8 +36,8 @@ int start(int argC, char** argV) {
     // Preparing some information
     char* interfaceName = (argC <= 1) ? (char*)"eno2" : argV[0];
     int port = (argC <= 2) ? 1521 : atoi(argV[1]);                                               // The server port
-    char* OutputFilePathRule = (argC <= 3) ? (char*)"Outputs/trafficMonitor_%lu.tsv" : argV[2];  // The ouytput path
-    
+    char* OutputFilePathRule = (argC <= 3) ? (char*)"Outputs/trafficMonitor_%lu.tsv" : argV[2];  // The output path
+
     // Obtaining the epoch
     Commons::Time::getTimeInitialization();
     char OuputFilePathWithTime[100] = {'\0'};
@@ -101,7 +102,7 @@ static void packetFileTask(FILE** fileDescriptor, const char* filePath) {
         if (*_FILE_POINTER_ == nullptr) {
             std::cerr << "Error opening the file!\n";
             signalInterruptedHandler(0);  // Going to the end of the thread
-        } else {                          // Adding the header in the file
+        } else {                          // Adding the header information in a line to the file
             char output[1024] = {'\0'};
             int length = sprintf(output, "UTC\tType\tNumber(amount)\tSize(byte)\teps(SQL number per time interval)\n");
             fwrite(output, sizeof(char), length, *_FILE_POINTER_);
@@ -207,6 +208,8 @@ void signalInterruptedHandler(int) {
 /**
  * A handler when receiving the SIGALRM signal; in the function, the main task is
  * writing the packet information to the file
+ *
+ * @param signalType [int] The signal type and the parameter is useless in this method
  */
 void signalAlarmHandler(int) {
     // File writing
@@ -254,3 +257,4 @@ void signalAlarmHandler(int) {
         *_FILE_POINTER_ = nullptr;
     }
 }
+}  // namespace MainCaller

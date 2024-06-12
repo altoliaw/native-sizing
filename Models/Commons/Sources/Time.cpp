@@ -4,6 +4,9 @@
 #include "../Headers/Time.hpp"
 namespace Commons {
 
+// Defintion of the static field in the class
+long* Time::timeEpochPointer = nullptr;
+
 /**
  * The function is the first method when using static methods in this class; all
  * variables in the class will be initialized

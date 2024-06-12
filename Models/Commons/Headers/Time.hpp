@@ -48,7 +48,7 @@ class Time {
         NST,      // Newfoundland Standard Time
     };
 
-    // Providing a pointer for referring the static value in this class
+    // Providing a pointer for referring the static value in this class; a static pointer declaration
     static long* timeEpochPointer;
 
     static void getTimeInitialization();
