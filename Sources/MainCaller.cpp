@@ -9,7 +9,7 @@ namespace MainCaller {
 volatile char _IS_PCAP_WORKED_ = 0x1;
 // Determining if the alarm shall be still working, 0x0: halting, 0x1: working
 volatile char _IS_ALARM_WORKED_ = 0x1;
-// The time interval, s (the file will be recorded every s second(s))
+// The time interval, "s" (the file will be recorded every "s" second(s))
 unsigned int _WRITING_FILE_SECOND_ = 30;
 // Mutual locker
 std::mutex _MUTEX_;
@@ -34,7 +34,7 @@ static void packetFileTask(FILE**, const char*);
  */
 int start(int argC, char** argV) {
     // Preparing some information
-    char* interfaceName = (argC <= 1) ? (char*)"eno2" : argV[0];
+    char* interfaceName = (argC <= 1) ? (char*)"ens224" : argV[0];
     int port = (argC <= 2) ? 1521 : atoi(argV[1]);                                               // The server port
     char* OutputFilePathRule = (argC <= 3) ? (char*)"Outputs/trafficMonitor_%lu.tsv" : argV[2];  // The output path
 
@@ -59,9 +59,10 @@ int start(int argC, char** argV) {
         std::thread writePacketFileThread{packetFileTask, &fileDescriptor, OuputFilePathWithTime};
 
         // When the functions finish or interrupt, those two threads shall
-        // be joined into the main procrss
+        // be joined into the main process
         packetThread.join();
         writePacketFileThread.join();
+
         pcapObject.close();
         if (fileDescriptor != nullptr) {
             fclose(fileDescriptor);
@@ -72,7 +73,7 @@ int start(int argC, char** argV) {
 }
 
 /**
- * The function for the thread, packetThread; the task is to executing the "pcap_loop"
+ * The function for the first thread, packetThread; the task is to execute the "pcap_loop"
  *
  * @param pcap [PCAP::LinuxPCAP*] The address of the PCAP::LinuxPCAP object
  * @param packetHandler [void (*)(u_char*, const pcap_pkthdr*, const u_char*)] The callback function for pcap_loop
@@ -83,7 +84,7 @@ static void packetTask(PCAP::LinuxPCAP* pcap, void (*packetHandler)(u_char*, con
 }
 
 /**
- * The function for the thread, packetThread; the task is to executing the "pcap_loop"
+ * The function for the second thread, writePacketFileThread; the task is to write the packet information into the the specified file
  *
  * @param fileDescriptor [FILE**] The address of the pointer of the FILE descriptor
  * @param filePath [const char*] The file path for recording the information
@@ -98,10 +99,12 @@ static void packetFileTask(FILE** fileDescriptor, const char* filePath) {
 
     // Opening the file with the file descriptor
     if (*_FILE_POINTER_ == nullptr) {
+        std::cerr << "The path is " << filePath << "\n";
         *_FILE_POINTER_ = fopen(filePath, "a+");
         if (*_FILE_POINTER_ == nullptr) {
             std::cerr << "Error opening the file!\n";
             signalInterruptedHandler(0);  // Going to the end of the thread
+
         } else {                          // Adding the header information in a line to the file
             char output[1024] = {'\0'};
             int length = sprintf(output, "UTC\tType\tNumber(amount)\tSize(byte)\teps(SQL number per time interval)\n");
@@ -113,7 +116,7 @@ static void packetFileTask(FILE** fileDescriptor, const char* filePath) {
         }
     }
 
-    // Using a gloal variable to verify if the interrupt occurs
+    // Using a global variable to verify if the interrupt occurs
     while (_IS_ALARM_WORKED_ == 0x1) {
         sleep(5);  // A routine clock checker
     }
@@ -200,6 +203,7 @@ static void packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, co
 void signalInterruptedHandler(int) {
     std::cerr << "\n"
               << "Interrupted signal occurs, please wait.\n";
+    // Using these two global variables to break the loops in different threads
     _IS_PCAP_WORKED_ = 0x0;
     _IS_ALARM_WORKED_ = 0x0;
     alarm(0);
@@ -216,12 +220,17 @@ void signalAlarmHandler(int) {
     char output[1024] = {"\0"};
     if (*_FILE_POINTER_ == nullptr) {
         std::cerr << _WRITING_FILE_LOCATION_ << "\n";
+        // Opening the file
         *_FILE_POINTER_ = fopen(_WRITING_FILE_LOCATION_, "a+");
+
         if (*_FILE_POINTER_ == nullptr) {
+
             std::cerr << "Error opening the file!\n";
             signalInterruptedHandler(0);  // Going to the end of the thread
+
         } else {
             _MUTEX_.lock();
+
             time_t timeEpoch = Commons::Time::getEpoch();
             // TX part
             int length = sprintf(output,
