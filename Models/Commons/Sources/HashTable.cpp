@@ -98,6 +98,10 @@ HashTable::Element::~Element() {
  */
 char HashTable::getValueByName(char* columnName, void** value, ElementType* type) {
     char result = 0x0;
+    if (columnName == nullptr) {
+        return result;    
+    }
+
     unsigned int index = getHashIndex(columnName);
     Element* current = hashTable[index];
     for (; current != nullptr;) {
@@ -115,11 +119,16 @@ char HashTable::getValueByName(char* columnName, void** value, ElementType* type
 }
 
 /**
- *
+ * Removing the element by using the specific name
+ * 
  * @param columnName [char*] The name of the column
  * @return [POSIXErrors] The success/fail value*
  */
 POSIXErrors HashTable::removeElementByName(char* columnName) {
+    if (columnName == nullptr) {
+        return POSIXErrors::E_NOITEM;
+    }
+
     Element* removedItem = nullptr;
 
     unsigned int index = getHashIndex(columnName);
@@ -178,6 +187,7 @@ POSIXErrors HashTable::removeElementByName(char* columnName) {
     delete removedItem;
     return POSIXErrors::OK;
 }
+
 
 /**
  * Adding an element, and putting the element into the hash table with linked lists

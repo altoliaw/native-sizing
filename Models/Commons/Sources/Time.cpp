@@ -9,12 +9,17 @@ long* Time::timeEpochPointer = nullptr;
 
 /**
  * The function is the first method when using static methods in this class; all
- * variables in the class will be initialized
+ * variables in the class will be initialized; the function has been called by other static functions
+ * in this class; as a result, users do not call the function in the codes
  */
 void Time::getTimeInitialization() {
     time_t now = time(NULL);
     static long timeEpoch = (now <= -1) ? (long)-1 : (long)now;
-    Time::timeEpochPointer = &timeEpoch;
+
+    // Referring the static variable to the static field in class if the static field is nullptr
+    if(Time::timeEpochPointer == nullptr) {
+        Time::timeEpochPointer = &timeEpoch;
+    }
 }
 
 /**
@@ -22,9 +27,13 @@ void Time::getTimeInitialization() {
  *
  * @param timeInstance [time_t] The time value; the default value is the current time; please verifying the
  * setting in the declaration
- * @return [long] The epoch; if the value is -1, the error orccurs
+ * @return [long] The epoch; if the value is -1, the error occurs
  */
 long Time::getEpoch(time_t timeInstance) {
+
+    // Initialization automatically if the pointer is equal to nullptr
+    Time::getTimeInitialization();
+
     // Reserving the value of the parameter into the static variable in the function, getTimeInitialization
     *(Time::timeEpochPointer) = timeInstance;
     return (timeInstance <= -1) ? (long)-1 : (long)timeInstance;
@@ -34,9 +43,13 @@ long Time::getEpoch(time_t timeInstance) {
  * Transforming the POSIX ("%Y-%m-%d %H:%M:%S") time string into the epoch from OS time setting
  *
  * @param timeString [const char*] The time string (e.g., "2024-06-07 15:30:00")
- * @return [long] The epoch; if the value is -1, the error orccurs
+ * @return [long] The epoch; if the value is -1, the error occurs
  */
 long Time::getStringToEpoch(const char* timeString) {
+
+    // Initialization automatically if the pointer is equal to nullptr
+    Time::getTimeInitialization();
+    
     // ISO C "broken-down" time structure
     tm tm;
     memset(&tm, 0, sizeof(tm));
@@ -69,6 +82,10 @@ long Time::getStringToEpoch(const char* timeString) {
  * @return [std::string] The time string
  */
 std::string Time::getEpochToString(const char* format, Time::TimeZone zone, long timeEpoch) {
+
+    // Initialization automatically if the pointer is equal to nullptr
+    Time::getTimeInitialization();
+
     // The pointer of the ISO C "broken-down" time structure
     tm* tm;
     time_t tmpTimeEpoch = 0;

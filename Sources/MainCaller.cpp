@@ -39,7 +39,6 @@ int start(int argC, char** argV) {
     char* OutputFilePathRule = (argC <= 3) ? (char*)"Outputs/trafficMonitor_%lu.tsv" : argV[2];  // The output path
 
     // Obtaining the epoch
-    Commons::Time::getTimeInitialization();
     char OuputFilePathWithTime[100] = {'\0'};
     sprintf(OuputFilePathWithTime, OutputFilePathRule, Commons::Time::getEpoch());
     _WRITING_FILE_LOCATION_ = OuputFilePathWithTime;
