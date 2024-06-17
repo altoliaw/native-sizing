@@ -8,13 +8,12 @@ namespace Commons {
 /**
  * Constructor
  *
- * @param size [int] The size of the hashtable, the default value 
+ * @param size [int] The size of the hashtable, the default value
  * is 97 (a prime); if possible, the value of the size shall be set as a prime
  */
 HashTable::HashTable(int size) {
-    std::cerr << "hashTableCon\n";
     hashTableSize = size;
-    queue = lastElement = nullptr;
+    queue = lastElement = operatedElement = nullptr;
     hashTable = new Element* [hashTableSize] {};
 }
 
@@ -22,7 +21,6 @@ HashTable::HashTable(int size) {
  * Destructor
  */
 HashTable::~HashTable() {
-    std::cerr << "hashTableDecon\n";
     // Releasing all objects from the queue
     Element* current = nullptr;
 
@@ -37,13 +35,14 @@ HashTable::~HashTable() {
     queue = nullptr;
     lastElement = nullptr;
 
-    // Because all elements have been removed from queue, 
-	// the hash table can be removed directly
+    // Because all elements have been removed from queue,
+    // the hash table can be removed directly
     if (hashTable != nullptr) {
         delete[] hashTable;
     }
     hashTable = nullptr;
     hashTableSize = 0;
+    operatedElement = nullptr;
 }
 
 /**
@@ -55,7 +54,6 @@ HashTable::~HashTable() {
  * @param type [ElementType] The original type of the value defined above; the default type is "charStarType" (char*)
  */
 HashTable::Element::Element(const char* columnName, void* value, size_t sizeOfMemory, ElementType type) {
-    
     this->columnName = (char*)columnName;
     this->value = value;
     this->sizeOfMemory = sizeOfMemory;
@@ -92,24 +90,28 @@ HashTable::Element::~Element() {
  *
  * @param columnName [char*] The column name
  * @param value [void**] The address of the value of the column name
+ * @param sizeOfMemory [size_t*] The address of the size of memory of the value; using the
+ * memory to obtain the memory from the caller
  * @param type [ElementType*] The pointer to the type from the caller
- * @return [char] The number of the hit element; if the element does not exist, 
+ * @return [char] The number of the hit element; if the element does not exist,
  * the value will be 0x0; otherwise 0x1
  */
-char HashTable::getValueByName(char* columnName, void** value, ElementType* type) {
+char HashTable::getValueByName(char* columnName, void** value, size_t* sizeOfMemory, ElementType* type) {
     char result = 0x0;
     if (columnName == nullptr) {
-        return result;    
+        return result;
     }
 
     unsigned int index = getHashIndex(columnName);
     Element* current = hashTable[index];
     for (; current != nullptr;) {
-        if (strcmp(current->columnName, columnName) != 0) {  // If the two string are not equal, ...
+        if (strcmp(current->columnName, columnName) != 0) {  // If the two strings are not equal, ...
             current = current->nextInHashTable;
         } else {
             result = 0x1;
+            operatedElement = current; // Passing the hitting element address to the pointer, operatedElement
             *value = current->value;
+            *sizeOfMemory = current->sizeOfMemory;
             *type = current->type;
             break;
         }
@@ -120,7 +122,7 @@ char HashTable::getValueByName(char* columnName, void** value, ElementType* type
 
 /**
  * Removing the element by using the specific name
- * 
+ *
  * @param columnName [char*] The name of the column
  * @return [POSIXErrors] The success/fail value*
  */
@@ -135,11 +137,15 @@ POSIXErrors HashTable::removeElementByName(char* columnName) {
     Element* current = hashTable[index];
     Element* previous = nullptr;
     for (; current != nullptr;) {
-        if (strcmp(current->columnName, columnName) != 0) {  // If the two string are equal, ...
+        if (strcmp(current->columnName, columnName) != 0) {  // If the two string are not equal, ...
             previous = current;
             current = current->nextInHashTable;
         } else {
             removedItem = current;
+            // If the current one address is equal to the removed one
+            if (operatedElement == removedItem) {
+                operatedElement = nullptr;
+            }
             break;
         }
     }
@@ -188,7 +194,6 @@ POSIXErrors HashTable::removeElementByName(char* columnName) {
     return POSIXErrors::OK;
 }
 
-
 /**
  * Adding an element, and putting the element into the hash table with linked lists
  *
@@ -208,10 +213,12 @@ POSIXErrors HashTable::addElementIntoHashTable(char* columnName, void* value, si
     strcpy(tmpColumnName, columnName);
 
     void* tmpValue = (value == nullptr) ? nullptr : calloc(1, sizeOfMemory);
-	memcpy(tmpValue, value, sizeOfMemory);
+    memcpy(tmpValue, value, sizeOfMemory);
 
     // Creating an element instance by using dynamic memory allocation
     Element* instance = new Element(tmpColumnName, tmpValue, sizeOfMemory, type);  // Initialization
+    operatedElement = instance;
+    
     if (instance == nullptr) {
         return POSIXErrors::E_NOMEM;
     }

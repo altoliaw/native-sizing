@@ -28,6 +28,7 @@ class HashTable {
         doubleType,
         stringType,
         charStarType,
+        fileStarType,
         OtherType,
     };
 
@@ -65,10 +66,13 @@ class HashTable {
     Element* queue;
     // The address of the last element in the queue
     Element* lastElement;
+    // The element pointer to the new/updating element when "addElementIntoHashTable(.)/getValueByName(.)" executes
+    Element* operatedElement;
+
 
     HashTable(int = 97);
     virtual ~HashTable();
-    virtual char getValueByName(char*, void**, ElementType*);
+    virtual char getValueByName(char*, void**, size_t*, ElementType*);
     virtual POSIXErrors removeElementByName(char*);
     virtual POSIXErrors addElementIntoHashTable(char*, void*, size_t, ElementType = ElementType::charStarType);
 

@@ -20,7 +20,8 @@ void Log::getHashTableInitialization() {
 }
 
 /**
- * Setting the log information into the hash table
+ * Setting the log information into the hash table; that implies the log path will be set in 
+ * the hash table
  *
  * @param value [void*] The log file name (char*) and shall be cast into the void* because of a general solution
  * @param sizeOfMemory [size_t] The size of the memory of the value above
@@ -29,40 +30,67 @@ void Log::getHashTableInitialization() {
  * @param isReassignment [char] The flag for determining if the value shall be reassigned when the element has existed in the hash table;
  * when the value is equal to 0x0, the value will not be reassigned in the element when the element exists;
  * when the value is equal to 0x1, the value will be reassigned in the element when the element exists;
- * the default value is 0x0
+ * the default value is 0x1
+ * @return [char] The flag if the function works well; if the function is okay, the value is 0x1; otherwise 0x0 (error occurs)
  */
-void Log::setLogTableInformation(void* value, size_t sizeOfMemory, HashTable::ElementType type, const char* abbreviatedLogName, char isReassignment) {
+char Log::setLogTableInformation(void* value, size_t sizeOfMemory, HashTable::ElementType type, const char* abbreviatedLogName, char isReassignment) {
     // Initialization automatically if the pointer is equal to nullptr
     Log::getHashTableInitialization();
+
+    char isSuccess = 0x0;
     char isExisted = 0x0;
     void* tmpValue = nullptr;  // The address which refers to the value object
+
     HashTable::ElementType tmpType = HashTable::ElementType::charStarType;
-    isExisted = (Log::logTablePointer)->getValueByName((char*)abbreviatedLogName, &tmpValue, &tmpType);
+    size_t tmpMemorySize = 0;
+
+    // Verifying if the existence of the element
+    isExisted = (Log::logTablePointer)->getValueByName((char*)abbreviatedLogName, &tmpValue, &tmpMemorySize, &tmpType);
     if (isExisted == 0x0) {  // The element does not exist, calling the function, HashTable::addElementIntoHashTable(.)
         (Log::logTablePointer)->addElementIntoHashTable((char*)abbreviatedLogName, value, sizeOfMemory);
+        isSuccess = 0x1;
     } else {                            // When the element exists, ...
         if (isReassignment == 0x1) {    // The situation where the element exists and the flag is 0x1
             if (tmpValue == nullptr) {  // The element exists and the value is nullptr.
-                // TODO calloc
+                // "calloc" method
                 tmpValue = calloc(1, sizeOfMemory);
             } else {
-                // TODO realloc
+                // "realloc" method
                 tmpValue = realloc(tmpValue, sizeOfMemory);
             }
-			memcpy(tmpValue, value, sizeOfMemory);
+            // When the dynamic allocation has been success, the log table has been set
+            if (tmpValue != nullptr) {
+                isSuccess = 0x1;
+                memcpy(tmpValue, value, sizeOfMemory);
+            }
         }
     }
+    return isSuccess;
 }
 
 /**
  *
  */
 void Log::executeLog(std::ostream&, const char*, POSIXSysLog = POSIXSysLog::Debug, const char* = "default") {
+
 }
 
 /**
- *
+ * Obtaining the log information from the hash table; that implies the log path
+ * 
+ * @param value [void**] The address of the pointer of the value (FILE*)
+ * @param sizeOfMemory [size_t*] The size of the memory of the value above
+ * @param type [HashTable::ElementType*] The address of the HashTable::ElementType and the type implies the 
+ * original type of the value
+ * @param abbreviatedLogName [const char*] The key in the hash table, the default value is "default"
+ * @return [char] The successful flag; when the flag is 0x1, the function is okay; otherwise, the function error occurs
  */
-void Log::getLogTableInformation(const char* = "default") {
+char Log::getLogTableInformation(void** value, size_t* sizeOfMemory,  HashTable::ElementType* type, const char* abbreviatedLogName) {
+    char isExisted = 0x0;
+
+    // Verifying if the existence of the element
+    isExisted = (Log::logTablePointer)->getValueByName((char*)abbreviatedLogName, value, sizeOfMemory, type);
+    return isExisted;
 }
+
 }  // namespace Commons
