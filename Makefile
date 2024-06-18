@@ -37,6 +37,7 @@ PjN:= $(word $(words $(subst /, ,${Prdir})), $(subst /, ,${Prdir}))
 .Phony: all
 all:	${Prdir}/${PjN}
 	@mkdir -p Outputs
+	@mkdir -p Logs
 	@sudo chown root:root ${Prdir}/${PjN}
 	@sudo chmod 4755 ${Prdir}/${PjN}
 	@echo ""
