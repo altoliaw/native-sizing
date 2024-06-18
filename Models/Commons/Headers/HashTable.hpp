@@ -72,7 +72,7 @@ class HashTable {
 
     HashTable(int = 97);
     virtual ~HashTable();
-    virtual char getValueByName(char*, void**, size_t*, ElementType*);
+    virtual char getValueByName(char*, char**, void**, size_t*, ElementType*);
     virtual POSIXErrors removeElementByName(char*);
     virtual POSIXErrors addElementIntoHashTable(char*, void*, size_t, ElementType = ElementType::charStarType);
 

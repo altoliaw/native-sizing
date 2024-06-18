@@ -8,7 +8,7 @@
  */
 
 #include <iostream>
-#include <utility> // For the pair structure
+#include <unordered_map> // For the reserved file descriptors, accepted since C++11, a fast dictionary in C++ without the hand-made coding
 
 #include "./POSIXErrors.hpp"
 #include "./HashTable.hpp"
@@ -20,14 +20,23 @@ class Log {
    public:
     // A log file will refer to a hash table because users can generate different logs flexibly.
     static HashTable* logTablePointer;
-    // The current working log name where the name is equal to the current log name of the element in the hash table
-    
+    // A unordered map pointer refers to an unordered map for recording the map where the
+    // key value pairs are log abbreviated names and file descriptors; the key shall not be released memory manually when the element 
+    // will be erased because the key's memory is from the key of the hash table; as a result the pointer shall be deleted before the
+    // pointer, logTablePointer 
+    static std::unordered_map<const char*, FILE*>* logMapPointer;
+    // The variable will be located in the static area in the memory and initialized once
+    // when the variable executes at the first time
+    static FILE* currentLog;  
+                                        
 
 	static void getHashTableInitialization();
 	static char setLogTableInformation(void*, size_t, HashTable::ElementType = HashTable::ElementType::charStarType, const char* = "default", char = 0x1);
 	static void executeLog(std::ostream&, const char*, POSIXSysLog = POSIXSysLog::Debug, const char* = "default");
-	static char getLogTableInformation(void**, size_t*, HashTable::ElementType*, const char* = "default");
-    static void open(const char*);
+	static char getLogTableInformation(char**, void**, size_t*, HashTable::ElementType*, const char* = "default");
+    static char open(const char*, const char* = "default", const char* = "logs/.log");
+    static char close(const char* = "default");
+    static char closeAll();
 
    private:
     Log();

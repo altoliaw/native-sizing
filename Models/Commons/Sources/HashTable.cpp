@@ -89,6 +89,7 @@ HashTable::Element::~Element() {
  * Obtaining the result from the hash table
  *
  * @param columnName [char*] The column name
+ * @param columnNameInHashAddress [char**] The copied column name from the element in the hash (the pointer can be reused from the caller)
  * @param value [void**] The address of the value of the column name
  * @param sizeOfMemory [size_t*] The address of the size of memory of the value; using the
  * memory to obtain the memory from the caller
@@ -96,7 +97,7 @@ HashTable::Element::~Element() {
  * @return [char] The number of the hit element; if the element does not exist,
  * the value will be 0x0; otherwise 0x1
  */
-char HashTable::getValueByName(char* columnName, void** value, size_t* sizeOfMemory, ElementType* type) {
+char HashTable::getValueByName(char* columnName, char** columnNameInHashAddress, void** value, size_t* sizeOfMemory, ElementType* type) {
     char result = 0x0;
     if (columnName == nullptr) {
         return result;
@@ -110,6 +111,7 @@ char HashTable::getValueByName(char* columnName, void** value, size_t* sizeOfMem
         } else {
             result = 0x1;
             operatedElement = current; // Passing the hitting element address to the pointer, operatedElement
+            *columnNameInHashAddress = current->columnName;
             *value = current->value;
             *sizeOfMemory = current->sizeOfMemory;
             *type = current->type;
