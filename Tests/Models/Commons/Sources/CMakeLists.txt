@@ -2,6 +2,7 @@
 add_executable(
 	Tests.Commons
 	Test_StringImplement.cpp
+	Test_HashTable.cpp
 )
 	
 # linking to the headers

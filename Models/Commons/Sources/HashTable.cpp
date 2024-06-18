@@ -14,7 +14,7 @@ namespace Commons {
 HashTable::HashTable(int size) {
     hashTableSize = size;
     queue = lastElement = operatedElement = nullptr;
-    hashTable = new Element* [hashTableSize] {};
+    hashTable = new Element* [hashTableSize] {}; // Setting nullptr to all elements
 }
 
 /**
@@ -155,6 +155,7 @@ POSIXErrors HashTable::removeElementByName(char* columnName) {
     // If there exists nothing in the hash table with linked lists, ...
     if (removedItem == nullptr) {
         return POSIXErrors::E_NOITEM;
+
     } else {  // Hitting the element
         // Maintaining the linked list from the hash table (single direction)
         if (previous == nullptr && removedItem->nextInHashTable == nullptr) {  // There is only one element in the linked list
@@ -164,7 +165,8 @@ POSIXErrors HashTable::removeElementByName(char* columnName) {
                                                                                       // in the linked list.
             hashTable[index] = removedItem->nextInHashTable;
         } else if (previous != nullptr && removedItem->nextInHashTable == nullptr) {  // The last element is the removedItem.
-                                                                                      // inn the linked list
+                                                                                      // in the linked list
+            previous->nextInHashTable = nullptr;
         } else {
             previous->nextInHashTable = removedItem->nextInHashTable;
         }
@@ -175,9 +177,12 @@ POSIXErrors HashTable::removeElementByName(char* columnName) {
     Element* next = removedItem->nextInQueue;
     if (previous == nullptr) {
         if (next == nullptr) {
-            // In the linked listed, there exist an element, namely removedItem.
+            // In the linked listed, there exist an element, namely removedItem. As
+            // as result the queue pointer shall be set as nullptr
+            queue = nullptr;
         } else {  // The previousInQueue of the next element shall be modified as nullptr
             next->previousInQueue = nullptr;
+            queue = next;
         }
     } else {  // If there exist an element before the removedItem, ...
         if (next == nullptr) {
@@ -238,11 +243,9 @@ POSIXErrors HashTable::addElementIntoHashTable(char* columnName, void* value, si
     unsigned int index = getHashIndex(instance->columnName);
     Element* current = nullptr;
     if (hashTable[index] != nullptr) {
-        current = hashTable[index];
-
+        
         // Looping to the end element of the linked list
-        for (; current != nullptr;) {
-            current = current->nextInHashTable;
+        for (current = hashTable[index]; current->nextInHashTable != nullptr; current = current->nextInHashTable) {
         }
         // Linking the new element and the last element in the linked list
         current->nextInHashTable = instance;
