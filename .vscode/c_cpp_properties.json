@@ -5,8 +5,6 @@
       "includePath": [
         "${workspaceFolder}/**",
         "${workspaceFolder}/googletest/googletest/include",
-        "/usr/include",
-        "/usr/include/c++/8",        
       ],
       "compilerPath": "/usr/bin/gcc",
       "cStandard": "${default}",
