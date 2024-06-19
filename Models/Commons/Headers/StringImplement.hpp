@@ -1,5 +1,5 @@
 #pragma once
-/** @file StringImplment.hpp
+/** @file StringImplement.hpp
  * IO specifications
  *
  * @author Nick, Liao
@@ -16,7 +16,7 @@ namespace Commons {
 /**
  * Serveral string implementation
  */
-class StringImplment {
+class StringImplement {
    public:
     static int obtainFirstNotSpaceCharLocation(const char*, const char = 0x0);
 	static int trimLeftSpace(char**);

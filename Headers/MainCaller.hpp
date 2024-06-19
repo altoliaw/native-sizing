@@ -20,11 +20,13 @@
 
 #include "../Models/Commons/Headers/IOSpecification.hpp"
 #include "../Models/Commons/Headers/POSIXErrors.hpp"
-#include "../Models/Commons/Headers/UTCTime.hpp"
 #include "../Models/PCAP/Headers/LinuxPCAP.hpp"
+#include "../Models/Commons/Headers/Time.hpp"
 
+namespace MainCaller{
 //===Function Declaration===
-
 int start(int, char**);
 void signalInterruptedHandler(int);
 void signalAlarmHandler(int);
+
+}

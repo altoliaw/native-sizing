@@ -1,7 +1,7 @@
 /**
- * @see StringImplment.hpp
+ * @see StringImplement.hpp
  */
-#include "../Headers/StringImplment.hpp"
+#include "../Headers/StringImplement.hpp"
 
 namespace Commons {
 /**
@@ -14,7 +14,7 @@ namespace Commons {
  * @return [unsigned int] The index; if there is no character in the string, the value is equal to -1;
  * if the value is equal to -2, the error occurs
  */
-int StringImplment::obtainFirstNotSpaceCharLocation(const char* string, const char direction) {
+int StringImplement::obtainFirstNotSpaceCharLocation(const char* string, const char direction) {
     int index = -2;  // Final result
     if(string != nullptr) {
         unsigned int stringLength = strlen(string);
@@ -48,10 +48,10 @@ int StringImplment::obtainFirstNotSpaceCharLocation(const char* string, const ch
  * @param string [char**] The address of the pointer of the string
  * @return [int] The length after trimming; if the value is equal to -1, the error occurs
  */
-int StringImplment::trimLeftSpace(char** string) {
+int StringImplement::trimLeftSpace(char** string) {
     int length = -1;
     // Searching from the left-hand side
-    int index = StringImplment::obtainFirstNotSpaceCharLocation((const char*)*string);
+    int index = StringImplement::obtainFirstNotSpaceCharLocation((const char*)*string);
     if (index >= -1 && index <= 0) {
         length = (int)strlen(*string);
     } else if (index > 0) {
@@ -70,10 +70,10 @@ int StringImplment::trimLeftSpace(char** string) {
  * @param string [char**] The address of the pointer of the string
  * @return [int] The length after trimming; if the value is equal to -1, the error occurs
  */
-int StringImplment::trimRightSpace(char** string) {
+int StringImplement::trimRightSpace(char** string) {
     int length = -1;
     // Searching from the right-hand side
-    int index = StringImplment::obtainFirstNotSpaceCharLocation((const char*)*string, (char)0x1);
+    int index = StringImplement::obtainFirstNotSpaceCharLocation((const char*)*string, (char)0x1);
     if (index >= -1 && index <= 0) {
         length = (int)strlen(*string);
     } else if (index > 0) {
@@ -86,13 +86,13 @@ int StringImplment::trimRightSpace(char** string) {
 /**
  *  Obtaining the string between the frist character of the input string and the last character
  *  of the input string where all terms will be seperated by a space at least;
- *  this function must be implemented after StringImplment::trimLeftSpace and
- *  StringImplment::trimRightSpace
+ *  this function must be implemented after StringImplement::trimLeftSpace and
+ *  StringImplement::trimRightSpace
  *
  * @param string [char**] The address of the pointer of the string
  * @return [int] The length after trimming; if the value is equal to -1, the error occurs
  */
-int StringImplment::mergeRedundantSpace(char** string) {
+int StringImplement::mergeRedundantSpace(char** string) {
     int length = -1;
     // Using the shifted concept which the string comes from the two substrings
     if (*string != nullptr) {

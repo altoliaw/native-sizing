@@ -6,6 +6,7 @@
  * @date 2024/05/24
  */
 #include <string.h>
+
 #include <iostream>
 
 #include "./POSIXErrors.hpp"
@@ -18,41 +19,62 @@ namespace Commons {
 class HashTable {
    public:
     /**
+     * For the reserving the type of the value in the struct "Element"
+     */
+    enum ElementType {
+        charType = 0,
+        integerType,
+        floatType,
+        doubleType,
+        stringType,
+        charStarType,
+        fileStarType,
+        OtherType,
+    };
+
+    /**
      * The element for the hash table
      */
-    struct element {
+    struct Element {
         // The column name
         char* columnName;
         // The value of the column name
-        char* value;
+        void* value;
         // The next address of the element for linking with the hash table
-        element* nextInHashTable;
+        Element* nextInHashTable;
+        // The size of the memory for reserving the variable, value
+        size_t sizeOfMemory;
+        // Reserving the original type of the value
+        ElementType type;
 
         // The next address of the element in queuing for
         // the situation when all elements will be removed
-        element* nextInQueue;
+        Element* nextInQueue;
         // The next address of the element in queuing for
         // the situation when all elements will be removed (easily maintain the structure in the queue)
-        element* previousInQueue;
-		element(char* columnName, char* value);
-		~element();
+        Element* previousInQueue;
+        Element(const char*, void*, size_t, ElementType = ElementType::charStarType);
+        ~Element();
     };
 
     // The size of the size of the hash table
     unsigned int hashTableSize;
     // The pointer to the hash table (array), and each element in the table is an element
-    element** hashTable;
+    Element** hashTable;
     // A queue for reserving all elements in the hash table;
     // this is a mechanism for fast releasing memory
-    element* queue;
+    Element* queue;
     // The address of the last element in the queue
-    element* lastElement;
+    Element* lastElement;
+    // The element pointer to the new/updating element when "addElementIntoHashTable(.)/getValueByName(.)" executes
+    Element* operatedElement;
+
 
     HashTable(int = 97);
     virtual ~HashTable();
-    virtual char getValueByName(char*, char**);
+    virtual char getValueByName(char*, char**, void**, size_t*, ElementType*);
     virtual POSIXErrors removeElementByName(char*);
-    virtual POSIXErrors addElementIntoHashTable(char*, char*);
+    virtual POSIXErrors addElementIntoHashTable(char*, void*, size_t, ElementType = ElementType::charStarType);
 
    protected:
     virtual unsigned int getHashIndex(char*);

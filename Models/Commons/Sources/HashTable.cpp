@@ -8,23 +8,21 @@ namespace Commons {
 /**
  * Constructor
  *
- * @param size [int] The size of the hashtable, the default value 
+ * @param size [int] The size of the hashtable, the default value
  * is 97 (a prime); if possible, the value of the size shall be set as a prime
  */
 HashTable::HashTable(int size) {
-    std::cerr << "hashTableCon\n";
     hashTableSize = size;
-    queue = lastElement = nullptr;
-    hashTable = new element* [hashTableSize] {};
+    queue = lastElement = operatedElement = nullptr;
+    hashTable = new Element* [hashTableSize] {}; // Setting nullptr to all elements
 }
 
 /**
  * Destructor
  */
 HashTable::~HashTable() {
-    std::cerr << "hashTableDecon\n";
     // Releasing all objects from the queue
-    element* current = nullptr;
+    Element* current = nullptr;
 
     // Traversal all objects in the queued linked list
     for (; queue != nullptr;) {
@@ -37,25 +35,30 @@ HashTable::~HashTable() {
     queue = nullptr;
     lastElement = nullptr;
 
-    // Because all elements have been removed from queue, 
-	// the hash table can be removed directly
+    // Because all elements have been removed from queue,
+    // the hash table can be removed directly
     if (hashTable != nullptr) {
         delete[] hashTable;
     }
     hashTable = nullptr;
     hashTableSize = 0;
+    operatedElement = nullptr;
 }
 
 /**
  * Constructor of the element
  *
- * @param columnName [char*]
- * @param value [char*]
+ * @param columnName [char*] The column name
+ * @param value [char*] The value of the column
+ * @param sizeOfMemory [size_t] The size of memory of the value above
+ * @param type [ElementType] The original type of the value defined above; the default type is "charStarType" (char*)
  */
-HashTable::element::element(char* columnName, char* value) {
-    std::cerr << "elementCon\n";
-    this->columnName = columnName;
+HashTable::Element::Element(const char* columnName, void* value, size_t sizeOfMemory, ElementType type) {
+    this->columnName = (char*)columnName;
     this->value = value;
+    this->sizeOfMemory = sizeOfMemory;
+    this->type = type;
+
     nextInHashTable = nullptr;
     nextInQueue = nullptr;
     previousInQueue = nullptr;
@@ -64,18 +67,19 @@ HashTable::element::element(char* columnName, char* value) {
 /**
  * Destructor of the element
  */
-HashTable::element::~element() {
-    std::cerr << "elementDecon\n";
-
+HashTable::Element::~Element() {
     // Removing the memories for the "char" arrays
     if (columnName != nullptr) {
         delete[] columnName;
         columnName = nullptr;
     }
     if (value != nullptr) {
-        delete[] value;
+        free(value);
         value = nullptr;
     }
+    this->sizeOfMemory = 0;
+    this->type = ElementType::charStarType;
+
     nextInQueue = nullptr;
     previousInQueue = nullptr;
     nextInHashTable = nullptr;
@@ -85,20 +89,32 @@ HashTable::element::~element() {
  * Obtaining the result from the hash table
  *
  * @param columnName [char*] The column name
- * @param value [char**] The address of the value of the column name
- * @return [char*] The number of the hitted element; if the element does not exist, 
+ * @param columnNameInHashAddress [char**] The copied column name from the element in the hash (the pointer can be reused from the caller)
+ * @param value [void**] The address of the value of the column name
+ * @param sizeOfMemory [size_t*] The address of the size of memory of the value; using the
+ * memory to obtain the memory from the caller
+ * @param type [ElementType*] The pointer to the type from the caller
+ * @return [char] The number of the hit element; if the element does not exist,
  * the value will be 0x0; otherwise 0x1
  */
-char HashTable::getValueByName(char* columnName, char** value) {
+char HashTable::getValueByName(char* columnName, char** columnNameInHashAddress, void** value, size_t* sizeOfMemory, ElementType* type) {
     char result = 0x0;
+    if (columnName == nullptr) {
+        return result;
+    }
+
     unsigned int index = getHashIndex(columnName);
-    element* current = hashTable[index];
+    Element* current = hashTable[index];
     for (; current != nullptr;) {
-        if (strcmp(current->columnName, columnName) != 0) {  // If the two string are not equal, ...
+        if (strcmp(current->columnName, columnName) != 0) {  // If the two strings are not equal, ...
             current = current->nextInHashTable;
         } else {
             result = 0x1;
+            operatedElement = current; // Passing the hitting element address to the pointer, operatedElement
+            *columnNameInHashAddress = current->columnName;
             *value = current->value;
+            *sizeOfMemory = current->sizeOfMemory;
+            *type = current->type;
             break;
         }
     }
@@ -107,22 +123,31 @@ char HashTable::getValueByName(char* columnName, char** value) {
 }
 
 /**
+ * Removing the element by using the specific name
  *
  * @param columnName [char*] The name of the column
  * @return [POSIXErrors] The success/fail value*
  */
 POSIXErrors HashTable::removeElementByName(char* columnName) {
-    element* removedItem = nullptr;
+    if (columnName == nullptr) {
+        return POSIXErrors::E_NOITEM;
+    }
+
+    Element* removedItem = nullptr;
 
     unsigned int index = getHashIndex(columnName);
-    element* current = hashTable[index];
-    element* previous = nullptr;
+    Element* current = hashTable[index];
+    Element* previous = nullptr;
     for (; current != nullptr;) {
-        if (strcmp(current->columnName, columnName) != 0) {  // If the two string are equal, ...
+        if (strcmp(current->columnName, columnName) != 0) {  // If the two string are not equal, ...
             previous = current;
             current = current->nextInHashTable;
         } else {
             removedItem = current;
+            // If the current one address is equal to the removed one
+            if (operatedElement == removedItem) {
+                operatedElement = nullptr;
+            }
             break;
         }
     }
@@ -130,6 +155,7 @@ POSIXErrors HashTable::removeElementByName(char* columnName) {
     // If there exists nothing in the hash table with linked lists, ...
     if (removedItem == nullptr) {
         return POSIXErrors::E_NOITEM;
+
     } else {  // Hitting the element
         // Maintaining the linked list from the hash table (single direction)
         if (previous == nullptr && removedItem->nextInHashTable == nullptr) {  // There is only one element in the linked list
@@ -139,7 +165,8 @@ POSIXErrors HashTable::removeElementByName(char* columnName) {
                                                                                       // in the linked list.
             hashTable[index] = removedItem->nextInHashTable;
         } else if (previous != nullptr && removedItem->nextInHashTable == nullptr) {  // The last element is the removedItem.
-                                                                                      // inn the linked list
+                                                                                      // in the linked list
+            previous->nextInHashTable = nullptr;
         } else {
             previous->nextInHashTable = removedItem->nextInHashTable;
         }
@@ -147,12 +174,15 @@ POSIXErrors HashTable::removeElementByName(char* columnName) {
 
     // Maintaining the queue (bi-direction)
     previous = removedItem->previousInQueue;
-    element* next = removedItem->nextInQueue;
+    Element* next = removedItem->nextInQueue;
     if (previous == nullptr) {
         if (next == nullptr) {
-            // In the linked listed, there exist an element, namely removedItem.
+            // In the linked listed, there exist an element, namely removedItem. As
+            // as result the queue pointer shall be set as nullptr
+            queue = nullptr;
         } else {  // The previousInQueue of the next element shall be modified as nullptr
             next->previousInQueue = nullptr;
+            queue = next;
         }
     } else {  // If there exist an element before the removedItem, ...
         if (next == nullptr) {
@@ -176,9 +206,11 @@ POSIXErrors HashTable::removeElementByName(char* columnName) {
  *
  * @param columnName [char*] The name of the column
  * @param value [char*] The value of the column
+ * @param sizeOfMemory [size_t] The size of memory of the value above
+ * @param type [ElementType] The original type of the value defined above; the default type is "charStarType" (char*)
  * @return [POSIXErrors] The success/fail value
  */
-POSIXErrors HashTable::addElementIntoHashTable(char* columnName, char* value) {
+POSIXErrors HashTable::addElementIntoHashTable(char* columnName, void* value, size_t sizeOfMemory, ElementType type) {
     if (columnName == nullptr) {
         return POSIXErrors::E_NOITEM;
     }
@@ -186,11 +218,14 @@ POSIXErrors HashTable::addElementIntoHashTable(char* columnName, char* value) {
     // Copying the strings, "\0" will be added at the last character automatically
     char* tmpColumnName = new char[strlen(columnName) + 1];
     strcpy(tmpColumnName, columnName);
-    char* tmpValue = (value == nullptr) ? nullptr : new char[strlen(value) + 1];
-	strcpy(tmpValue, value);
+
+    void* tmpValue = (value == nullptr) ? nullptr : calloc(1, sizeOfMemory);
+    memcpy(tmpValue, value, sizeOfMemory);
 
     // Creating an element instance by using dynamic memory allocation
-    element* instance = new element(tmpColumnName, tmpValue);  // Initialization
+    Element* instance = new Element(tmpColumnName, tmpValue, sizeOfMemory, type);  // Initialization
+    operatedElement = instance;
+    
     if (instance == nullptr) {
         return POSIXErrors::E_NOMEM;
     }
@@ -206,13 +241,11 @@ POSIXErrors HashTable::addElementIntoHashTable(char* columnName, char* value) {
 
     // Setting the element into the hash table
     unsigned int index = getHashIndex(instance->columnName);
-    element* current = nullptr;
+    Element* current = nullptr;
     if (hashTable[index] != nullptr) {
-        current = hashTable[index];
-
+        
         // Looping to the end element of the linked list
-        for (; current != nullptr;) {
-            current = current->nextInHashTable;
+        for (current = hashTable[index]; current->nextInHashTable != nullptr; current = current->nextInHashTable) {
         }
         // Linking the new element and the last element in the linked list
         current->nextInHashTable = instance;

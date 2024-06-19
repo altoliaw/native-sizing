@@ -36,6 +36,8 @@ PjN:= $(word $(words $(subst /, ,${Prdir})), $(subst /, ,${Prdir}))
 
 .Phony: all
 all:	${Prdir}/${PjN}
+	@mkdir -p Outputs
+	@mkdir -p Logs
 	@sudo chown root:root ${Prdir}/${PjN}
 	@sudo chmod 4755 ${Prdir}/${PjN}
 	@echo ""
@@ -60,6 +62,12 @@ cmakeClean:
 	@clear
 	@rm -rf ${Prdir}/build/*
 
+.Phony: cmake
+cmake:
+	cmake -S . -B build
+	cmake --build build
+	cd build && ctest -V
+
 
 ##----------------------------------------------------------------------
 ## Nick editted manually
@@ -69,24 +77,26 @@ cmakeClean:
 run:	
 	${Prdir}/${PjN}
 
-# Build libraries
-${Prdir}/${PjN}/build : 
+# Build
+${Prdir}/${PjN}/build : ${Prdir}/${PjN}
+	@sudo chown root:root ${Prdir}/${PjN}
+	@sudo chmod 4755 ${Prdir}/${PjN}
 			
 
 ##================================================================
 # Create a application
 ${Prdir}/${PjN}: 	${Prdir}/Main.o \
 					${Sources}/MainCaller.o \
-					${Commons.Sources}/UTCTime.o \
 					${Commons.Sources}/HashTable.o \
 					${Commons.Sources}/IOSpecification.o \
+					${Commons.Sources}/Time.o \
 					${PCAP.Sources}/LinuxPCAP.o
 
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${FMSG} -o ${Prdir}/${PjN} ${Prdir}/Main.o \
 	${Sources}/MainCaller.o \
-	${Commons.Sources}/UTCTime.o \
 	${Commons.Sources}/HashTable.o \
 	${Commons.Sources}/IOSpecification.o \
+	${Commons.Sources}/Time.o \
 	${PCAP.Sources}/LinuxPCAP.o \
 	${LDLIBS}
 
@@ -102,13 +112,13 @@ ${Sources}/MainCaller.o:	${Commons.Headers}/POSIXErrors.hpp ${Commons.Headers}/I
 ${Commons.Sources}/HashTable.o:	${Commons.Headers}/POSIXErrors.hpp ${Commons.Headers}/HashTable.hpp ${Commons.Sources}/HashTable.cpp
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${Commons.Sources}/HashTable.cpp -c ${FMSG} -o ${Commons.Sources}/HashTable.o
 
-# Commons.UTCTime
-${Commons.Sources}/UTCTime.o:	${Commons.Headers}/POSIXErrors.hpp ${Commons.Headers}/UTCTime.hpp ${Commons.Sources}/UTCTime.cpp
-	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${Commons.Sources}/UTCTime.cpp -c ${FMSG} -o ${Commons.Sources}/UTCTime.o
-
 # Commons.IOSpecification
 ${Commons.Sources}/IOSpecification.o:	${Commons.Headers}/POSIXErrors.hpp ${Commons.Headers}/IOSpecification.hpp ${Commons.Sources}/IOSpecification.cpp
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${Commons.Sources}/IOSpecification.cpp -c ${FMSG} -o ${Commons.Sources}/IOSpecification.o
+
+# Commons.Time
+${Commons.Sources}/Time.o:	${Commons.Headers}/POSIXErrors.hpp ${Commons.Headers}/Time.hpp ${Commons.Sources}/Time.cpp
+	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${Commons.Sources}/Time.cpp -c ${FMSG} -o ${Commons.Sources}/Time.o
 
 # PCAP.LinuxPCAP
 ${PCAP.Sources}/LinuxPCAP.o:	${PCAP.Headers}/PCAPPrototype.hpp ${PCAP.Headers}/LinuxPCAP.hpp ${PCAP.Sources}/LinuxPCAP.cpp

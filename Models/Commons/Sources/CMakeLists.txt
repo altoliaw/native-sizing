@@ -1,5 +1,6 @@
 add_library(Models.Commons
-	StringImplment.cpp
+	StringImplement.cpp
+	HashTable.cpp
 )
 
 target_include_directories(Models.Commons PUBLIC ../Headers)
