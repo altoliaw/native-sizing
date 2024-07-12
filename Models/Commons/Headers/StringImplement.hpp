@@ -1,6 +1,6 @@
 #pragma once
 /** @file StringImplement.hpp
- * IO specifications
+ * Any type string implementation, for example, trimming
  *
  * @author Nick, Liao
  * @date 2024/05/15
@@ -14,7 +14,7 @@
 
 namespace Commons {
 /**
- * Serveral string implementation
+ * Several string implementation
  */
 class StringImplement {
    public:
