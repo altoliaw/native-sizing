@@ -18,10 +18,11 @@ namespace Commons {
  */
 class StringImplement {
    public:
-    static int obtainFirstNotSpaceCharLocation(const char*, const char = 0x0);
-	static int trimLeftSpace(char**);
-    static int trimRightSpace(char**);
-	static int mergeRedundantSpace(char**);
+    static int obtainFirstNotSpaceCharLocation(const unsigned char*, const char = 0x0);
+	static int trimLeftSpace(unsigned char**);
+    static int trimRightSpace(unsigned char**);
+	static int mergeRedundantSpace(unsigned char**);
+    static int obtainNoNewLineSignAtTheEnd(unsigned char**);
 };
 
 }  // namespace Commons

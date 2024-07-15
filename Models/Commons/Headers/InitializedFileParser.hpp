@@ -22,11 +22,11 @@ class InitializedFileParser {
     static InitializedFileParser* initializedFileParserPointer;
 
     static InitializedFileParser* getInitializedFileParserInitialization();
-    static char parseInitialFile(const char*);
-    static void* getValueFromFileParser(const char*);
+    static POSIXErrors parseInitializedFile(const unsigned char*);
+    static void* getValueFromFileParser(const unsigned char*);
+
 
     ~InitializedFileParser();
-
    private:
     InitializedFileParser();
 };
