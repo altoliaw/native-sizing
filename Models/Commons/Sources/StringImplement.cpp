@@ -85,7 +85,7 @@ int StringImplement::trimRightSpace(unsigned char** string) {
 
 /**
  *  Obtaining the string between the first character of the input string and the last character
- *  of the input string where all terms will be seperated by a space at least;
+ *  of the input string where all terms will be separated by a space at least;
  *  this function must be implemented after StringImplement::trimLeftSpace and
  *  StringImplement::trimRightSpace
  *
@@ -96,9 +96,9 @@ int StringImplement::mergeRedundantSpace(unsigned char** string) {
     int length = -1;
     // Using the shifted concept which the string comes from the two substrings
     if (*string != nullptr) {
-        int fianlLength = (int)strlen((const char*)(*string));
+        int finalLength = (int)strlen((const char*)(*string));
         int checkedIndex = 0;
-        for (unsigned int i = 0, j = 0; i < (unsigned int)fianlLength; i++) {
+        for (unsigned int i = 0, j = 0; i < (unsigned int)finalLength; i++) {
             // When the pivot is a space and the previous checked character is a space as well,
             // the pivot shall be moved to the next one, and the checked character will be stayed in the
             // current index.
