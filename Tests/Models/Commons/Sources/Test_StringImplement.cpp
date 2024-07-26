@@ -1,14 +1,14 @@
 #include "../Headers/Test_StringImplement.hpp"
 
 TEST(Commons, StringImplement_obtainFirstNotSpaceCharLocation) {
-    const unsigned char* string = " 12   ";
+    const unsigned char* string = (const unsigned char*)" 12   ";
     int index = Commons::StringImplement::obtainFirstNotSpaceCharLocation(string);
     ASSERT_EQ(1, index);
 
     index = Commons::StringImplement::obtainFirstNotSpaceCharLocation(string, 0x1);
     ASSERT_EQ(2, index);
 
-    const unsigned char* string2 = "     ";
+    const unsigned char* string2 = (const unsigned char*)"     ";
     index = Commons::StringImplement::obtainFirstNotSpaceCharLocation(string2);
     ASSERT_EQ(-1, index);
 

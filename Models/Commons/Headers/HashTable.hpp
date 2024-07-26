@@ -23,11 +23,13 @@ class HashTable {
      */
     enum ElementType {
         charType = 0,
+        unsignedCharType,
         integerType,
         floatType,
         doubleType,
         stringType,
         charStarType,
+        unsignedCharStarType,
         fileStarType,
         OtherType,
     };

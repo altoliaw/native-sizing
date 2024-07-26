@@ -60,7 +60,7 @@ clean:
 .Phony: cmakeClean
 cmakeClean:
 	@clear
-	@rm -rf ${Prdir}/build/*
+	@rm -rf ${Prdir}/build
 
 .Phony: cmake
 cmake:

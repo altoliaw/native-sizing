@@ -17,6 +17,9 @@ FetchContent_MakeAvailable(googletest)
 # Enableing test
 enable_testing()
 
+# Copy the dependent files of the project (cfg, ini files or files users feel like opening)
+configure_file(${CMAKE_SOURCE_DIR}/.Ini/globalCompiling.ini ${CMAKE_BINARY_DIR}/.Ini/globalCompiling.ini COPYONLY)
+
 # Opening the subdirectory for the next works
 add_subdirectory(Models)
 add_subdirectory(Sources)

@@ -6,17 +6,17 @@
  * @date 2024/05/15
  */
 
-
 #include "./HashTable.hpp"
 #include "./StringImplement.hpp"
 
 namespace Commons {
 /**
- * Several string implementation (singleton)
+ * Several InitializedFileParser implementation (singleton)
  */
 class InitializedFileParser {
    public:
-    // For referring to the hash table
+    // For referring to the hash table, and the hash table will assigned 
+    // by using the dynamic memory allocation
     Commons::HashTable* initializedTable;
 
     // A static variable for the object from the class (singleton)
