@@ -49,14 +49,14 @@ InitializedFileParser* InitializedFileParser::getInitializedFileParserInitializa
  * @return [POSIXErrors] The status defined in the class "POSIXErrors"
  */
 POSIXErrors InitializedFileParser::parseInitializedFile(const unsigned char* sourcePath) {
-    // Creating the singleton automatically, the function, getInitializedFileParserInitialization, will be 
+    // Creating the singleton automatically, the function, getInitializedFileParserInitialization, will be
     // done once, even though the function, parseInitializedFile(.) has been called many times
     InitializedFileParser* initialedFileParserInstance = InitializedFileParser::getInitializedFileParserInitialization();
 
     // Opening the specified file
     FILE* descriptor = fopen((const char*)sourcePath, "r+");
     if (descriptor == nullptr) {
-        std::cerr<< "No file exists\n";
+        std::cerr << "No file exists\n";
         return POSIXErrors::E_EXIST;
     }
 
@@ -79,12 +79,12 @@ POSIXErrors InitializedFileParser::parseInitializedFile(const unsigned char* sou
         } else if (length > 0 && linePointer[0] == '#') {  // Commented line
             continue;
         } else if (length > 0 && linePointer[0] == '[') {  // Section part
-            memcpy(section, (unsigned char*)linePointer, length);
+            memcpy(section, (unsigned char*)(linePointer + 1), length - 1);
             // Verifying if the last character is ']'
-            if (section[length - 1] == ']') {
-                section[length - 1] = '\0';
+            if (section[length - 1 - 1] == ']') {
+                section[length - 1 - 1] = '\0';
             } else {
-                section[length] = '\0';
+                section[length - 1] = '\0';
             }
         } else {  // Key-Value part
             int sectionLength = (int)strlen((char*)section);
@@ -117,7 +117,7 @@ POSIXErrors InitializedFileParser::parseInitializedFile(const unsigned char* sou
             key[sectionLength + 1 + delimiterIndex] = '\0';
 
             // Value preparing (adjusting the value array)
-            memmove(value, value + delimiterIndex + 1, length - (delimiterIndex + 1) );
+            memmove(value, value + delimiterIndex + 1, length - (delimiterIndex + 1));
             value[length - (delimiterIndex + 1)] = '\0';
 
             // Verifying the instance
@@ -127,8 +127,7 @@ POSIXErrors InitializedFileParser::parseInitializedFile(const unsigned char* sou
             // Putting the K-V pair into the hash table; because the value belongs to the string,
             // the size shall be included the size of '\0'
             initialedFileParserInstance->initializedTable->addElementIntoHashTable(
-                (char*)key, (void*)value, (size_t)(length - (delimiterIndex + 1) + 1), HashTable::ElementType::unsignedCharType
-            );
+                (char*)key, (void*)value, (size_t)(length - (delimiterIndex + 1) + 1), HashTable::ElementType::unsignedCharStarType);
         }
     }
 
@@ -136,6 +135,46 @@ POSIXErrors InitializedFileParser::parseInitializedFile(const unsigned char* sou
     if (descriptor != nullptr) {
         fclose(descriptor);
     }
+    return POSIXErrors::OK;
+}
+
+/**
+ * Obtaining the value from the hash table
+ *
+ * @param columnName [const unsigned char*] The key of the element in the hash table
+ * @param value [unsigned char*] The pointer to the value in the hash table; the value is searched from the columnName;
+ * In addition, the value shall be assigned a static memory space
+ * @return [POSIXErrors] The successful flag
+ */
+POSIXErrors InitializedFileParser::getValueFromFileParser(const unsigned char* columnName, unsigned char* value) {
+    // Creating the singleton automatically, the function, getInitializedFileParserInitialization, will be
+    // done once, even though the function, parseInitializedFile(.) has been called many times
+    InitializedFileParser* initialedFileParserInstance = InitializedFileParser::getInitializedFileParserInitialization();
+
+    unsigned char* copiedColumnNameAddress = nullptr;                            // The pointer for referring to the columnName defined in the hash table
+    void* valuePointer = nullptr;                                                // The pointer for referring to the value which is searching by using the columnName
+    size_t valueSize = 0;                                                        // The memory size of the value
+    HashTable::ElementType type = HashTable::ElementType::unsignedCharStarType;  // The data type of the value
+
+    // Obtaining the value
+    char isExisted = initialedFileParserInstance->initializedTable->getValueByName(
+        (char*)columnName, (char**)(&copiedColumnNameAddress), &valuePointer, &valueSize, &type);
+
+    // When the key does not exist in the hash table, ...
+    if (isExisted == 0x0) {
+        std::cerr << "There is no item in the hash table.\n";
+        return POSIXErrors::E_NOITEM;
+    }
+
+    // When the type is equal to the "unsigned char*"
+    if (type == HashTable::ElementType::unsignedCharStarType) {
+        memcpy((void*)value, valuePointer, valueSize);
+        value[valueSize] = '\0';  // For ensuring that the '\0' will be appeared
+    } else {
+        std::cerr << "Value's type error\n";
+        return POSIXErrors::E_NOITEM;
+    }
+
     return POSIXErrors::OK;
 }
 

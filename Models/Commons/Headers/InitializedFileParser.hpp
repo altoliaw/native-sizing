@@ -24,7 +24,7 @@ class InitializedFileParser {
 
     static InitializedFileParser* getInitializedFileParserInitialization();
     static POSIXErrors parseInitializedFile(const unsigned char*);
-    static void* getValueFromFileParser(const unsigned char*);
+    static POSIXErrors getValueFromFileParser(const unsigned char*, unsigned char*);
 
 
     ~InitializedFileParser();
