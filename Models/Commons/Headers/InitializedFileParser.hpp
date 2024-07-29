@@ -1,10 +1,15 @@
 #pragma once
 /** @file InitializedFileParser.hpp
- * A class for parsing the key and value pairs from the .ini file
+ * A class for parsing the key and value pairs from the .ini file; this class will be implemented 
+ * in a singleton pattern; for unit testing the singleton pattern in various unit tests, the unique
+ * pointer shall be used. This is because the static pointer shall refer to the dynamic memory manually and
+ * the memory shall be released manually; if the pointer is a normal pointer and refers to a static instance
+ * in the initialization function, the dynamic memory released phase can not be implemented
  *
  * @author Nick, Liao
  * @date 2024/05/15
  */
+#include <memory> // For the unique pointer
 
 #include "./HashTable.hpp"
 #include "./StringImplement.hpp"
@@ -19,7 +24,8 @@ class InitializedFileParser {
     // by using the dynamic memory allocation
     Commons::HashTable* initializedTable;
 
-    // A static variable for the object from the class (singleton)
+    // A static variable for the object from the class (singleton); a unique pointer
+    // shall be declared
     static InitializedFileParser* initializedFileParserPointer;
 
     static InitializedFileParser* getInitializedFileParserInitialization();
