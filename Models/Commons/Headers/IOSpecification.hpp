@@ -1,6 +1,8 @@
 #pragma once
 /** @file IOSpecification.hpp
- * IO specifications
+ * IO specifications; the class is used to migrate the output to the specified device
+ * 
+ * @note the code singleton is not proper for the unit test
  *
  * @author Nick, Liao
  * @date 2024/05/15

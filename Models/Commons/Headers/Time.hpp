@@ -1,6 +1,6 @@
 #pragma once
 /** @file TimePrototype.hpp
- * The timestamp prototype for later polymophisms
+ * The timestamp prototype for later polymorphisms
  *
  * @author William, Chiu; Nick modified
  * @date 2024/06/06

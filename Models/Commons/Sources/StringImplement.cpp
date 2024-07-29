@@ -119,7 +119,7 @@ int StringImplement::mergeRedundantSpace(unsigned char** string) {
  *  Obtaining the string without the end character(s) is/are '\n' and '\r\n'
  * 
  * @param string [unsigned char**] The input string for verification
- * @param [int] The length of the string
+ * @return [int] The length of the string
  */
 int StringImplement::obtainNoNewLineSignAtTheEnd(unsigned char** string) {
     int resultLength = 0;

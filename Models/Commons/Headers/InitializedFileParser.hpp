@@ -10,7 +10,6 @@
  * @date 2024/05/15
  */
 #include <memory> // For the unique pointer
-#include <iostream>
 
 #include "./HashTable.hpp"
 #include "./StringImplement.hpp"
