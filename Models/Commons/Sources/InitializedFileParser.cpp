@@ -80,7 +80,7 @@ POSIXErrors InitializedFileParser::parseInitializedFile(const unsigned char* sou
     char* linePointer = (char*)value;
     size_t lineBufferLength = sizeof(value) / sizeof(unsigned char);
 
-    while (fgets(linePointer, sizeof(value) / sizeof(unsigned char), descriptor) != nullptr) {
+    while (fgets(linePointer, lineBufferLength, descriptor) != nullptr) {
         unsigned int length = strlen(linePointer);
         // Trimming the spaces
         length = (length > 0) ? StringImplement::trimLeftSpace((unsigned char**)(&linePointer)) : 0;
@@ -108,7 +108,7 @@ POSIXErrors InitializedFileParser::parseInitializedFile(const unsigned char* sou
 
             // Accessing the key value pairs; spliting the key and value by using the character '='
             int delimiterIndex = -1;
-            for (int i = 0; i < length; i++) {
+            for (size_t i = 0; i < length; i++) {
                 if (linePointer[i] == '=') {
                     delimiterIndex = i;
                     break;

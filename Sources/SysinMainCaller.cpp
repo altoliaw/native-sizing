@@ -5,16 +5,17 @@
 
 namespace SysinMainCaller {
 //===Global Declaration===
+// Writing file path
+char* _WRITING_FILE_LOCATION_ = nullptr;
+// The time interval, "s" (the file will be recorded every "s" second(s))
+unsigned int _WRITING_FILE_SECOND_ = 30;
+
 // Determining if the "pcap_loop" shall be still working, 0x0: halting, 0x1: working
 volatile char _IS_PCAP_WORKED_ = 0x1;
 // Determining if the alarm shall be still working, 0x0: halting, 0x1: working
 volatile char _IS_ALARM_WORKED_ = 0x1;
-// The time interval, "s" (the file will be recorded every "s" second(s))
-unsigned int _WRITING_FILE_SECOND_ = 30;
 // Mutual locker
 std::mutex _MUTEX_;
-// Writing file path
-char* _WRITING_FILE_LOCATION_ = nullptr;
 
 // Referring to the object for stopping "pcap_loop"
 PCAP::LinuxPCAP* _PCAP_POINTER_ = nullptr;
@@ -33,6 +34,17 @@ static void packetFileTask(FILE**, const char*);
  * @return [int] The result defined in "POSIXErrors.hpp"
  */
 int start(int argC, char** argV) {
+    // Loading the .ini file for the application
+    {
+        const unsigned char* path = (const unsigned char*)".Ini/SysinMain.ini";// The current working directory is the project root
+        Commons::InitializedFileParser::parseInitializedFile(path);
+        unsigned char value[256] = {'\0'};
+        Commons::POSIXErrors error = Commons::InitializedFileParser::getValueFromFileParser((const unsigned char*)"base.interface", value);
+        if (error == Commons::POSIXErrors::OK) {
+            std::cerr << value << "\n";
+        }
+    }
+
     // Preparing some information
     char* interfaceName = (argC <= 1) ? (char*)"ens224" : argV[0];
     int port = (argC <= 2) ? 1521 : atoi(argV[1]);                                               // The server port
@@ -104,7 +116,7 @@ static void packetFileTask(FILE** fileDescriptor, const char* filePath) {
             std::cerr << "Error opening the file!\n";
             signalInterruptedHandler(0);  // Going to the end of the thread
 
-        } else {                          // Adding the header information in a line to the file
+        } else {  // Adding the header information in a line to the file
             char output[1024] = {'\0'};
             int length = sprintf(output, "UTC\tType\tNumber(amount)\tSize(byte)\teps(SQL number per time interval)\n");
             fwrite(output, sizeof(char), length, *_FILE_POINTER_);
@@ -223,7 +235,6 @@ void signalAlarmHandler(int) {
         *_FILE_POINTER_ = fopen(_WRITING_FILE_LOCATION_, "a+");
 
         if (*_FILE_POINTER_ == nullptr) {
-
             std::cerr << "Error opening the file!\n";
             signalInterruptedHandler(0);  // Going to the end of the thread
 

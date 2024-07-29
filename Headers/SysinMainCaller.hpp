@@ -19,6 +19,7 @@
 #include <thread>
 
 #include "../Models/Commons/Headers/IOSpecification.hpp"
+#include "../Models/Commons/Headers/InitializedFileParser.hpp"
 #include "../Models/Commons/Headers/POSIXErrors.hpp"
 #include "../Models/Commons/Headers/Time.hpp"
 #include "../Models/PCAP/Headers/LinuxPCAP.hpp"
@@ -29,4 +30,4 @@ int start(int, char**);
 void signalInterruptedHandler(int);
 void signalAlarmHandler(int);
 
-}  // namespace MainCaller
+}  // namespace SysinMainCaller
