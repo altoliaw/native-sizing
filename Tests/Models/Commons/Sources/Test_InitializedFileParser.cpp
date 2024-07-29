@@ -28,7 +28,7 @@ TEST(Commons, Test_InitializedFileParser_getInitializedFileParserInitialization2
 
 	unsigned char value [256] = {'\0'};
 	Commons::POSIXErrors error= Commons::InitializedFileParser::getValueFromFileParser((const unsigned char*)"compiler.WALL", value);
-	ASSERT_NE(error, Commons::POSIXErrors::OK);
+	ASSERT_NE(error, Commons::POSIXErrors::OK);// This shows that the singleton memory can be released definitely.
 
 	Commons::InitializedFileParser::releaseInitializedFileParserInitialization();
 }
