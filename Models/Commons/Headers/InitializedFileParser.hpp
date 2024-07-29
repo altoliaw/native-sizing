@@ -10,6 +10,7 @@
  * @date 2024/05/15
  */
 #include <memory> // For the unique pointer
+#include <iostream>
 
 #include "./HashTable.hpp"
 #include "./StringImplement.hpp"
@@ -26,9 +27,10 @@ class InitializedFileParser {
 
     // A static variable for the object from the class (singleton); a unique pointer
     // shall be declared
-    static InitializedFileParser* initializedFileParserPointer;
+    static std::unique_ptr<InitializedFileParser> initializedFileParserPointer;
 
-    static InitializedFileParser* getInitializedFileParserInitialization();
+    static std::unique_ptr<InitializedFileParser>& getInitializedFileParserInitialization();
+    static POSIXErrors releaseInitializedFileParserInitialization();
     static POSIXErrors parseInitializedFile(const unsigned char*);
     static POSIXErrors getValueFromFileParser(const unsigned char*, unsigned char*);
 

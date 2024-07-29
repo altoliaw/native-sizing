@@ -4,8 +4,8 @@
 #include "../Headers/InitializedFileParser.hpp"
 
 namespace Commons {
-// Initialization the nullptr to the static variable in the class
-InitializedFileParser* InitializedFileParser::initializedFileParserPointer = nullptr;
+// Initialization as nullptr to the static variable defined as the unique pointer in the class
+std::unique_ptr<InitializedFileParser> InitializedFileParser::initializedFileParserPointer = nullptr;
 
 /**
  * Constructor
@@ -28,18 +28,31 @@ InitializedFileParser::~InitializedFileParser() {
 /**
  * The static method for initializing the singleton
  *
- * @return [InitializedFileParser*] The pointer to the "InitializedFileParser" instance
+ * @return [std::unique_ptr<InitializedFileParser>&] The reference to the "InitializedFileParser" instance
  */
-InitializedFileParser* InitializedFileParser::getInitializedFileParserInitialization() {
-    // A static instance created in function
-    static InitializedFileParser initializedFileParser;
-
+std::unique_ptr<InitializedFileParser>& InitializedFileParser::getInitializedFileParserInitialization() {
     // If the static pointer is nullptr, the pointer shall be referred to a static object defined in the function
     if (InitializedFileParser::initializedFileParserPointer == nullptr) {
-        InitializedFileParser::initializedFileParserPointer = &initializedFileParser;
+        InitializedFileParser::initializedFileParserPointer.reset(new InitializedFileParser());
     }
 
     return InitializedFileParser::initializedFileParserPointer;
+}
+
+/**
+ * The caller for releasing the memory of the singleton because when the singleton will be recreated in 
+ * the unit tests
+ * 
+ * @return [POSIXErrors] The status defined in the class "POSIXErrors" The status defined in the class "POSIXErrors"
+ */
+POSIXErrors InitializedFileParser::releaseInitializedFileParserInitialization() {
+    // If the static pointer is not nullptr, the pointer shall be referred to a static object defined in the function
+    if (InitializedFileParser::initializedFileParserPointer != nullptr) {
+        InitializedFileParser::initializedFileParserPointer.reset();  // Destroying the instance/object; the destroyed process will executed the
+                                                                      // destructor of the instance/object
+        InitializedFileParser::initializedFileParserPointer = nullptr;
+    }
+    return POSIXErrors::OK;
 }
 
 /**
@@ -49,9 +62,9 @@ InitializedFileParser* InitializedFileParser::getInitializedFileParserInitializa
  * @return [POSIXErrors] The status defined in the class "POSIXErrors"
  */
 POSIXErrors InitializedFileParser::parseInitializedFile(const unsigned char* sourcePath) {
-    // Creating the singleton automatically, the function, getInitializedFileParserInitialization, will be
-    // done once, even though the function, parseInitializedFile(.) has been called many times
-    InitializedFileParser* initialedFileParserInstance = InitializedFileParser::getInitializedFileParserInitialization();
+    // Creating the singleton by reference automatically, the function, getInitializedFileParserInitialization, will be
+    // done once, even though the function, getInitializedFileParserInitialization(.) has been called many times
+    std::unique_ptr<InitializedFileParser>& initialedFileParserInstance = InitializedFileParser::getInitializedFileParserInitialization();
 
     // Opening the specified file
     FILE* descriptor = fopen((const char*)sourcePath, "r+");
@@ -147,9 +160,9 @@ POSIXErrors InitializedFileParser::parseInitializedFile(const unsigned char* sou
  * @return [POSIXErrors] The successful flag
  */
 POSIXErrors InitializedFileParser::getValueFromFileParser(const unsigned char* columnName, unsigned char* value) {
-    // Creating the singleton automatically, the function, getInitializedFileParserInitialization, will be
-    // done once, even though the function, parseInitializedFile(.) has been called many times
-    InitializedFileParser* initialedFileParserInstance = InitializedFileParser::getInitializedFileParserInitialization();
+    // Creating the singleton by reference automatically, the function, getInitializedFileParserInitialization, will be
+    // done once, even though the function, getInitializedFileParserInitialization(.) has been called many times
+    std::unique_ptr<InitializedFileParser>& initialedFileParserInstance = InitializedFileParser::getInitializedFileParserInitialization();
 
     unsigned char* copiedColumnNameAddress = nullptr;                            // The pointer for referring to the columnName defined in the hash table
     void* valuePointer = nullptr;                                                // The pointer for referring to the value which is searching by using the columnName
