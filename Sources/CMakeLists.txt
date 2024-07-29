@@ -1,5 +1,5 @@
 add_library(Main.Sources
-	MainCaller.cpp
+	SysinMainCaller.cpp
 )
 
 target_include_directories(Main.Sources PUBLIC ../Headers)

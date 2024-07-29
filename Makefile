@@ -30,23 +30,24 @@ PCAP.Sources=${Prdir}/Models/PCAP/Sources
 
 ## Project execution's name
 PjN:= $(word $(words $(subst /, ,${Prdir})), $(subst /, ,${Prdir}))
+AppLoc:=Apps
 
 # Make's Processes
 .Suffixs: .c .h .cpp .hpp
 
 .Phony: all
-all:	${Prdir}/${PjN}
+all:	${Prdir}/${PjN}_Sysin
 	@mkdir -p Outputs
 	@mkdir -p Logs
-	@sudo chown root:root ${Prdir}/${PjN}
-	@sudo chmod 4755 ${Prdir}/${PjN}
+	@sudo chown root:root ${Prdir}/${PjN}_Sysin
+	@sudo chmod 4755 ${Prdir}/${PjN}_Sysin
 	@echo ""
 	@echo "=================[Execution]===================="
 	@make run
 	
 
 .Phony: build
-build: ${Prdir}/${PjN}/build
+build: ${Prdir}/${PjN}_Sysin/build
 
 .Phony: clean
 clean:
@@ -55,7 +56,7 @@ clean:
 	@rm -rf ${Prdir}/*/*.o
 	@rm -rf ${Prdir}/*/*/*.o
 	@rm -rf ${Prdir}/*/*/*/*.o
-	@sudo rm -rf ${Prdir}/${PjN}
+	@sudo rm -rf ${Prdir}/${AppLoc}/${PjN}_Sysin
 
 .Phony: cmakeClean
 cmakeClean:
@@ -75,39 +76,41 @@ cmake:
 ##dbsecure ALL=NOPASSWD: /bin/rm -rf /home/dbsecure/trafficMonitor/trafficMonitor
 .Phony: run
 run:	
-	${Prdir}/${PjN}
+	${Prdir}/${PjN}_Sysin
 
 # Build
-${Prdir}/${PjN}/build : ${Prdir}/${PjN}
-	@sudo chown root:root ${Prdir}/${PjN}
-	@sudo chmod 4755 ${Prdir}/${PjN}
+${Prdir}/${PjN}_Sysin/build : ${Prdir}/${PjN}_Sysin
+	@sudo chown root:root ${Prdir}/${PjN}_Sysin
+	@sudo chmod 4755 ${Prdir}/${PjN}_Sysin
 			
 
-##================================================================
-# Create a application
-${Prdir}/${PjN}: 	${Prdir}/Main.o \
-					${Sources}/MainCaller.o \
+##===============[Application]=========================================
+# Create an application
+${Prdir}/${PjN}_Sysin: 	${Prdir}/${AppLoc}/SysinMain.o \
+					${Sources}/SysinMainCaller.o \
 					${Commons.Sources}/HashTable.o \
 					${Commons.Sources}/IOSpecification.o \
 					${Commons.Sources}/Time.o \
 					${PCAP.Sources}/LinuxPCAP.o
 
-	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${FMSG} -o ${Prdir}/${PjN} ${Prdir}/Main.o \
-	${Sources}/MainCaller.o \
+	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${FMSG} -o ${Prdir}/${PjN}_Sysin ${Prdir}/${AppLoc}/SysinMain.o \
+	${Sources}/SysinMainCaller.o \
 	${Commons.Sources}/HashTable.o \
 	${Commons.Sources}/IOSpecification.o \
 	${Commons.Sources}/Time.o \
 	${PCAP.Sources}/LinuxPCAP.o \
 	${LDLIBS}
 
-# Main
-${Prdir}/Main.o:	${Headers}/MainCaller.hpp ${Prdir}/Main.cpp
-	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${Prdir}/Main.cpp -c ${FMSG} -o ${Prdir}/Main.o
+# SysinMain
+${Prdir}/${AppLoc}/SysinMain.o:	${Headers}/SysinMainCaller.hpp ${Prdir}/${AppLoc}/SysinMain.cpp
+	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${Prdir}/${AppLoc}/SysinMain.cpp -c ${FMSG} -o ${Prdir}/${AppLoc}/SysinMain.o
 
-# MainCaller
-${Sources}/MainCaller.o:	${Commons.Headers}/POSIXErrors.hpp ${Commons.Headers}/IOSpecification.hpp ${Headers}/MainCaller.hpp ${Sources}/MainCaller.cpp
-	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${Sources}/MainCaller.cpp -c ${FMSG} -o ${Sources}/MainCaller.o
+# SysinMainCaller
+${Sources}/SysinMainCaller.o:	${Commons.Headers}/POSIXErrors.hpp ${Commons.Headers}/IOSpecification.hpp ${Headers}/SysinMainCaller.hpp ${Sources}/SysinMainCaller.cpp
+	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${Sources}/SysinMainCaller.cpp -c ${FMSG} -o ${Sources}/SysinMainCaller.o
 
+
+##===============[Dependencies]=========================================
 # Commons.HashTable
 ${Commons.Sources}/HashTable.o:	${Commons.Headers}/POSIXErrors.hpp ${Commons.Headers}/HashTable.hpp ${Commons.Sources}/HashTable.cpp
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${Commons.Sources}/HashTable.cpp -c ${FMSG} -o ${Commons.Sources}/HashTable.o
