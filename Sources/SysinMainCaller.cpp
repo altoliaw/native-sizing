@@ -190,6 +190,9 @@ static void packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, co
     udphdr* udpHeader = nullptr;
     uint16_t packetSourcePort = 0;
     uint16_t packetDestinationPort = 0;
+    // Preparing the flag information of the tcp;
+    // when the flag of the tcp is equal to 0x18, the packet belongs to SQL packets
+    uint8_t tcpFlag = 0;
 
     // Determining the protocol (TCP or UDP)
     switch (ip_header->ip_p) {
@@ -197,6 +200,7 @@ static void packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, co
             tcpHeader = (tcphdr*)(packet + sizeof(ether_header) + sizeof(ip));
             packetSourcePort = ntohs(tcpHeader->th_sport);
             packetDestinationPort = ntohs(tcpHeader->th_dport);
+            tcpFlag = tcpHeader->th_flags;
             break;
         case IPPROTO_UDP:  // UDP
             udpHeader = (udphdr*)(packet + sizeof(ether_header) + sizeof(ip));
@@ -207,6 +211,7 @@ static void packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, co
             tcpHeader = (tcphdr*)(packet + sizeof(ether_header) + sizeof(ip));
             packetSourcePort = ntohs(tcpHeader->th_sport);
             packetDestinationPort = ntohs(tcpHeader->th_dport);
+            tcpFlag = tcpHeader->th_flags;
     }
 
     // Critical section, accessing the data area
@@ -220,11 +225,17 @@ static void packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, co
         previousPacketType = 0x1;
         _PCAP_POINTER_->rxPacketNumber++;
         _PCAP_POINTER_->rxSize += (long long)(pkthdr->len);
+        if (tcpFlag == 0x18) {
+            // TODO
+        }
     } else {                              // Obtaining no type; as a result, the packet will belong to the previous one
         if (previousPacketType == 0x0) {  // TX packet
             _PCAP_POINTER_->txPacketNumber++;
             _PCAP_POINTER_->txSize += (long long)(pkthdr->len);
         } else {  // RX packet
+            if (tcpFlag == 0x18) {
+                // TODO
+            }
             _PCAP_POINTER_->rxPacketNumber++;
             _PCAP_POINTER_->rxSize += (long long)(pkthdr->len);
         }
