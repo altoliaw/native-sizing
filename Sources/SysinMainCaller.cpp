@@ -143,7 +143,7 @@ static void packetFileTask(FILE** fileDescriptor, const char* filePath) {
 
     // Opening the file with the file descriptor
     if (*_FILE_POINTER_ == nullptr) {
-        std::cerr << "The path is " << filePath << "\n";
+        // std::cerr << "The path is " << filePath << "\n";
         *_FILE_POINTER_ = fopen(filePath, "a+");
         if (*_FILE_POINTER_ == nullptr) {
             std::cerr << "Error opening the file!\n";
