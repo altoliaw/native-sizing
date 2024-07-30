@@ -5,6 +5,7 @@
 
 namespace SysinMainCaller {
 //===Global Declaration===
+// Variables in .ini file
 // Writing file path
 char* _WRITING_FILE_LOCATION_ = nullptr;
 // The time interval, "s" (the file will be recorded every "s" second(s))
@@ -34,21 +35,53 @@ static void packetFileTask(FILE**, const char*);
  * @return [int] The result defined in "POSIXErrors.hpp"
  */
 int start(int argC, char** argV) {
-    // Loading the .ini file for the application
-    {
-        const unsigned char* path = (const unsigned char*)".Ini/SysinMain.ini";// The current working directory is the project root
-        Commons::InitializedFileParser::parseInitializedFile(path);
-        unsigned char value[256] = {'\0'};
-        Commons::POSIXErrors error = Commons::InitializedFileParser::getValueFromFileParser((const unsigned char*)"base.interface", value);
+    // Loading information from the .ini file for the application
+    // The current working directory is the project root; as a result, the related path is shown as follows.
+    const unsigned char* path = (const unsigned char*)".Ini/SysinMain.ini";
+    Commons::InitializedFileParser::parseInitializedFile(path);
+
+    Commons::POSIXErrors error = Commons::POSIXErrors::OK;
+    // Preparing some information
+    char interfaceName[256] = {'\0'};  // The interface
+    if (argC <= 1) {
+        error = Commons::InitializedFileParser::getValueFromFileParser((const unsigned char*)"base.interface", (unsigned char*)interfaceName);
         if (error == Commons::POSIXErrors::OK) {
-            std::cerr << value << "\n";
+            if (strlen(interfaceName) == 0) {
+                strcpy(interfaceName, "ens224");
+            }
+        } else {
+            strcpy(interfaceName, "ens224");
         }
+    } else {
+        strcpy(interfaceName, argV[0]);
     }
 
-    // Preparing some information
-    char* interfaceName = (argC <= 1) ? (char*)"ens224" : argV[0];
-    int port = (argC <= 2) ? 1521 : atoi(argV[1]);                                               // The server port
-    char* OutputFilePathRule = (argC <= 3) ? (char*)"Outputs/trafficMonitor_%lu.tsv" : argV[2];  // The output path
+    int port = 0;  // The server port
+    if (argC <= 2) {
+        char portString[256] = {'\0'};
+        error = Commons::InitializedFileParser::getValueFromFileParser((const unsigned char*)"base.port", (unsigned char*)portString);
+        if (error == Commons::POSIXErrors::OK) {
+            if (strlen(portString) == 0) {
+                port = 1521;
+            } else {
+                port = atoi(portString);
+            }
+        }
+    } else {
+        port = atoi(argV[1]);
+    }
+
+    char writingFileSecond[256] = {'\0'};  // The time for writing information into a file
+    error = Commons::InitializedFileParser::getValueFromFileParser((const unsigned char*)"base.writingFileSecond", (unsigned char*)writingFileSecond);
+    if (error == Commons::POSIXErrors::OK) {
+        if (strlen(writingFileSecond) == 0) {
+            // Do nothing
+        } else {
+            _WRITING_FILE_SECOND_ = atoi(writingFileSecond);
+        }
+    }
+    // The output path
+    char* OutputFilePathRule = (char*)"Outputs/trafficMonitor_%lu.tsv";
 
     // Obtaining the epoch
     char OuputFilePathWithTime[100] = {'\0'};

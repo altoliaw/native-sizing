@@ -25,9 +25,7 @@
 #include "../Models/PCAP/Headers/LinuxPCAP.hpp"
 
 namespace SysinMainCaller {
-//===Function Declaration===
 int start(int, char**);
 void signalInterruptedHandler(int);
 void signalAlarmHandler(int);
-
 }  // namespace SysinMainCaller

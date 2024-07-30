@@ -184,7 +184,7 @@ POSIXErrors InitializedFileParser::getValueFromFileParser(const unsigned char* c
         memcpy((void*)value, valuePointer, valueSize);
         value[valueSize] = '\0';  // For ensuring that the '\0' will be appeared
     } else {
-        std::cerr << "Value's type error\n";
+        // Do nothing
         return POSIXErrors::E_NOITEM;
     }
 
