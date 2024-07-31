@@ -3,7 +3,7 @@ source $(pwd)/Shells/iniParser.sh
 
 # Definition of the associated array
 declare -A result_dict
-getIniValues $(pwd)/.Ini/globalCompiling.ini result_dict
+getIniValues $(pwd)/Settings/.Ini/globalCompiling.ini result_dict
 
 echo "==========================="
 
@@ -14,8 +14,8 @@ done
 echo "==========================="
 
 echo "${result_dict[compiler.CC]}"
-echo $(iniParser_getIni $(pwd)/.Ini/globalCompiling.ini "compiler.CC")
-echo $(iniParser_getIni $(pwd)/.Ini/globalCompiling.ini)
+echo $(iniParser_getIni $(pwd)/Settings/.Ini/globalCompiling.ini "compiler.CC")
+echo $(iniParser_getIni $(pwd)/Settings/.Ini/globalCompiling.ini)
 
 echo "==========================="
 

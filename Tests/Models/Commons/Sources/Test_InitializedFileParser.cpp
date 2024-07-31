@@ -8,7 +8,7 @@ TEST(Commons, Test_InitializedFileParser_getInitializedFileParserInitialization)
 }
 
 TEST(Commons, Test_InitializedFileParser_parseInitializedFile) {
-    const unsigned char* path = (const unsigned char*)"../../../../.Ini/globalCompiling.ini";
+    const unsigned char* path = (const unsigned char*)"../../../../Settings/.Ini/globalCompiling.ini";
     Commons::InitializedFileParser::parseInitializedFile(path);
 	unsigned char value [256] = {'\0'};
 	Commons::POSIXErrors error= Commons::InitializedFileParser::getValueFromFileParser((const unsigned char*)"compiler.WALL", value);
@@ -35,7 +35,7 @@ TEST(Commons, Test_InitializedFileParser_getInitializedFileParserInitialization2
 
 
 TEST(Commons, Test_InitializedFileParser_parseInitializedFile2) {
-    const unsigned char* path = (const unsigned char*)"../../../../.Ini/globalCompiling.ini";
+    const unsigned char* path = (const unsigned char*)"../../../../Settings/.Ini/globalCompiling.ini";
     Commons::InitializedFileParser::parseInitializedFile(path);
 	unsigned char value [256] = {'\0'};
 	Commons::POSIXErrors error= Commons::InitializedFileParser::getValueFromFileParser((const unsigned char*)"compiler.WALL", value);

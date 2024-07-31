@@ -175,7 +175,7 @@ POSIXErrors InitializedFileParser::getValueFromFileParser(const unsigned char* c
 
     // When the key does not exist in the hash table, ...
     if (isExisted == 0x0) {
-        std::cerr << "There is no item in the hash table.\n";
+        // std::cerr << "There is no item in the hash table.\n";
         return POSIXErrors::E_NOITEM;
     }
 

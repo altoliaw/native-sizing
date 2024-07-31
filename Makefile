@@ -5,7 +5,7 @@ Prdir:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 ## The Compiler, library, level of the compiler optimization, detected information, WALL and message
 ## Obtaining the all compiler setting string from globalCompiling.ini and the function, iniParser_getIni, in the file, iniParser.sh;
 ## the return value is "compiler.STD=-std=c++11;compiler.DETAILINFO=-g0; ..."
-KVPAIR:=$(shell source ${Prdir}/Shells/iniParser.sh && echo $$(iniParser_getIni ${Prdir}/.Ini/globalCompiling.ini))
+KVPAIR:=$(shell source ${Prdir}/Shells/iniParser.sh && echo $$(iniParser_getIni ${Prdir}/Settings/.Ini/globalCompiling.ini))
 ## Obtaining the compiling information
 CC			=$(shell source ${Prdir}/Shells/iniParser.sh && echo $$(getVariableValue "${KVPAIR}" "compiler.CC"))
 STD			=$(shell source ${Prdir}/Shells/iniParser.sh && echo $$(getVariableValue "${KVPAIR}" "compiler.STD"))

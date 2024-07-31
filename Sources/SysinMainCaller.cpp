@@ -37,7 +37,7 @@ static void packetFileTask(FILE**, const char*);
 int start(int argC, char** argV) {
     // Loading information from the .ini file for the application
     // The current working directory is the project root; as a result, the related path is shown as follows.
-    const unsigned char* path = (const unsigned char*)".Ini/SysinMain.ini";
+    const unsigned char* path = (const unsigned char*)"Settings/.Ini/SysinMain.ini";
     Commons::InitializedFileParser::parseInitializedFile(path);
 
     Commons::POSIXErrors error = Commons::POSIXErrors::OK;
