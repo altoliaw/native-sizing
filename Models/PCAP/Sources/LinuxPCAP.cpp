@@ -42,6 +42,10 @@ LinuxPCAP::~LinuxPCAP() {
     rxPacketNumber = 0;
     txPacketNumber = 0;
     errBuff[0] = '\0';
+    maxRxSize = 0;
+    maxTxSize = 0;
+    sqlRequestNumber = 0;
+    sqlRequestSize = 0;
 }
 
 /**
