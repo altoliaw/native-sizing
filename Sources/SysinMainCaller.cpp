@@ -150,7 +150,8 @@ static void packetFileTask(FILE** fileDescriptor, const char* filePath) {
 
         } else {  // Adding the header information in a line to the file
             char output[1024] = {'\0'};
-            int length = sprintf(output, "UTC\tType\tPort\tNumber(amount)\tSize(byte)\tMaxSize\tSQL number per time interval(eps)\tSQL size per time interval(eps)\n");
+            int length = sprintf(output, "UTC\tType\tPort\tNumber(amount)\tSize(bytes)\tMaxSize(bytes)\t"
+                                        "SQL number in the time interval\tSQL size(bytes) in the time interval\tSQL size per time interval(eps)\n");
             fwrite(output, sizeof(char), length, *_FILE_POINTER_);
             if (*_FILE_POINTER_ != nullptr) {
                 fclose(*_FILE_POINTER_);
@@ -316,13 +317,14 @@ void signalAlarmHandler(int) {
             // TX part; in the section, the last two result will be to zero because the packets 
             // from the record set from the SQL server shall be ignored
             int length = sprintf(output,
-                                 "%lu\tTX\t%d\t%lu\t%llu\t%lu\t%lu\t%llu\n",
+                                 "%lu\tTX\t%d\t%lu\t%llu\t%lu\t%lu\t%llu\t%llu\n",
                                  timeEpoch,
                                  _PCAP_POINTER_->port,
                                  _PCAP_POINTER_->txPacketNumber,
-                                 _PCAP_POINTER_->txSize / 8,
-                                 _PCAP_POINTER_->maxTxSize / 8,
+                                 _PCAP_POINTER_->txSize,
+                                 _PCAP_POINTER_->maxTxSize,
                                  (long)0,
+                                 (long long)0,
                                  (long long)0);
             fwrite(output, sizeof(char), length, *_FILE_POINTER_);
             _PCAP_POINTER_->txPacketNumber = 0;
@@ -331,14 +333,15 @@ void signalAlarmHandler(int) {
 
             // RX part
             length = sprintf(output,
-                             "%lu\tRX\t%d\t%lu\t%llu\t%lu\t%lu\t%llu\n",
+                             "%lu\tRX\t%d\t%lu\t%llu\t%lu\t%lu\t%llu\t%llu\n",
                              timeEpoch,
                              _PCAP_POINTER_->port,
                              _PCAP_POINTER_->rxPacketNumber,
-                             _PCAP_POINTER_->rxSize / 8,
-                             _PCAP_POINTER_->maxRxSize / 8,
-                             _PCAP_POINTER_->sqlRequestNumber / (long)_WRITING_FILE_SECOND_,
-                             _PCAP_POINTER_->sqlRequestSize / (long long)_WRITING_FILE_SECOND_ / 8);
+                             _PCAP_POINTER_->rxSize,
+                             _PCAP_POINTER_->maxRxSize,
+                             _PCAP_POINTER_->sqlRequestNumber,
+                             _PCAP_POINTER_->sqlRequestSize, 
+                             _PCAP_POINTER_->sqlRequestSize / (long long)_WRITING_FILE_SECOND_);
             fwrite(output, sizeof(char), length, *_FILE_POINTER_);
             _PCAP_POINTER_->rxPacketNumber = 0;
             _PCAP_POINTER_->rxSize = 0;
