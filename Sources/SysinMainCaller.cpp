@@ -143,7 +143,6 @@ static void packetFileTask(FILE** fileDescriptor, const char* filePath) {
 
     // Opening the file with the file descriptor
     if (*_FILE_POINTER_ == nullptr) {
-        // std::cerr << "The path is " << filePath << "\n";
         *_FILE_POINTER_ = fopen(filePath, "a+");
         if (*_FILE_POINTER_ == nullptr) {
             std::cerr << "Error opening the file!\n";
@@ -151,7 +150,7 @@ static void packetFileTask(FILE** fileDescriptor, const char* filePath) {
 
         } else {  // Adding the header information in a line to the file
             char output[1024] = {'\0'};
-            int length = sprintf(output, "UTC\tType\tNumber(amount)\tSize(byte)\teps(SQL number per time interval)\n");
+            int length = sprintf(output, "UTC\tType\tPort\tNumber(amount)\tSize(byte)\tMaxSize\tSQL number per time interval(eps)\tSQL size per time interval(eps)\n");
             fwrite(output, sizeof(char), length, *_FILE_POINTER_);
             if (*_FILE_POINTER_ != nullptr) {
                 fclose(*_FILE_POINTER_);
@@ -221,23 +220,52 @@ static void packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, co
         previousPacketType = 0x0;
         _PCAP_POINTER_->txPacketNumber++;
         _PCAP_POINTER_->txSize += (long long)(pkthdr->len);
+
+        // Obtaining the maximum size
+        if (_PCAP_POINTER_->maxTxSize < (long long)(pkthdr->len)) {
+            _PCAP_POINTER_->maxTxSize = (long long)(pkthdr->len);
+        }
+
     } else if (packetDestinationPort == _PCAP_POINTER_->port) {  // RX packet
         previousPacketType = 0x1;
         _PCAP_POINTER_->rxPacketNumber++;
         _PCAP_POINTER_->rxSize += (long long)(pkthdr->len);
+
+        // In this if section, the meaning implies that the packet from the client to server contain a SQL statement
         if (tcpFlag == 0x18) {
-            // TODO
+            _PCAP_POINTER_->sqlRequestNumber++;
+            _PCAP_POINTER_->sqlRequestSize += (long long)(pkthdr->len);
         }
+
+        // Obtaining the maximum size
+        if (_PCAP_POINTER_->maxRxSize < (long long)(pkthdr->len)) {
+            _PCAP_POINTER_->maxRxSize = (long long)(pkthdr->len);
+        }
+
     } else {                              // Obtaining no type; as a result, the packet will belong to the previous one
         if (previousPacketType == 0x0) {  // TX packet
             _PCAP_POINTER_->txPacketNumber++;
             _PCAP_POINTER_->txSize += (long long)(pkthdr->len);
-        } else {  // RX packet
-            if (tcpFlag == 0x18) {
-                // TODO
+
+            // Obtaining the maximum size
+            if (_PCAP_POINTER_->maxTxSize < (long long)(pkthdr->len)) {
+                _PCAP_POINTER_->maxTxSize = (long long)(pkthdr->len);
             }
+
+        } else {  // RX packet
             _PCAP_POINTER_->rxPacketNumber++;
             _PCAP_POINTER_->rxSize += (long long)(pkthdr->len);
+
+            // In this if section, the meaning implies that the packet from the client to server contain a SQL statement
+            if (tcpFlag == 0x18) {
+                _PCAP_POINTER_->sqlRequestNumber++;
+                _PCAP_POINTER_->sqlRequestSize += (long long)(pkthdr->len);
+            }
+
+            // Obtaining the maximum size
+            if (_PCAP_POINTER_->maxRxSize < (long long)(pkthdr->len)) {
+                _PCAP_POINTER_->maxRxSize = (long long)(pkthdr->len);
+            }
         }
     }
     // Critical section end
@@ -273,8 +301,7 @@ void signalInterruptedHandler(int) {
 void signalAlarmHandler(int) {
     // File writing
     char output[1024] = {"\0"};
-    if (*_FILE_POINTER_ == nullptr) {
-        std::cerr << _WRITING_FILE_LOCATION_ << "\n";
+    if (*_FILE_POINTER_ == nullptr) {        
         // Opening the file
         *_FILE_POINTER_ = fopen(_WRITING_FILE_LOCATION_, "a+");
 
@@ -284,28 +311,40 @@ void signalAlarmHandler(int) {
 
         } else {
             _MUTEX_.lock();
-
+            // "UTC\tType\tPort\tNumber(amount)\tSize(byte)\tMaxSize\tSQL number per time interval(eps)\tSQL size per time interval(eps)\n";
             time_t timeEpoch = Commons::Time::getEpoch();
-            // TX part
+            // TX part; in the section, the last two result will be to zero because the packets 
+            // from the record set from the SQL server shall be ignored
             int length = sprintf(output,
-                                 "%lu\tTX\t%lu\t%llu\t%llu\n",
+                                 "%lu\tTX\t%d\t%lu\t%llu\t%lu\t%lu\t%llu\n",
                                  timeEpoch,
+                                 _PCAP_POINTER_->port,
                                  _PCAP_POINTER_->txPacketNumber,
                                  _PCAP_POINTER_->txSize / 8,
-                                 _PCAP_POINTER_->txSize / (long long)_WRITING_FILE_SECOND_ / 8);
+                                 _PCAP_POINTER_->maxTxSize / 8,
+                                 (long)0,
+                                 (long long)0);
             fwrite(output, sizeof(char), length, *_FILE_POINTER_);
             _PCAP_POINTER_->txPacketNumber = 0;
             _PCAP_POINTER_->txSize = 0;
+            _PCAP_POINTER_->maxTxSize = 0;
+
             // RX part
             length = sprintf(output,
-                             "%lu\tRX\t%lu\t%llu\t%llu\n",
+                             "%lu\tRX\t%d\t%lu\t%llu\t%lu\t%lu\t%llu\n",
                              timeEpoch,
+                             _PCAP_POINTER_->port,
                              _PCAP_POINTER_->rxPacketNumber,
                              _PCAP_POINTER_->rxSize / 8,
-                             _PCAP_POINTER_->rxSize / (long long)_WRITING_FILE_SECOND_ / 8);
+                             _PCAP_POINTER_->maxRxSize / 8,
+                             _PCAP_POINTER_->sqlRequestNumber / (long)_WRITING_FILE_SECOND_,
+                             _PCAP_POINTER_->sqlRequestSize / (long long)_WRITING_FILE_SECOND_ / 8);
             fwrite(output, sizeof(char), length, *_FILE_POINTER_);
             _PCAP_POINTER_->rxPacketNumber = 0;
             _PCAP_POINTER_->rxSize = 0;
+            _PCAP_POINTER_->maxRxSize = 0;
+            _PCAP_POINTER_->sqlRequestNumber = 0;
+            _PCAP_POINTER_->sqlRequestSize = 0;
 
             _MUTEX_.unlock();
             alarm(_WRITING_FILE_SECOND_);

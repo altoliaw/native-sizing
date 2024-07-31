@@ -26,9 +26,7 @@ class PCAPPrototype {
     long rxPacketNumber;             // The number of the packets in the rx channel
     long txPacketNumber;             // The number of the packets in the tx channel
     long maxRxSize;                  // The max size of the rx packets during the time interval
-    long minRxSize;                  // The min size of the rx packets during the time interval
     long maxTxSize;                  // The max size of the tx packets during the time interval
-    long minTxSize;                  // The min size of the tx packets during the time interval
     long sqlRequestNumber;           // The number if the packets containing SQL statement in rx
     long long sqlRequestSize;        // The size if the packets containing SQL statement in rx
     virtual void open(const char*, const int,

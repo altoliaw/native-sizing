@@ -47,6 +47,7 @@ all:	${Prdir}/${PjN}/${Bin} ${Prdir}/${PjN}_Sysin
 	@sudo chmod 4755 ${Prdir}//${Bin}/${PjN}_Sysin
 	@echo ""
 	@echo "=================[Execution]===================="
+	@echo ""
 	@make run
 	
 
