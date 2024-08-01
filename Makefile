@@ -1,7 +1,7 @@
 # Obtaining the project root path (to project's path)
 Prdir:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
-# Setting of the general compiled grammer
+# Setting of the general compiled grammar
 ## The Compiler, library, level of the compiler optimization, detected information, WALL and message
 ## Obtaining the all compiler setting string from globalCompiling.ini and the function, iniParser_getIni, in the file, iniParser.sh;
 ## the return value is "compiler.STD=-std=c++11;compiler.DETAILINFO=-g0; ..."
@@ -18,6 +18,7 @@ LDFLAGS		=$(shell source ${Prdir}/Shells/iniParser.sh && echo $$(getVariableValu
 LDLIBS		=$(shell source ${Prdir}/Shells/iniParser.sh && echo $$(getVariableValue "${KVPAIR}" "compiler.LDLIBS"))
 
 # ------ 
+# Variable definition
 Headers=${Prdir}/Headers
 Sources=${Prdir}/Sources
 
@@ -32,15 +33,18 @@ PCAP.Sources=${Prdir}/Models/PCAP/Sources
 PjN:= $(word $(words $(subst /, ,${Prdir})), $(subst /, ,${Prdir}))
 ## The folder name for the start entry point of the cpp of the execution
 AppLoc:=Apps
-## The folder name for the execution
-Bin:=Bin
 
+## The necessary folders name for the project
+### The folder for the exection
+Bin:=Bin
+### The foldeer for the third party software
+Vendors:=Vendors
 
 # Make's Processes
 .Suffixs: .c .h .cpp .hpp
 
 .Phony: all
-all:	${Prdir}/${PjN}/${Bin} ${Prdir}/${PjN}_Sysin
+all:	${Prdir}/${PjN}/Folders ${Prdir}/${PjN}_Sysin
 	@mkdir -p Outputs
 	@mkdir -p Logs
 	@sudo chown root:root ${Prdir}/${Bin}/${PjN}_Sysin
@@ -52,7 +56,7 @@ all:	${Prdir}/${PjN}/${Bin} ${Prdir}/${PjN}_Sysin
 	
 
 .Phony: build
-build: ${Prdir}/${PjN}/${Bin} ${Prdir}/${PjN}_Sysin/build
+build: ${Prdir}/${PjN}/Folders ${Prdir}/${PjN}_Sysin/build
 
 .Phony: clean
 clean:
@@ -88,9 +92,14 @@ ${Prdir}/${PjN}_Sysin/build : ${Prdir}/${PjN}_Sysin
 	@sudo chown root:root ${Prdir}/${Bin}/${PjN}_Sysin
 	@sudo chmod 4755 ${Prdir}/${Bin}/${PjN}_Sysin
 			
-# The location for the execution files
-${Prdir}/${PjN}/${Bin}:
-	@mkdir -p ${Bin}
+# The location for creating folders in advance
+${Prdir}/${PjN}/Folders:
+	@mkdir -p ${Bin}  					# Creating the folder for execution
+	@mkdir -p ${Vendors}				# Creating the folder for the third party software
+	@mkdir -p ${Vendors}/Libs			# Creating the folder for the static/dynamic libraries
+	@mkdir -p ${Vendors}/Includes		# Creating the folder for the headers file
+
+
 ##===============[Application]=========================================
 # Create an application
 ${Prdir}/${PjN}_Sysin: 	${Prdir}/${AppLoc}/SysinMain.o \
