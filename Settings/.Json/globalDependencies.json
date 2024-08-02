@@ -8,6 +8,15 @@
 		"libs": [],
 		"reference": "https://github.com/DaveGamble/cJSON",
 		"remove": "cd ../ && rm -rf cJson"
-	  }
+	  },
+	  {
+		"name": "cJson2",
+		"download": "git clone https://github.com/DaveGamble/cJSON.git cJson",
+		"command": "cd cJson && make",
+		"includes": [],
+		"libs": [],
+		"reference": "https://github.com/DaveGamble/cJSON",
+		"remove": "cd ../ && rm -rf cJson"
+	  } 
 	]
 }

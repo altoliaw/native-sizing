@@ -78,7 +78,8 @@ cmake: ${Prdir}/${PjN}/Folders
 	cmake --build build
 	cd build && ctest -V
 
-
+.Phony: vendor
+vendor: ${Prdir}/${PjN}/Folders
 ##----------------------------------------------------------------------
 ## Nick editted manually
 ## ---------------------------------------------------------------------
@@ -98,7 +99,10 @@ ${Prdir}/${PjN}/Folders:
 	@mkdir -p ${Vendors}				# Creating the folder for the third party software
 	@mkdir -p ${Vendors}/Libs			# Creating the folder for the static/dynamic libraries
 	@mkdir -p ${Vendors}/Includes		# Creating the folder for the headers file
-	@touch ${Vendors}/.${Vendors}.json	# A file for maintaining the modules in the folder, Vendors
+    # Linking to the function, vendorDependenciesInitailization, 
+    # from the shell script, installVendor.sh, and determining the existence of the file & initializing the file
+	@source ${Prdir}/Shells/installVendor.sh && $$(vendorDependenciesInitailization "${Vendors}/.${Vendors}.json")
+	
 
 ##===============[Application]=========================================
 # Create an application
