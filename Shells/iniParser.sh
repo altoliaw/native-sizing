@@ -1,3 +1,4 @@
+#!/bin/bash
 # /**
 #  * Before executing the shell script, the files in the .ini folder shall be set.
 #  * Please refer to the files mentioned above for setting.

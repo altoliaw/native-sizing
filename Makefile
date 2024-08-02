@@ -73,7 +73,7 @@ cmakeClean:
 	@rm -rf ${Prdir}/build
 
 .Phony: cmake
-cmake:
+cmake: ${Prdir}/${PjN}/Folders
 	cmake -S . -B build
 	cmake --build build
 	cd build && ctest -V
@@ -92,13 +92,13 @@ ${Prdir}/${PjN}_Sysin/build : ${Prdir}/${PjN}_Sysin
 	@sudo chown root:root ${Prdir}/${Bin}/${PjN}_Sysin
 	@sudo chmod 4755 ${Prdir}/${Bin}/${PjN}_Sysin
 			
-# The location for creating folders in advance
+# The location for creating folders & a maintained file in advance
 ${Prdir}/${PjN}/Folders:
 	@mkdir -p ${Bin}  					# Creating the folder for execution
 	@mkdir -p ${Vendors}				# Creating the folder for the third party software
 	@mkdir -p ${Vendors}/Libs			# Creating the folder for the static/dynamic libraries
 	@mkdir -p ${Vendors}/Includes		# Creating the folder for the headers file
-
+	@touch ${Vendors}/.${Vendors}.json	# A file for maintaining the modules in the folder, Vendors
 
 ##===============[Application]=========================================
 # Create an application
