@@ -82,7 +82,7 @@ cmake: ${Prdir}/${PjN}/Folders
 vendor:
     # Creating the vendor and related folders by using the function, dependenciesTraversal, 
     # from the shell script, installVendor.sh, and determining the existence of the file & initializing the file
-	@source ${Prdir}/Shells/installVendor.sh && dependenciesTraversal "Settings/.Json/globalDependencies.json" "${Vendors}/.${Vendors}.json"
+	@source ${Prdir}/Shells/installVendor.sh && dependenciesTraversal "${Prdir}/Settings/.Json/globalDependencies.json" "${Prdir}/${Vendors}/.${Vendors}.json"
 
 # This phony, createVendor, is used for the shell script, namely installVendor
 .Phony: createVendor
