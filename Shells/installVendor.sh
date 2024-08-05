@@ -4,7 +4,7 @@
 #  *
 #  * @author Nick
 #  * @Date 2024/08/02
-#  * 
+#  *
 #  * @note [2024/08/02] The structure of the .Vendors.json is shown as below.
 #  * {
 #  *   "dependencies": [
@@ -22,21 +22,29 @@
 #  */
 
 # /**
-#  * Obtaining the element from the .json file
+#  * Obtaining the element from the .json file and the temporary file
 #  *
 #  * @param $0 The function called by users
 #  * @param $1 The contents for searching
 #  * @param $2 The syntax which users search
+#  * @param $3 The parameter for jq
 #  * @return The block which users search
 #  */
 function searchElement() {
     local content="$1"
-    local seachedSyntax="$2"
-    echo $( echo "$content" | jq "$seachedSyntax" )
+    local searchedSyntax="$2"
+    local jqParameter="$3"
+
+    # If the "jqParameter" is null, ...
+    if [ -z "$jqParameter" ]; then
+        echo $(echo "$content" | jq "$searchedSyntax")
+    else # If the "jqParameter" is not null, ...
+        echo $(echo "$content" | jq "$jqParameter" "$searchedSyntax")
+    fi
 }
 
 # /**
-#  * Public Caller, generation and initialization of the .json file (defined in the "Vendors" folder)
+#  * Public Caller, vendor generation and initialization of the .json file (defined in the "Vendors" folder)
 #  *
 #  * @param $0 The function called by users
 #  * @param $1 The dependent file name of the .json file (defined in the "Vendors" folder)
@@ -44,16 +52,23 @@ function searchElement() {
 function vendorDependenciesInitailization() {
     local vendorFilePath=$1
     local vendorFolder=$(echo "$vendorFilePath" | sed 's|/[^/]*$||')
-    
-    mkdir -p ${vendorFolder}				# Creating the folder for the third party software
-	mkdir -p ${vendorFolder}/Libs			# Creating the folder for the static/dynamic libraries
-	mkdir -p ${vendorFolder}/Includes		# Creating the folder for the headers file
+
+    mkdir -p ${vendorFolder}          # Creating the folder for the third party software
+    mkdir -p ${vendorFolder}/Libs     # Creating the folder for the static/dynamic libraries
+    mkdir -p ${vendorFolder}/Includes # Creating the folder for the headers file
 
     # Determining the existence of the file; if the file does not exist, please generate the
     # file and put the basic syntax into the .json file
     if [ ! -f "$vendorFilePath" ]; then
         touch "$vendorFilePath" # A file for maintaining the modules in the folder, Vendors
-        jq -n '{"dependencies": []}' > "$vendorFilePath"
+        jq -n '{"dependencies": []}' >"$vendorFilePath"
+    fi
+
+    # Determining the existence of the file; if the file does not exist, please generate the
+    # file and put the basic syntax into the .json file
+    if [ ! -f "$vendorFilePath.tmp" ]; then
+        touch "$vendorFilePath.tmp" # A file for maintaining the modules in the folder, Vendors
+        jq -n '{"dependencies": []}' >"$vendorFilePath.tmp"
     fi
 }
 
@@ -64,7 +79,7 @@ function vendorDependenciesInitailization() {
 #  * @param $1 The content of an array
 #  * @return The number of the array
 #  */
-function dependenciesTraversalLength() {
+function obtainArrayLength() {
     local jsonArray="$1"
     echo $jsonArray | jq '. | length'
 }
@@ -84,60 +99,63 @@ function dependenciesTraversal() {
     local jsonFile="$1"
     local vendorJsonFile="$2"
 
-    # To ensure that the folder and the files by using the command in the Makefile in the root of the project
+    # To ensure that the folder and the files by using the command in the "Makefile" in the root of the project
     if [ ! -f $vendorJsonFile ]; then
         make vendor
     fi
-
 
     #Reading the content from the .json file
     local jsonContent="$(<$jsonFile)"
     local dependencies=$(echo $jsonContent | jq '.dependencies') # Obtaining the array from the attribute, "dependencies"
 
     # Obtaining the length of the arrary
-    local dependenciesLength=$(dependenciesTraversalLength "$dependencies")
+    local dependenciesLength=$(obtainArrayLength "$dependencies")
     local vendorContent=$(echo "$(<$vendorJsonFile)" | jq '.dependencies')
 
-    # Traversal of all elements from the array which obtains from the attribute, "dependencies"; the time complexity here is 
+    # Traversal of all elements from the array which obtains from the attribute, "dependencies"; the time complexity here is
     # O(n^{3}); however, the the editor guessed that the number of n is small; as a result, the time complexity is okay in this case
     for ((i = 0; i < $dependenciesLength; i++)); do
         # The vendor has not been installed; installing the vendor automatically
-        local name=$(echo $dependencies | jq ".[$i].name")
-        local download=$(echo $dependencies | jq ".[$i].download")
-        local command=$(echo $dependencies | jq ".[$i].command")
-        local includes=$(echo $dependencies | jq ".[$i].includes")
-        local libs=$(echo $dependencies | jq ".[$i].libs")
-        local reference=$(echo $dependencies | jq ".[$i].reference")
-        local remove=$(echo $dependencies | jq ".[$i].remove")
+        local name=$(searchElement "$dependencies" ".[$i].name" "")
+        local download=$(searchElement "$dependencies" ".[$i].download" "")
+        local command=$(searchElement "$dependencies" ".[$i].command" "")
+        local includes=$(searchElement "$dependencies" ".[$i].includes" "")
+        local libs=$(searchElement "$dependencies" ".[$i].libs" "")
+        local reference=$(searchElement "$dependencies" ".[$i].reference" "")
+        local remove=$(searchElement "$dependencies" ".[$i].remove" "")
 
         # The contents from the attribute, .dependencies, in the Vendors/.Vendors.json
         # Verifying if the element in .Json/globalDependencies is defined in "Vendors/.Vendors.json";
         # if the element exists, the return value will be obtained the block
-        local block=$(searchElement "$vendorContent" ".[] | select(.name == "$name")")
+        local block=$(searchElement "$vendorContent" ".[] | select(.name == "$name")" "")
 
         # If the returned value is null, ...
         if [ -z "$block" ]; then
-            # echo $name
-            # echo $download
-            # echo $command
-            # echo $includes
-            # echo $libs
-            # echo $reference
-            # echo $remove
             # Printing the message
             echo "Vendor, $name is installing."
-            
+
             # Removing the double quotes from the string because the string is equal to the command
+            local folderName=$(echo "$name" | sed 's/"//g')
             download=$(echo "$download" | sed 's/"//g')
             command=$(echo "$command" | sed 's/"//g')
             remove=$(echo "$remove" | sed 's/"//g')
-            
+
             # Executing the download, command, installation and removing the download at last
-            cd $(dirname "$vendorJsonFile") && eval "$download" && eval $command && eval $remove
+            cd $(dirname "$vendorJsonFile") &&
+                eval "$remove" &&
+                eval "$download $folderName" &&
+                cd "$folderName" &&
+                eval "$command" &&
+                cd ../ && eval "$remove"
+
+            # Registering the information into the temporary file
+            jq ".dependencies += [{\"name\": $name, \"includes\": $includes, \"libs\": $libs, \"reference\":$reference}]" "$vendorJsonFile" >"$vendorJsonFile.tmp"
+            mv "$vendorJsonFile.tmp" "$vendorJsonFile"
         else # If the returned value is not null, ...
             # The vendor has been installed; printing the result
             echo "Vendor, $name has been installed."
         fi
+        rm -rf "$vendorJsonFile.tmp"
     done
 
 }
