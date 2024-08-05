@@ -16,7 +16,7 @@ vendorDependenciesInitailization "$Vendors/.$Vendors.json"
 
 echo "==========================="
 # Traversal of globalDependencies.json
-dependenciesTraversal $(pwd)/Settings/.Json/globalDependencies.json $(pwd)/Vendors/.Vendors.json
+dependenciesTraversal $(pwd)/Settings/.Json/globalDependencies.json $(pwd)/$Vendors/.$Vendors.json
 
 echo "==========================="
 # Discovering the block where the name is equal to the term which user specified

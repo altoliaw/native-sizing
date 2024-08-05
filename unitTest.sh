@@ -1,3 +1,9 @@
+# Dependency porcess
+# Traversal of globalDependencies.json
+local Vendors=Vendors
+dependenciesTraversal $(pwd)/Settings/.Json/globalDependencies.json $(pwd)/$Vendors/.$Vendors.json
+
+# Cmake process
 rm -rf build
 mkdir -p build
 cmake -S . -B build

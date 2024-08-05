@@ -96,14 +96,10 @@ ${Prdir}/${PjN}_Sysin/build : ${Prdir}/${PjN}_Sysin
 # The location for creating folders & a maintained file in advance
 ${Prdir}/${PjN}/Folders:
 	@mkdir -p ${Bin}  					# Creating the folder for execution
-	@mkdir -p ${Vendors}				# Creating the folder for the third party software
-	@mkdir -p ${Vendors}/Libs			# Creating the folder for the static/dynamic libraries
-	@mkdir -p ${Vendors}/Includes		# Creating the folder for the headers file
-    # Linking to the function, vendorDependenciesInitailization, 
+    # Creating the vendor related folders by using the function, vendorDependenciesInitailization, 
     # from the shell script, installVendor.sh, and determining the existence of the file & initializing the file
 	@source ${Prdir}/Shells/installVendor.sh && $$(vendorDependenciesInitailization "${Vendors}/.${Vendors}.json")
 	
-
 ##===============[Application]=========================================
 # Create an application
 ${Prdir}/${PjN}_Sysin: 	${Prdir}/${AppLoc}/SysinMain.o \
