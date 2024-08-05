@@ -3,9 +3,9 @@
 	  {
 		"name": "cJson",
 		"download": "git clone https://github.com/DaveGamble/cJSON.git",
-		"command": "make && cp libcjson_utils.a ../Libs/ && cp libcjson.a ../Libs/ && cp cJSON.h ../Includes/ && cp cJSON_Utils.h ../Includes/",
-		"includes": ["cJSON.h", "cJSON_Utils.h"],
-		"libs": ["libcjson_utils.a", "libcjson.a"],
+		"command": "make && cp libcjson.a ../Libs/ && cp cJSON.h ../Includes/",
+		"includes": ["cJSON.h"],
+		"libs": ["libcjson.a"],
 		"reference": "https://github.com/DaveGamble/cJSON",
 		"remove": "rm -rf cJson"
 	  } 

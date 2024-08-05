@@ -79,7 +79,14 @@ cmake: ${Prdir}/${PjN}/Folders
 	cd build && ctest -V
 
 .Phony: vendor
-vendor: ${Prdir}/${PjN}/Folders
+vendor:
+    # Creating the vendor and related folders by using the function, dependenciesTraversal, 
+    # from the shell script, installVendor.sh, and determining the existence of the file & initializing the file
+	@source ${Prdir}/Shells/installVendor.sh && dependenciesTraversal "Settings/.Json/globalDependencies.json" "${Vendors}/.${Vendors}.json"
+
+# This phony, createVendor, is used for the shell script, namely installVendor
+.Phony: createVendor
+createVendor: ${Prdir}/${PjN}/Folders
 ##----------------------------------------------------------------------
 ## Nick editted manually
 ## ---------------------------------------------------------------------
@@ -96,10 +103,7 @@ ${Prdir}/${PjN}_Sysin/build : ${Prdir}/${PjN}_Sysin
 # The location for creating folders & a maintained file in advance
 ${Prdir}/${PjN}/Folders:
 	@mkdir -p ${Bin}  					# Creating the folder for execution
-    # Creating the vendor related folders by using the function, vendorDependenciesInitailization, 
-    # from the shell script, installVendor.sh, and determining the existence of the file & initializing the file
-	@source ${Prdir}/Shells/installVendor.sh && $$(vendorDependenciesInitailization "${Vendors}/.${Vendors}.json")
-	
+
 ##===============[Application]=========================================
 # Create an application
 ${Prdir}/${PjN}_Sysin: 	${Prdir}/${AppLoc}/SysinMain.o \

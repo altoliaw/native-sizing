@@ -64,12 +64,13 @@ function vendorDependenciesInitailization() {
         jq -n '{"dependencies": []}' >"$vendorFilePath"
     fi
 
-    # Determining the existence of the file; if the file does not exist, please generate the
+    # Determining the existence of the file; if the file exists, please generate the
     # file and put the basic syntax into the .json file
-    if [ ! -f "$vendorFilePath.tmp" ]; then
-        touch "$vendorFilePath.tmp" # A file for maintaining the modules in the folder, Vendors
-        jq -n '{"dependencies": []}' >"$vendorFilePath.tmp"
+    if [ -f "$vendorFilePath.tmp" ]; then
+        rm -rf "$vendorFilePath.tmp"
     fi
+    touch "$vendorFilePath.tmp" # A file for maintaining the modules in the folder, Vendors
+    jq -n '{"dependencies": []}' >"$vendorFilePath.tmp"
 }
 
 # /**
@@ -98,10 +99,11 @@ function dependenciesTraversal() {
     # Obtaining the file name
     local jsonFile="$1"
     local vendorJsonFile="$2"
-
+    
     # To ensure that the folder and the files by using the command in the "Makefile" in the root of the project
     if [ ! -f $vendorJsonFile ]; then
-        make vendor
+        # make createVendor
+        vendorDependenciesInitailization "$vendorJsonFile"
     fi
 
     #Reading the content from the .json file
@@ -146,16 +148,16 @@ function dependenciesTraversal() {
                 eval "$download $folderName" &&
                 cd "$folderName" &&
                 eval "$command" &&
-                cd ../ && eval "$remove"
+                cd ../ && eval "$remove" && \
+                cd ../ # Leaving the folder, Vendors
 
             # Registering the information into the temporary file
             jq ".dependencies += [{\"name\": $name, \"includes\": $includes, \"libs\": $libs, \"reference\":$reference}]" "$vendorJsonFile" >"$vendorJsonFile.tmp"
-            mv "$vendorJsonFile.tmp" "$vendorJsonFile"
+            cp "$vendorJsonFile.tmp" "$vendorJsonFile"
         else # If the returned value is not null, ...
             # The vendor has been installed; printing the result
             echo "Vendor, $name has been installed."
         fi
-        rm -rf "$vendorJsonFile.tmp"
     done
-
+    rm -rf "$vendorJsonFile.tmp"
 }
