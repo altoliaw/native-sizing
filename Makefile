@@ -25,6 +25,9 @@ Sources=${Prdir}/Sources
 Commons.Headers=${Prdir}/Models/Commons/Headers
 Commons.Sources=${Prdir}/Models/Commons/Sources
 
+FileParsers.Headers=${Prdir}/Models/FileParsers/Headers
+FileParsers.Sources=${Prdir}/Models/FileParsers/Sources
+
 PCAP.Headers=${Prdir}/Models/PCAP/Headers
 PCAP.Sources=${Prdir}/Models/PCAP/Sources
 
@@ -110,19 +113,20 @@ ${Prdir}/${PjN}_Sysin: 	${Prdir}/${AppLoc}/SysinMain.o \
 					${Sources}/SysinMainCaller.o \
 					${Commons.Sources}/HashTable.o \
 					${Commons.Sources}/IOSpecification.o \
-					${Commons.Sources}/InitializedFileParser.o \
 					${Commons.Sources}/StringImplement.o \
 					${Commons.Sources}/Time.o \
+					${FileParsers.Sources}/InitializedFileParser.o \
 					${PCAP.Sources}/LinuxPCAP.o
 
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${FMSG} -o ${Prdir}/${Bin}/${PjN}_Sysin ${Prdir}/${AppLoc}/SysinMain.o \
 	${Sources}/SysinMainCaller.o \
 	${Commons.Sources}/HashTable.o \
 	${Commons.Sources}/IOSpecification.o \
-	${Commons.Sources}/InitializedFileParser.o \
 	${Commons.Sources}/StringImplement.o \
 	${Commons.Sources}/Time.o \
+	${FileParsers.Sources}/InitializedFileParser.o \
 	${PCAP.Sources}/LinuxPCAP.o \
+	${LDFLAGS} \
 	${LDLIBS}
 
 # SysinMain
@@ -131,9 +135,9 @@ ${Prdir}/${AppLoc}/SysinMain.o:	${Headers}/SysinMainCaller.hpp ${Prdir}/${AppLoc
 
 # SysinMainCaller
 ${Sources}/SysinMainCaller.o:	${Commons.Headers}/POSIXErrors.hpp \
-								${Commons.Headers}/InitializedFileParser.hpp \
 								${Commons.Headers}/IOSpecification.hpp \
 								${Commons.Headers}/Time.hpp \
+								${FileParsers.Headers}/InitializedFileParser.hpp \
 								${PCAP.Headers}/LinuxPCAP.hpp \
 								${Headers}/SysinMainCaller.hpp \
 								${Sources}/SysinMainCaller.cpp
@@ -149,10 +153,6 @@ ${Commons.Sources}/HashTable.o:	${Commons.Headers}/POSIXErrors.hpp ${Commons.Hea
 ${Commons.Sources}/IOSpecification.o:	${Commons.Headers}/POSIXErrors.hpp ${Commons.Headers}/IOSpecification.hpp ${Commons.Sources}/IOSpecification.cpp
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${Commons.Sources}/IOSpecification.cpp -c ${FMSG} -o ${Commons.Sources}/IOSpecification.o
 
-# Commons.InitializedFileParser
-${Commons.Sources}/InitializedFileParser.o:	${Commons.Headers}/HashTable.hpp ${Commons.Headers}/InitializedFileParser.hpp ${Commons.Sources}/InitializedFileParser.cpp
-	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${Commons.Sources}/InitializedFileParser.cpp -c ${FMSG} -o ${Commons.Sources}/InitializedFileParser.o
-
 # Commons.StringImplement
 ${Commons.Sources}/StringImplement.o:	${Commons.Headers}/POSIXErrors.hpp ${Commons.Headers}/StringImplement.hpp ${Commons.Sources}/StringImplement.cpp
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${Commons.Sources}/StringImplement.cpp -c ${FMSG} -o ${Commons.Sources}/StringImplement.o
@@ -160,6 +160,10 @@ ${Commons.Sources}/StringImplement.o:	${Commons.Headers}/POSIXErrors.hpp ${Commo
 # Commons.Time
 ${Commons.Sources}/Time.o:	${Commons.Headers}/POSIXErrors.hpp ${Commons.Headers}/Time.hpp ${Commons.Sources}/Time.cpp
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${Commons.Sources}/Time.cpp -c ${FMSG} -o ${Commons.Sources}/Time.o
+
+# FileParsers.InitializedFileParser
+${FileParsers.Sources}/InitializedFileParser.o:	${Commons.Headers}/HashTable.hpp ${FileParsers.Headers}/InitializedFileParser.hpp ${FileParsers.Sources}/InitializedFileParser.cpp
+	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${FileParsers.Sources}/InitializedFileParser.cpp -c ${FMSG} -o ${FileParsers.Sources}/InitializedFileParser.o
 
 # PCAP.LinuxPCAP
 ${PCAP.Sources}/LinuxPCAP.o:	${PCAP.Headers}/PCAPPrototype.hpp ${PCAP.Headers}/LinuxPCAP.hpp ${PCAP.Sources}/LinuxPCAP.cpp
