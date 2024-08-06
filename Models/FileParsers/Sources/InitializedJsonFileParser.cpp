@@ -109,6 +109,12 @@ Commons::POSIXErrors InitializedJsonFileParser::parseInitializedFile(const unsig
     // unsigned char key[1024] = {'\0'};
     // unsigned char value[2048] = {'\0'};
 
+    // Removing elements if the stack is not empty
+    if (stack.empty() == false) {
+        stack.clear();
+        stack.shrink_to_fit();
+    }
+
     delete[] jsonContent;
     return Commons::POSIXErrors::OK;
 }
@@ -127,13 +133,19 @@ Commons::POSIXErrors InitializedJsonFileParser::jsonParser(cJSON* item, std::vec
     }
 
     // Considering the current item type
+    std::string key = "";
     switch (item->type) {
         case cJSON_Object: {
-            std::cout << "Object:" << std::endl;
+            // If the item->type is equal to the object, the child string shall be pushed into the stack
             cJSON* child = item->child;
             while (child) {
-                std::cout << "Key: " << child->string << " - ";
-                InitializedJsonFileParser::jsonParser(child, stack);
+                std::string tmpKey(child->string);
+                stack->push_back(tmpKey);
+                InitializedJsonFileParser::jsonParser(child, stack);  // Recursion
+                // After the recursion, the last one element of the stack shall be pop out.
+                if (stack->empty() == false) {
+                    stack->pop_back();
+                }
                 child = child->next;
             }
             break;
@@ -144,16 +156,32 @@ Commons::POSIXErrors InitializedJsonFileParser::jsonParser(cJSON* item, std::vec
             for (int i = 0; i < size; ++i) {
                 cJSON* element = cJSON_GetArrayItem(item, i);
                 std::cout << "Index " << i << ": ";
-                InitializedJsonFileParser::jsonParser(element, stack);
+                InitializedJsonFileParser::jsonParser(element, stack);  // Recursion
             }
             break;
         }
         case cJSON_String: {
-            std::cout << "String: " << item->valuestring << std::endl;
+            key = "";
+            for (std::vector<std::string>::iterator it = stack->begin();
+                 it != stack->end();
+                 it++) {
+                // Determining if "*it" is the last one element
+                key += ((it + 1 == stack->end()) ? (*it) : (*it + "."));
+            }
+            std::cout << key << " - " << item->valuestring << std::endl;
+            // std::cout << "String: " << item->valuestring << std::endl;
             break;
         }
         case cJSON_Number: {
-            std::cout << "Number: " << item->valuedouble << std::endl;
+            key = "";
+            for (std::vector<std::string>::iterator it = stack->begin();
+                 it != stack->end();
+                 it++) {
+                // Determining if "*it" is the last one element
+                key += ((it + 1 == stack->end()) ? (*it) : (*it + "."));
+            }
+            std::cout << key << " - " << item->valuedouble << std::endl;
+            // std::cout << "Number: " << item->valuedouble << std::endl;
             break;
         }
         case cJSON_True:
@@ -169,6 +197,7 @@ Commons::POSIXErrors InitializedJsonFileParser::jsonParser(cJSON* item, std::vec
             std::cout << "Unknown type" << std::endl;
             break;
     }
+    return Commons::POSIXErrors::OK;
 }
 
 /**

@@ -19,10 +19,10 @@ enable_testing()
 
 # Copying the dependent files of the project (cfg, ini files or files users feel like opening)
 configure_file(${CMAKE_SOURCE_DIR}/Settings/.Ini/globalCompiling.ini ${CMAKE_BINARY_DIR}/Settings/.Ini/globalCompiling.ini COPYONLY)
-configure_file(${CMAKE_SOURCE_DIR}/Settings/.Json/SysinMain.ini ${CMAKE_BINARY_DIR}/Settings/.Ini/SysinMain.ini COPYONLY)
+configure_file(${CMAKE_SOURCE_DIR}/Settings/.Json/SysinMain.json ${CMAKE_BINARY_DIR}/Settings/.Json/SysinMain.json COPYONLY)
 
 # Copying the third party software into the Vendors folder for testing
-file(COPY ${CMAKE_SOURCE_DIR}/Vendors DESTINATION ${CMAKE_BINARY_DIR}/Vendors)
+file(COPY ${CMAKE_SOURCE_DIR}/Vendors DESTINATION ${CMAKE_BINARY_DIR})
 
 
 # Opening the subdirectory for the next works
