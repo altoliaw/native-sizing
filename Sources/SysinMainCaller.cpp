@@ -38,13 +38,13 @@ int start(int argC, char** argV) {
     // Loading information from the .ini file for the application
     // The current working directory is the project root; as a result, the related path is shown as follows.
     const unsigned char* path = (const unsigned char*)"Settings/.Ini/SysinMain.ini";
-    Commons::InitializedFileParser::parseInitializedFile(path);
+    FileParsers::InitializedFileParser::parseInitializedFile(path);
 
     Commons::POSIXErrors error = Commons::POSIXErrors::OK;
     // Preparing some information
     char interfaceName[256] = {'\0'};  // The interface
     if (argC <= 1) {
-        error = Commons::InitializedFileParser::getValueFromFileParser((const unsigned char*)"base.interface", (unsigned char*)interfaceName);
+        error = FileParsers::InitializedFileParser::getValueFromFileParser((const unsigned char*)"base.interface", (unsigned char*)interfaceName);
         if (error == Commons::POSIXErrors::OK) {
             if (strlen(interfaceName) == 0) {
                 strcpy(interfaceName, "ens224");
@@ -59,7 +59,7 @@ int start(int argC, char** argV) {
     int port = 0;  // The server port
     if (argC <= 2) {
         char portString[256] = {'\0'};
-        error = Commons::InitializedFileParser::getValueFromFileParser((const unsigned char*)"base.port", (unsigned char*)portString);
+        error = FileParsers::InitializedFileParser::getValueFromFileParser((const unsigned char*)"base.port", (unsigned char*)portString);
         if (error == Commons::POSIXErrors::OK) {
             if (strlen(portString) == 0) {
                 port = 1521;
@@ -72,7 +72,7 @@ int start(int argC, char** argV) {
     }
 
     char writingFileSecond[256] = {'\0'};  // The time for writing information into a file
-    error = Commons::InitializedFileParser::getValueFromFileParser((const unsigned char*)"base.writingFileSecond", (unsigned char*)writingFileSecond);
+    error = FileParsers::InitializedFileParser::getValueFromFileParser((const unsigned char*)"base.writingFileSecond", (unsigned char*)writingFileSecond);
     if (error == Commons::POSIXErrors::OK) {
         if (strlen(writingFileSecond) == 0) {
             // Do nothing

@@ -3,7 +3,7 @@
  */
 #include "../Headers/InitializedFileParser.hpp"
 
-namespace Commons {
+namespace FileParsers {
 // Initialization as nullptr to the static variable defined as the unique pointer in the class
 std::unique_ptr<InitializedFileParser> InitializedFileParser::initializedFileParserPointer = nullptr;
 
@@ -12,7 +12,7 @@ std::unique_ptr<InitializedFileParser> InitializedFileParser::initializedFilePar
  */
 InitializedFileParser::InitializedFileParser() {
     initializedTable = nullptr;
-    initializedTable = new HashTable();
+    initializedTable = new Commons::HashTable();
 }
 
 /**
@@ -43,25 +43,25 @@ std::unique_ptr<InitializedFileParser>& InitializedFileParser::getInitializedFil
  * The caller for releasing the memory of the singleton because when the singleton will be recreated in 
  * the unit tests
  * 
- * @return [POSIXErrors] The status defined in the class "POSIXErrors" The status defined in the class "POSIXErrors"
+ * @return [Commons::POSIXErrors] The status defined in the class "POSIXErrors" The status defined in the class "POSIXErrors"
  */
-POSIXErrors InitializedFileParser::releaseInitializedFileParserInitialization() {
+Commons::POSIXErrors InitializedFileParser::releaseInitializedFileParserInitialization() {
     // If the static pointer is not nullptr, the pointer shall be referred to a static object defined in the function
     if (InitializedFileParser::initializedFileParserPointer != nullptr) {
         InitializedFileParser::initializedFileParserPointer.reset();  // Destroying the instance/object; the destroyed process will executed the
                                                                       // destructor of the instance/object
         InitializedFileParser::initializedFileParserPointer = nullptr;
     }
-    return POSIXErrors::OK;
+    return Commons::POSIXErrors::OK;
 }
 
 /**
  * Obtaining the setting contents from the source path
  *
  * @param sourcePath [const unsigned char*] The absolute path of the source path
- * @return [POSIXErrors] The status defined in the class "POSIXErrors"
+ * @return [Commons::POSIXErrors] The status defined in the class "POSIXErrors"
  */
-POSIXErrors InitializedFileParser::parseInitializedFile(const unsigned char* sourcePath) {
+Commons::POSIXErrors InitializedFileParser::parseInitializedFile(const unsigned char* sourcePath) {
     // Creating the singleton by reference automatically, the function, getInitializedFileParserInitialization, will be
     // done once, even though the function, getInitializedFileParserInitialization(.) has been called many times
     std::unique_ptr<InitializedFileParser>& initialedFileParserInstance = InitializedFileParser::getInitializedFileParserInitialization();
@@ -70,7 +70,7 @@ POSIXErrors InitializedFileParser::parseInitializedFile(const unsigned char* sou
     FILE* descriptor = fopen((const char*)sourcePath, "r+");
     if (descriptor == nullptr) {
         std::cerr << "No file exists\n";
-        return POSIXErrors::E_EXIST;
+        return Commons::POSIXErrors::E_EXIST;
     }
 
     // Section & Key, and value parts
@@ -83,9 +83,9 @@ POSIXErrors InitializedFileParser::parseInitializedFile(const unsigned char* sou
     while (fgets(linePointer, lineBufferLength, descriptor) != nullptr) {
         unsigned int length = strlen(linePointer);
         // Trimming the spaces
-        length = (length > 0) ? StringImplement::trimLeftSpace((unsigned char**)(&linePointer)) : 0;
-        length = (length > 0) ? StringImplement::trimRightSpace((unsigned char**)(&linePointer)) : 0;
-        length = (length > 0) ? StringImplement::obtainNoNewLineSignAtTheEnd((unsigned char**)(&linePointer)) : 0;
+        length = (length > 0) ? Commons::StringImplement::trimLeftSpace((unsigned char**)(&linePointer)) : 0;
+        length = (length > 0) ? Commons::StringImplement::trimRightSpace((unsigned char**)(&linePointer)) : 0;
+        length = (length > 0) ? Commons::StringImplement::obtainNoNewLineSignAtTheEnd((unsigned char**)(&linePointer)) : 0;
 
         if (length <= 0) {  // Empty line
             continue;
@@ -103,7 +103,7 @@ POSIXErrors InitializedFileParser::parseInitializedFile(const unsigned char* sou
             int sectionLength = (int)strlen((char*)section);
             if (sectionLength <= 0) {
                 std::cerr << "The key-value pair has not been denoted in the section phase\n";
-                return POSIXErrors::E_NOITEM;
+                return Commons::POSIXErrors::E_NOITEM;
             }
 
             // Accessing the key value pairs; spliting the key and value by using the character '='
@@ -118,7 +118,7 @@ POSIXErrors InitializedFileParser::parseInitializedFile(const unsigned char* sou
             // The delimiter does not exist in the sentence.
             if (delimiterIndex == -1) {
                 std::cerr << "The delimiter does not exist in the sentence\n";
-                return POSIXErrors::E_NOITEM;
+                return Commons::POSIXErrors::E_NOITEM;
             }
 
             // Key preparing; the key will be denoted as the syntax- "$sectionName.$key";
@@ -140,7 +140,7 @@ POSIXErrors InitializedFileParser::parseInitializedFile(const unsigned char* sou
             // Putting the K-V pair into the hash table; because the value belongs to the string,
             // the size shall be included the size of '\0'
             initialedFileParserInstance->initializedTable->addElementIntoHashTable(
-                (char*)key, (void*)value, (size_t)(length - (delimiterIndex + 1) + 1), HashTable::ElementType::unsignedCharStarType);
+                (char*)key, (void*)value, (size_t)(length - (delimiterIndex + 1) + 1), Commons::HashTable::ElementType::unsignedCharStarType);
         }
     }
 
@@ -148,7 +148,7 @@ POSIXErrors InitializedFileParser::parseInitializedFile(const unsigned char* sou
     if (descriptor != nullptr) {
         fclose(descriptor);
     }
-    return POSIXErrors::OK;
+    return Commons::POSIXErrors::OK;
 }
 
 /**
@@ -157,9 +157,9 @@ POSIXErrors InitializedFileParser::parseInitializedFile(const unsigned char* sou
  * @param columnName [const unsigned char*] The key of the element in the hash table
  * @param value [unsigned char*] The pointer to the value in the hash table; the value is searched from the columnName;
  * In addition, the value shall be assigned a static memory space
- * @return [POSIXErrors] The successful flag
+ * @return [Commons::POSIXErrors] The successful flag
  */
-POSIXErrors InitializedFileParser::getValueFromFileParser(const unsigned char* columnName, unsigned char* value) {
+Commons::POSIXErrors InitializedFileParser::getValueFromFileParser(const unsigned char* columnName, unsigned char* value) {
     // Creating the singleton by reference automatically, the function, getInitializedFileParserInitialization, will be
     // done once, even though the function, getInitializedFileParserInitialization(.) has been called many times
     std::unique_ptr<InitializedFileParser>& initialedFileParserInstance = InitializedFileParser::getInitializedFileParserInitialization();
@@ -167,7 +167,7 @@ POSIXErrors InitializedFileParser::getValueFromFileParser(const unsigned char* c
     unsigned char* copiedColumnNameAddress = nullptr;                            // The pointer for referring to the columnName defined in the hash table
     void* valuePointer = nullptr;                                                // The pointer for referring to the value which is searching by using the columnName
     size_t valueSize = 0;                                                        // The memory size of the value
-    HashTable::ElementType type = HashTable::ElementType::unsignedCharStarType;  // The data type of the value
+    Commons::HashTable::ElementType type = Commons::HashTable::ElementType::unsignedCharStarType;  // The data type of the value
 
     // Obtaining the value
     char isExisted = initialedFileParserInstance->initializedTable->getValueByName(
@@ -176,19 +176,19 @@ POSIXErrors InitializedFileParser::getValueFromFileParser(const unsigned char* c
     // When the key does not exist in the hash table, ...
     if (isExisted == 0x0) {
         // std::cerr << "There is no item in the hash table.\n";
-        return POSIXErrors::E_NOITEM;
+        return Commons::POSIXErrors::E_NOITEM;
     }
 
     // When the type is equal to the "unsigned char*"
-    if (type == HashTable::ElementType::unsignedCharStarType) {
+    if (type == Commons::HashTable::ElementType::unsignedCharStarType) {
         memcpy((void*)value, valuePointer, valueSize);
         value[valueSize] = '\0';  // For ensuring that the '\0' will be appeared
     } else {
         // Do nothing
-        return POSIXErrors::E_NOITEM;
+        return Commons::POSIXErrors::E_NOITEM;
     }
 
-    return POSIXErrors::OK;
+    return Commons::POSIXErrors::OK;
 }
 
 }  // namespace Commons

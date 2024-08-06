@@ -1,6 +1,7 @@
 # Dependency porcess
 # Traversal of globalDependencies.json
-local Vendors=Vendors
+Vendors="Vendors"
+source $(pwd)/Shells/installVendor.sh && \
 dependenciesTraversal $(pwd)/Settings/.Json/globalDependencies.json $(pwd)/$Vendors/.$Vendors.json
 
 # Cmake process

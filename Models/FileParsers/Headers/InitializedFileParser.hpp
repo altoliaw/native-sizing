@@ -5,16 +5,17 @@
  * pointer shall be used. This is because the static pointer shall refer to the dynamic memory manually and
  * the memory shall be released manually; if the pointer is a normal pointer and refers to a static instance
  * in the initialization function, the dynamic memory released phase can not be implemented
- *
+ * 
  * @author Nick, Liao
  * @date 2024/05/15
+ * @note The file is dependent to the Models.Commons
  */
 #include <memory> // For the unique pointer
 
-#include "./HashTable.hpp"
-#include "./StringImplement.hpp"
+#include "../../Commons/Headers/HashTable.hpp"
+#include "../../Commons/Headers/StringImplement.hpp"
 
-namespace Commons {
+namespace FileParsers {
 /**
  * Several InitializedFileParser implementation (singleton)
  */
@@ -29,9 +30,9 @@ class InitializedFileParser {
     static std::unique_ptr<InitializedFileParser> initializedFileParserPointer;
 
     static std::unique_ptr<InitializedFileParser>& getInitializedFileParserInitialization();
-    static POSIXErrors releaseInitializedFileParserInitialization();
-    static POSIXErrors parseInitializedFile(const unsigned char*);
-    static POSIXErrors getValueFromFileParser(const unsigned char*, unsigned char*);
+    static Commons::POSIXErrors releaseInitializedFileParserInitialization();
+    static Commons::POSIXErrors parseInitializedFile(const unsigned char*);
+    static Commons::POSIXErrors getValueFromFileParser(const unsigned char*, unsigned char*);
 
 
     ~InitializedFileParser();

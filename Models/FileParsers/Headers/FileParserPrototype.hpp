@@ -1,18 +1,17 @@
 #pragma once
 /** @file FileInputsPrototype.hpp
- * The abstract class of FileInputs
+ * The abstract class of FileParser series
  *
  * @author Nick, Liao
- * @date 2024/05/23
+ * @date 2024/08/03
  */
 #include <string.h>
 
-namespace FileInputs {
-class FileInputsPrototype {
+namespace FileParsers {
+class FileParserPrototype {
    public:
-
-	FileInputsPrototype();
-	~FileInputsPrototype();
+	FileParsers();
+	~FileParsers();
     virtual void readFileContent2HashTable() = 0;
 };
 

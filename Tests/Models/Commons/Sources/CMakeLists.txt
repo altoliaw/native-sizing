@@ -3,7 +3,6 @@ add_executable(
 	Tests.Commons
 	Test_StringImplement.cpp
 	Test_HashTable.cpp
-	Test_InitializedFileParser.cpp
 )
 	
 # linking to the headers
