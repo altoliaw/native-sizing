@@ -17,8 +17,13 @@ FetchContent_MakeAvailable(googletest)
 # Enableing test
 enable_testing()
 
-# Copy the dependent files of the project (cfg, ini files or files users feel like opening)
+# Copying the dependent files of the project (cfg, ini files or files users feel like opening)
 configure_file(${CMAKE_SOURCE_DIR}/Settings/.Ini/globalCompiling.ini ${CMAKE_BINARY_DIR}/Settings/.Ini/globalCompiling.ini COPYONLY)
+configure_file(${CMAKE_SOURCE_DIR}/Settings/.Json/SysinMain.ini ${CMAKE_BINARY_DIR}/Settings/.Ini/SysinMain.ini COPYONLY)
+
+# Copying the third party software into the Vendors folder for testing
+file(COPY ${CMAKE_SOURCE_DIR}/Vendors DESTINATION ${CMAKE_BINARY_DIR}/Vendors)
+
 
 # Opening the subdirectory for the next works
 add_subdirectory(Models)

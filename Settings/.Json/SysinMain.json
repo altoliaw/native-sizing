@@ -1,9 +1,9 @@
 {
-	"base": [
-		{
-			"interface": "ens224",
-			"port" : [1521]
-		}
-	],
-	"writingFileSecond": 30
+	"base": {
+		"interface": "ens224",
+		"port": [
+			1521
+		],
+		"writingFileSecond": 30
+	}
 }
