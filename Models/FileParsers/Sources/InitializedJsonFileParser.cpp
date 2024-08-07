@@ -11,17 +11,17 @@ std::unique_ptr<InitializedJsonFileParser> InitializedJsonFileParser::initialize
  * Constructor
  */
 InitializedJsonFileParser::InitializedJsonFileParser() {
-    initializedTable = nullptr;
-    initializedTable = new Commons::HashTable();
+    jsonParsedContent = nullptr;
 }
 
 /**
  * Destructor
  */
 InitializedJsonFileParser::~InitializedJsonFileParser() {
-    if (initializedTable != nullptr) {
-        delete initializedTable;
-        initializedTable = nullptr;
+    if (jsonParsedContent != nullptr) {
+        // Releasing the memory by using the cJson function
+        cJSON_Delete(jsonParsedContent);
+        jsonParsedContent = nullptr;
     }
 }
 
@@ -79,9 +79,25 @@ Commons::POSIXErrors InitializedJsonFileParser::parseInitializedFile(const unsig
     unsigned long length = ftell(descriptor);
     fseek(descriptor, 0, SEEK_SET);  // Resetting the file descriptor to the starting position
 
-    // Dynamic memory allocation and reading the .json content
-    unsigned char* jsonContent = new unsigned char[length + 1];
-    fread(jsonContent, 1, length, descriptor);
+    // Dynamic memory allocation (array) by using the unique pointer and reading the .json content into the array
+    std::unique_ptr<unsigned char[]> jsonContent = nullptr;
+    jsonContent.reset(new unsigned char[length + 1]);
+    unsigned int readLength = fread(jsonContent.get(), 1, length, descriptor);
+
+    // If the length from the fread function is not equal to the one from ftell function, ...
+    if (readLength != (unsigned int)length) {
+        if (initialedFileParserInstance->jsonParsedContent != nullptr) {
+            std::cerr << "Releasing the memory of the cJson object\n";
+            cJSON_Delete(initialedFileParserInstance->jsonParsedContent);
+            initialedFileParserInstance->jsonParsedContent = nullptr;
+        }
+        jsonContent.reset(nullptr);
+        // Closing the descriptor
+        if (descriptor != nullptr) {
+            fclose(descriptor);
+        }
+        return Commons::POSIXErrors::E_EXIST;
+    }
     jsonContent[length] = '\0';
 
     // Closing the descriptor
@@ -90,153 +106,133 @@ Commons::POSIXErrors InitializedJsonFileParser::parseInitializedFile(const unsig
     }
 
     // Parsing .json file recursively
-    cJSON* jsonInstance = cJSON_Parse((char*)jsonContent);
-    if (jsonInstance == nullptr) {  // JSON syntax is error.
-        delete[] jsonContent;
+    // When the object is not null, the object shall be destructed by cJson and the pointer shall refer to the nullptr.
+    if (initialedFileParserInstance->jsonParsedContent != nullptr) {
+        std::cerr << "Releasing the memory of the cJson object\n";
+        cJSON_Delete(initialedFileParserInstance->jsonParsedContent);
+        initialedFileParserInstance->jsonParsedContent = nullptr;
+    }
+
+    initialedFileParserInstance->jsonParsedContent = cJSON_Parse((char*)(jsonContent.get()));
+    if (initialedFileParserInstance->jsonParsedContent == nullptr) {  // JSON syntax is error.
+        jsonContent.reset(nullptr);
         std::cerr << "JSON syntax is error\n";
         return Commons::POSIXErrors::E_EXIST;
     }
 
-    std::vector<std::string> stack;
-    // Removing elements if the stack is not empty
-    if (stack.empty() == false) {
-        stack.clear();
-        stack.shrink_to_fit();
-    }
-
-    // Parsing the JSON
-    initialedFileParserInstance->InitializedJsonFileParser::jsonParser(jsonInstance, &stack);
-    // unsigned char key[1024] = {'\0'};
-    // unsigned char value[2048] = {'\0'};
-
-    // Removing elements if the stack is not empty
-    if (stack.empty() == false) {
-        stack.clear();
-        stack.shrink_to_fit();
-    }
-
-    delete[] jsonContent;
     return Commons::POSIXErrors::OK;
 }
 
 /**
- * The JSON parser; all attributes will be parsed recursively
+ * Obtaining the value from the cJson parsed object
  *
- * @param item [cJSON*] The tuple in the .json structure
- * @param stack [std::vector<std::string>*] The stack implementation for generating key for the hash table
- * @return [Commons::POSIXErrors] The status defined in the class "POSIXErrors"
- */
-Commons::POSIXErrors InitializedJsonFileParser::jsonParser(cJSON* item, std::vector<std::string>* stack) {
-    // Determining if the existence of the current item
-    if (item == nullptr) {
-        return Commons::POSIXErrors::OK;
-    }
-
-    // Considering the current item type
-    std::string key = "";
-    switch (item->type) {
-        case cJSON_Object: {
-            // If the item->type is equal to the object, the child string shall be pushed into the stack
-            cJSON* child = item->child;
-            while (child) {
-                std::string tmpKey(child->string);
-                stack->push_back(tmpKey);
-                InitializedJsonFileParser::jsonParser(child, stack);  // Recursion
-                // After the recursion, the last one element of the stack shall be pop out.
-                if (stack->empty() == false) {
-                    stack->pop_back();
-                }
-                child = child->next;
-            }
-            break;
-        }
-        case cJSON_Array: {
-            std::cout << "Array:" << std::endl;
-            int size = cJSON_GetArraySize(item);
-            for (int i = 0; i < size; ++i) {
-                cJSON* element = cJSON_GetArrayItem(item, i);
-                std::cout << "Index " << i << ": ";
-                InitializedJsonFileParser::jsonParser(element, stack);  // Recursion
-            }
-            break;
-        }
-        case cJSON_String: {
-            key = "";
-            for (std::vector<std::string>::iterator it = stack->begin();
-                 it != stack->end();
-                 it++) {
-                // Determining if "*it" is the last one element
-                key += ((it + 1 == stack->end()) ? (*it) : (*it + "."));
-            }
-            std::cout << key << " - " << item->valuestring << std::endl;
-            // std::cout << "String: " << item->valuestring << std::endl;
-            break;
-        }
-        case cJSON_Number: {
-            key = "";
-            for (std::vector<std::string>::iterator it = stack->begin();
-                 it != stack->end();
-                 it++) {
-                // Determining if "*it" is the last one element
-                key += ((it + 1 == stack->end()) ? (*it) : (*it + "."));
-            }
-            std::cout << key << " - " << item->valuedouble << std::endl;
-            // std::cout << "Number: " << item->valuedouble << std::endl;
-            break;
-        }
-        case cJSON_True:
-        case cJSON_False: {
-            std::cout << "Boolean: " << (item->type == cJSON_True ? "true" : "false") << std::endl;
-            break;
-        }
-        case cJSON_NULL: {
-            std::cout << "Null" << std::endl;
-            break;
-        }
-        default:
-            std::cout << "Unknown type" << std::endl;
-            break;
-    }
-    return Commons::POSIXErrors::OK;
-}
-
-/**
- * Obtaining the value from the hash table
- *
- * @param columnName [const unsigned char*] The key of the element in the hash table
+ * @param columnName [const unsigned char*] The key of the element in the .json file; generally, the value which users search can
+ * be denoted as the combination of "object keys" with delimiters, "." such as "key1.key2.key3[i]" where key3 is an array;
+ * however, when the content of the key contains dot, the double quotes shall be used such as "key1.\".key2\"".key3[i]" where
+ * .key2 belongs to an object's key
  * @param value [unsigned char*] The pointer to the value in the hash table; the value is searched from the columnName;
  * In addition, the value shall be assigned a static memory space
+ * @param item [cJSON**] The cJson node of the value; that implies that in the function, users can obtain the value in a string format;
+ * otherwise, users can obtain the node which generates the value; the default value is nullptr; that implies users can use an argument or not
+ * to call the function
  * @return [Commons::POSIXErrors] The successful flag
  */
-Commons::POSIXErrors InitializedJsonFileParser::getValueFromFileParser(const unsigned char* columnName, unsigned char* value) {
+Commons::POSIXErrors InitializedJsonFileParser::getValueFromFileParser(const unsigned char* columnName, unsigned char* value, cJSON** item) {
     // Creating the singleton by reference automatically, the function, getInitializedFileParserInitialization, will be
     // done once, even though the function, getInitializedFileParserInitialization(.) has been called many times
     std::unique_ptr<InitializedJsonFileParser>& initialedFileParserInstance = InitializedJsonFileParser::getInitializedFileParserInitialization();
 
-    unsigned char* copiedColumnNameAddress = nullptr;                                              // The pointer for referring to the columnName defined in the hash table
-    void* valuePointer = nullptr;                                                                  // The pointer for referring to the value which is searching by using the columnName
-    size_t valueSize = 0;                                                                          // The memory size of the value
-    Commons::HashTable::ElementType type = Commons::HashTable::ElementType::unsignedCharStarType;  // The data type of the value
+    // Declaring the token set
+    unsigned int length = strlen((const char*)columnName);
+    std::vector<std::string> tokenSet;
+    if (tokenSet.empty() == false) {
+        tokenSet.clear();
+        tokenSet.shrink_to_fit();
+    }
+    bool inQuotes = false;  // For verifying if a quote exists in the key string
+    std::string token = "";
+    {  // Parsing the instruction from the columnName
+        for (int i = 0; i < length; i++) {
+            if (columnName[i] == '\\') {
+                // When encountering the '\', the character shall not be reserved
+                // because the key which has the character in the key string in the .json file implies only the next character.
+                if (i + 1 < length) {
+                    token += columnName[++i];  // Reserving the next character
+                }
 
-    // Obtaining the value
-    char isExisted = initialedFileParserInstance->initializedTable->getValueByName(
-        (char*)columnName, (char**)(&copiedColumnNameAddress), &valuePointer, &valueSize, &type);
+            } else if (columnName[i] == '"') {
+                // When encountering the '"', the character shall be reserved because the key has the character in the key string.
+                inQuotes = !inQuotes;
+                token += columnName[i];
+            } else if (columnName[i] == '.' && !inQuotes) {
+                // When meeting the character '.' and do not in quotes, pushing the token into the vector
+                if (token.length() > 0) {
+                    tokenSet.push_back(token);
+                    token = "";  // Clearing the token buffer`
+                }
+            } else if (columnName[i] == '[' && !inQuotes) {
+                // When meeting the character '[' and do not in quotes, pushing the token into the vector
+                if (token.length() > 0) {
+                    tokenSet.push_back(token);
+                    token = "";  // Clearing the token buffer`
+                }
+                // Then, creating a new token and adding the character into the token string
+                token += columnName[i];
+            } else if (columnName[i] == ']' && !inQuotes) {
+                // When meeting the character ']' and do not in quotes, adding the character and pushing the token into the vector
+                token += columnName[i];
+                tokenSet.push_back(token);
+                token = "";  // Clearing the token buffer
+            } else {
+                token += columnName[i];
+            }
+        }
 
-    // When the key does not exist in the hash table, ...
-    if (isExisted == 0x0) {
-        // std::cerr << "There is no item in the hash table.\n";
-        return Commons::POSIXErrors::E_NOITEM;
+        // Adding the last token into the vector
+        if (token.length() > 0) {
+            tokenSet.push_back(token);
+        }
     }
 
-    // When the type is equal to the "unsigned char*"
-    if (type == Commons::HashTable::ElementType::unsignedCharStarType) {
-        memcpy((void*)value, valuePointer, valueSize);
-        value[valueSize] = '\0';  // For ensuring that the '\0' will be appeared
+    cJSON* current = nullptr;
+    {  // Tracing the parsed json by using the tokens in the tokenSet sequentially
+        current = initialedFileParserInstance->jsonParsedContent;
+        for (std::vector<std::string>::iterator it = tokenSet.begin();
+             it != tokenSet.end();
+             ++it) {
+            // When the instruction implies the .json's array, the '[' and ']' shall be removed for cJSON to search item.
+            if ((*it).front() == '[' && (*it).back() == ']') {
+                std::string indexStr = (*it).substr(1, (*it).size() - 2);
+                int index = std::stoi(indexStr);  // Converting the string to integer
+                current = cJSON_GetArrayItem(current, index);
+            } else {
+                current = cJSON_GetObjectItem(current, (*it).c_str());
+            }
+
+            // A token has not been searched in the .json structure.
+            if (current == nullptr) {
+                break;
+            }
+        }
+    }
+
+    // Clearing the vector buffer
+    tokenSet.clear();
+    tokenSet.shrink_to_fit();
+
+    // If the current is not null, ....
+    if (current != nullptr) {
+        if (item != nullptr) {  // If the item does not come from the initialization, copying the value in the "current"
+                                // to the value of the *item
+            *item = current;
+        }
+        length = strlen((const char*)cJSON_Print(current));
+        memcpy(value, (unsigned char*)cJSON_Print(current), length);
+        value[length] = '\0';
     } else {
-        // Do nothing
-        return Commons::POSIXErrors::E_NOITEM;
+        // Clearing the vector buffer
+        return Commons::POSIXErrors::E_EXIST;
     }
-
     return Commons::POSIXErrors::OK;
 }
 
