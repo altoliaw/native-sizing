@@ -21,7 +21,7 @@ TEST(FileParsers, Test_InitializedJsonFileParser_parseInitializedFile) {
 	ASSERT_NE(Commons::POSIXErrors::OK, error);
 
 	cJSON* current = nullptr;
-	error = FileParsers::InitializedJsonFileParser::getValueFromFileParser((const unsigned char*)"base.port", value, &current);
+	error = FileParsers::InitializedJsonFileParser::getValueFromFileParser((const unsigned char*)"base.service.[0].port", value, &current);
 	/** The types are included cJSON_Object, cJSON_Array, cJSON_String, cJSON_Number, cJSON_True,
 	 *  cJSON_False, cJSON_NULL and others.
 	*/
@@ -29,7 +29,7 @@ TEST(FileParsers, Test_InitializedJsonFileParser_parseInitializedFile) {
 	ASSERT_EQ(current->type, cJSON_Array);
 
 	current = nullptr;
-	error = FileParsers::InitializedJsonFileParser::getValueFromFileParser((const unsigned char*)"base.port.[0]", value, &current);
+	error = FileParsers::InitializedJsonFileParser::getValueFromFileParser((const unsigned char*)"base.service.[0].port.[0]", value, &current);
 	/** The types are included cJSON_Object, cJSON_Array, cJSON_String, cJSON_Number, cJSON_True,
 	 *  cJSON_False, cJSON_NULL and others.
 	*/
