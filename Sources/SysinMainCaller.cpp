@@ -86,9 +86,8 @@ Commons::POSIXErrors start(int argC, char** argV) {
         //     std::thread packetThread{packetTask, &pcapObject, packetHandler};
         std::thread writePacketFileThread{packetFileTask, &fileDescriptor, OuputFilePathWithTime};
 
-        //     // When the functions finish or interrupt, those two threads shall
-        //     // be joined into the main process
-        //     packetThread.join();
+        // When the functions finish or interrupt, those n + 1 threads shall
+        // be joined into the main process
         for (unsigned int i = 0; i < interfaceNameArray.size(); i++) {
             threads[i].join();
         }
