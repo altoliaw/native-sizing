@@ -23,6 +23,7 @@ PCAP::LinuxPCAP* _PCAP_POINTER_ = nullptr;
 // The address of the global pointer referring to the file descriptor object
 FILE** _FILE_POINTER_ = nullptr;
 
+static Commons::POSIXErrors config(std::vector<unitService>*);
 static void packetHandler(u_char*, const struct pcap_pkthdr*, const u_char*);
 static void packetTask(PCAP::LinuxPCAP*, void (*)(u_char*, const pcap_pkthdr*, const u_char*));
 static void packetFileTask(FILE**, const char*);
@@ -32,54 +33,26 @@ static void packetFileTask(FILE**, const char*);
  *
  * @param argC [int] The number of the argument
  * @param argV [char**] The array of the argument
- * @return [int] The result defined in "POSIXErrors.hpp"
+ * @return [Commons::POSIXErrors] The status defined in the class "POSIXErrors" The status defined in the class "POSIXErrors"
  */
-int start(int argC, char** argV) {
-    // Loading information from the .ini file for the application
-    // The current working directory is the project root; as a result, the related path is shown as follows.
-    const unsigned char* path = (const unsigned char*)"Settings/.Ini/SysinMain.ini";
-    FileParsers::InitializedFileParser::parseInitializedFile(path);
+Commons::POSIXErrors start(int argC, char** argV) {
+    Commons::POSIXErrors result = Commons::POSIXErrors::OK;
 
-    Commons::POSIXErrors error = Commons::POSIXErrors::OK;
-    // Preparing some information
-    char interfaceName[256] = {'\0'};  // The interface
-    if (argC <= 1) {
-        error = FileParsers::InitializedFileParser::getValueFromFileParser((const unsigned char*)"base.interface", (unsigned char*)interfaceName);
-        if (error == Commons::POSIXErrors::OK) {
-            if (strlen(interfaceName) == 0) {
-                strcpy(interfaceName, "ens224");
-            }
-        } else {
-            strcpy(interfaceName, "ens224");
-        }
-    } else {
-        strcpy(interfaceName, argV[0]);
+    // The data structure from the configure function
+    // The array for reserving the interface name
+    std::vector<unitService> interfaceNameArray;
+    if (interfaceNameArray.empty() == false) {
+        interfaceNameArray.clear();
+        interfaceNameArray.shrink_to_fit();
     }
 
-    int port = 0;  // The server port
-    if (argC <= 2) {
-        char portString[256] = {'\0'};
-        error = FileParsers::InitializedFileParser::getValueFromFileParser((const unsigned char*)"base.port", (unsigned char*)portString);
-        if (error == Commons::POSIXErrors::OK) {
-            if (strlen(portString) == 0) {
-                port = 1521;
-            } else {
-                port = atoi(portString);
-            }
-        }
-    } else {
-        port = atoi(argV[1]);
+    // Calling the config function
+    result = config(&interfaceNameArray);
+    if (result != Commons::POSIXErrors::OK) {
+        return result;
     }
 
-    char writingFileSecond[256] = {'\0'};  // The time for writing information into a file
-    error = FileParsers::InitializedFileParser::getValueFromFileParser((const unsigned char*)"base.writingFileSecond", (unsigned char*)writingFileSecond);
-    if (error == Commons::POSIXErrors::OK) {
-        if (strlen(writingFileSecond) == 0) {
-            // Do nothing
-        } else {
-            _WRITING_FILE_SECOND_ = atoi(writingFileSecond);
-        }
-    }
+    // The starting postion of the process
     // The output path
     char* OutputFilePathRule = (char*)"Outputs/trafficMonitor_%lu.tsv";
 
@@ -88,32 +61,133 @@ int start(int argC, char** argV) {
     sprintf(OuputFilePathWithTime, OutputFilePathRule, Commons::Time::getEpoch());
     _WRITING_FILE_LOCATION_ = OuputFilePathWithTime;
 
-    int result = Commons::POSIXErrors::OK;
     // Installing a signal handler, interrupt
     signal(SIGINT, signalInterruptedHandler);
 
-    {  // Creating an object, opening the interface, executing the packet calculations
-        // and closing the interface
-        PCAP::LinuxPCAP pcapObject;
-        pcapObject.open(interfaceName, BUFSIZ, 1, 1000, (const int)port);
+    {  // Creating objects, opening the interfaces, executing the packet calculations
+       // and closing the interfaces; the number of objects is equal to the number of
+       // the interfaces
+        std::vector<PCAP::LinuxPCAP> interfaceForThread;
+        for (unsigned int i = 0; i < interfaceNameArray.size(); i++) {
+            PCAP::LinuxPCAP pcapObject;
+            pcapObject.open(interfaceNameArray[i].interfaceName, BUFSIZ, 1, 1000, &(interfaceNameArray[i].port));
+
+            // Putting each pcap object into thread array
+            interfaceForThread.push_back(pcapObject);
+        }
 
         FILE* fileDescriptor = nullptr;
-        // Two threads; the values in the thread imply function name, argument 1, argument2 and so on
-        std::thread packetThread{packetTask, &pcapObject, packetHandler};
+        // n + 1  threads created; the n is equal to the number of interfaces
+        // the values in the thread imply function name, argument 1, argument2 and so on;
+        std::vector<std::thread> threads;
+        for (unsigned int i = 0; i < interfaceNameArray.size(); i++) {
+            // threads.emplace_back(packetTask, i);
+        }
+        //     std::thread packetThread{packetTask, &pcapObject, packetHandler};
         std::thread writePacketFileThread{packetFileTask, &fileDescriptor, OuputFilePathWithTime};
 
-        // When the functions finish or interrupt, those two threads shall
-        // be joined into the main process
-        packetThread.join();
+        //     // When the functions finish or interrupt, those two threads shall
+        //     // be joined into the main process
+        //     packetThread.join();
+        for (unsigned int i = 0; i < interfaceNameArray.size(); i++) {
+            threads[i].join();
+        }
         writePacketFileThread.join();
 
-        pcapObject.close();
+        // All pcap objects shall call the close function
+        for (unsigned int i = 0; i < interfaceForThread.size(); i++) {
+            (interfaceForThread[i]).close();
+        }
         if (fileDescriptor != nullptr) {
             fclose(fileDescriptor);
         }
     }
 
     return result;
+}
+
+/**
+ * Setting the config to this application
+ *
+ * @param services [std::vector<unitService>*] The data structure which is the key "service" defined in the .json file
+ * @return [Commons::POSIXErrors] The status defined in the class "POSIXErrors" The status defined in the class "POSIXErrors"
+ */
+static Commons::POSIXErrors config(std::vector<unitService>* services) {
+    Commons::POSIXErrors error = Commons::POSIXErrors::OK;
+
+    // Loading information from the .json file for the application
+    // The current working directory is the project root; as a result, the related path is shown as follows.
+    const unsigned char* path = (const unsigned char*)"Settings/.Json/SysinMain.json";
+    FileParsers::InitializedJsonFileParser::parseInitializedFile(path);
+
+    // Obtaining the number of interfaces
+    unsigned char serviceJsonString[2048] = {'\0'};
+    // Obtaining the attribute, writingFileSecond, in the .json file
+    error = FileParsers::InitializedJsonFileParser::getValueFromFileParser((const unsigned char*)"base.writingFileSecond", serviceJsonString);
+    if (error != Commons::POSIXErrors::OK) {
+        std::cerr << "base.writingFileSecond does not exist in the .json file.\n";
+        return Commons::POSIXErrors::E_EXIST;
+    }
+    // Parsing the string into the unsigned int
+    std::stringstream stream;
+    stream << serviceJsonString;
+    stream >> _WRITING_FILE_SECOND_;
+
+    // Obtaining the attribute, service, in the .json file
+    cJSON* cJsonItem = nullptr;
+    error = FileParsers::InitializedJsonFileParser::getValueFromFileParser((const unsigned char*)"base.service", serviceJsonString, &cJsonItem);
+    if (error != Commons::POSIXErrors::OK && cJsonItem->type != cJSON_Array) {
+        std::cerr << "base.service does not exist in the .json file.\n";
+        return Commons::POSIXErrors::E_EXIST;
+    }
+    // Obtaining the length of the service array
+    unsigned int serviceLength = (unsigned int)cJSON_GetArraySize(cJsonItem);  // Obtaining the size of the array from "base.service" in the .json file
+    // The array for reserving the interface name
+    // Traversal of "service" defined in the .json file
+    for (unsigned int i = 0; i < serviceLength; i++) {
+        std::string interfaceName = "base.service.[" + std::to_string(i) + "].interface";
+        error = FileParsers::InitializedJsonFileParser::getValueFromFileParser((const unsigned char*)(interfaceName.c_str()), serviceJsonString);
+        if (error != Commons::POSIXErrors::OK) {
+            std::cerr << "base.service.[i].interface does not exist in the .json file.\n";
+            break;
+        }
+
+        // Copying the interface value into the element of the array
+        unitService unit;
+        memcpy(unit.interfaceName, serviceJsonString, strlen((char*)serviceJsonString));
+        unit.interfaceName[strlen((char*)serviceJsonString)] = '\0';
+
+        // Reserving the ports into the unitService
+        interfaceName = "base.service.[" + std::to_string(i) + "].port";
+        error = FileParsers::InitializedJsonFileParser::getValueFromFileParser((const unsigned char*)(interfaceName.c_str()), serviceJsonString, &cJsonItem);
+        if (error != Commons::POSIXErrors::OK && cJsonItem->type != cJSON_Array) {
+            std::cerr << "base.service.[i].port does not exist in the .json file.\n";
+            return Commons::POSIXErrors::E_EXIST;
+        }
+
+        // Obtaining the port array size
+        unsigned int portLength = (unsigned int)cJSON_GetArraySize(cJsonItem);
+        unsigned int portNumber = 0;
+        for (unsigned int j = 0; j < portLength; j++) {
+            interfaceName = "base.service.[" + std::to_string(i) + "].port.[" + std::to_string(j) + "]";
+            error = FileParsers::InitializedJsonFileParser::getValueFromFileParser((const unsigned char*)(interfaceName.c_str()), serviceJsonString);
+            if (error != Commons::POSIXErrors::OK) {
+                std::cerr << "base.service.[i].port.[j] does not exist in the .json file.\n";
+                break;
+            }
+            stream << serviceJsonString;
+            stream >> portNumber;
+            unit.port.push_back(portNumber);
+        }
+        // Pushing the unit into the "services"
+        services->push_back(unit);
+    }
+    // For verifying the previous loop
+    if (error != Commons::POSIXErrors::OK) {
+        return Commons::POSIXErrors::E_EXIST;
+    }
+
+    return Commons::POSIXErrors::OK;
 }
 
 /**
@@ -150,8 +224,9 @@ static void packetFileTask(FILE** fileDescriptor, const char* filePath) {
 
         } else {  // Adding the header information in a line to the file
             char output[1024] = {'\0'};
-            int length = sprintf(output, "UTC\tType\tPort\tNumber(amount)\tSize(bytes)\tMaxSize(bytes)\t"
-                                        "SQL number in the time interval\tSQL size(bytes) in the time interval\tSQL size per time interval(eps)\n");
+            int length = sprintf(output,
+                                 "UTC\tType\tPort\tNumber(amount)\tSize(bytes)\tMaxSize(bytes)\t"
+                                 "SQL number in the time interval\tSQL size(bytes) in the time interval\tSQL size per time interval(eps)\n");
             fwrite(output, sizeof(char), length, *_FILE_POINTER_);
             if (*_FILE_POINTER_ != nullptr) {
                 fclose(*_FILE_POINTER_);
@@ -302,7 +377,7 @@ void signalInterruptedHandler(int) {
 void signalAlarmHandler(int) {
     // File writing
     char output[1024] = {"\0"};
-    if (*_FILE_POINTER_ == nullptr) {        
+    if (*_FILE_POINTER_ == nullptr) {
         // Opening the file
         *_FILE_POINTER_ = fopen(_WRITING_FILE_LOCATION_, "a+");
 
@@ -314,7 +389,7 @@ void signalAlarmHandler(int) {
             _MUTEX_.lock();
             // "UTC\tType\tPort\tNumber(amount)\tSize(byte)\tMaxSize\tSQL number per time interval(eps)\tSQL size per time interval(eps)\n";
             time_t timeEpoch = Commons::Time::getEpoch();
-            // TX part; in the section, the last two result will be to zero because the packets 
+            // TX part; in the section, the last two result will be to zero because the packets
             // from the record set from the SQL server shall be ignored
             int length = sprintf(output,
                                  "%lu\tTX\t%d\t%lu\t%llu\t%lu\t%lu\t%llu\t%llu\n",
@@ -340,7 +415,7 @@ void signalAlarmHandler(int) {
                              _PCAP_POINTER_->rxSize,
                              _PCAP_POINTER_->maxRxSize,
                              _PCAP_POINTER_->sqlRequestNumber,
-                             _PCAP_POINTER_->sqlRequestSize, 
+                             _PCAP_POINTER_->sqlRequestSize,
                              _PCAP_POINTER_->sqlRequestSize / (long long)_WRITING_FILE_SECOND_);
             fwrite(output, sizeof(char), length, *_FILE_POINTER_);
             _PCAP_POINTER_->rxPacketNumber = 0;
@@ -362,4 +437,27 @@ void signalAlarmHandler(int) {
         *_FILE_POINTER_ = nullptr;
     }
 }
+
+/**
+ * Constructor
+ */
+unitService::unitService() {
+    interfaceName[0] = '\0';
+    if (port.empty() == false) {
+        port.clear();
+        port.shrink_to_fit();
+    }
+}
+
+/**
+ * Destructor
+ */
+unitService::~unitService() {
+    interfaceName[0] = '\0';
+    if (port.empty() == false) {
+        port.clear();
+        port.shrink_to_fit();
+    }
+}
+
 }  // namespace SysinMainCaller

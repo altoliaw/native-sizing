@@ -31,6 +31,8 @@ FileParsers.Sources=${Prdir}/Models/FileParsers/Sources
 PCAP.Headers=${Prdir}/Models/PCAP/Headers
 PCAP.Sources=${Prdir}/Models/PCAP/Sources
 
+Vendors.Headers=${Prdir}/Vendors/Includes
+
 
 ## Project execution's name
 PjN:= $(word $(words $(subst /, ,${Prdir})), $(subst /, ,${Prdir}))
@@ -115,7 +117,7 @@ ${Prdir}/${PjN}_Sysin: 	${Prdir}/${AppLoc}/SysinMain.o \
 					${Commons.Sources}/IOSpecification.o \
 					${Commons.Sources}/StringImplement.o \
 					${Commons.Sources}/Time.o \
-					${FileParsers.Sources}/InitializedFileParser.o \
+					${FileParsers.Sources}/InitializedJsonFileParser.o \
 					${PCAP.Sources}/LinuxPCAP.o
 
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${FMSG} -o ${Prdir}/${Bin}/${PjN}_Sysin ${Prdir}/${AppLoc}/SysinMain.o \
@@ -124,7 +126,7 @@ ${Prdir}/${PjN}_Sysin: 	${Prdir}/${AppLoc}/SysinMain.o \
 	${Commons.Sources}/IOSpecification.o \
 	${Commons.Sources}/StringImplement.o \
 	${Commons.Sources}/Time.o \
-	${FileParsers.Sources}/InitializedFileParser.o \
+	${FileParsers.Sources}/InitializedJsonFileParser.o \
 	${PCAP.Sources}/LinuxPCAP.o \
 	${LDFLAGS} \
 	${LDLIBS}
@@ -137,7 +139,7 @@ ${Prdir}/${AppLoc}/SysinMain.o:	${Headers}/SysinMainCaller.hpp ${Prdir}/${AppLoc
 ${Sources}/SysinMainCaller.o:	${Commons.Headers}/POSIXErrors.hpp \
 								${Commons.Headers}/IOSpecification.hpp \
 								${Commons.Headers}/Time.hpp \
-								${FileParsers.Headers}/InitializedFileParser.hpp \
+								${FileParsers.Headers}/InitializedJsonFileParser.hpp \
 								${PCAP.Headers}/LinuxPCAP.hpp \
 								${Headers}/SysinMainCaller.hpp \
 								${Sources}/SysinMainCaller.cpp
@@ -164,6 +166,10 @@ ${Commons.Sources}/Time.o:	${Commons.Headers}/POSIXErrors.hpp ${Commons.Headers}
 # FileParsers.InitializedFileParser
 ${FileParsers.Sources}/InitializedFileParser.o:	${Commons.Headers}/HashTable.hpp ${FileParsers.Headers}/InitializedFileParser.hpp ${FileParsers.Sources}/InitializedFileParser.cpp
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${FileParsers.Sources}/InitializedFileParser.cpp -c ${FMSG} -o ${FileParsers.Sources}/InitializedFileParser.o
+
+# FileParsers.InitializedJsonFileParser
+${FileParsers.Sources}/InitializedJsonFileParser.o:	${Vendors.Headers}/cJSON.h ${FileParsers.Headers}/InitializedJsonFileParser.hpp ${FileParsers.Sources}/InitializedJsonFileParser.cpp
+	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${FileParsers.Sources}/InitializedJsonFileParser.cpp -c ${FMSG} -o ${FileParsers.Sources}/InitializedJsonFileParser.o
 
 # PCAP.LinuxPCAP
 ${PCAP.Sources}/LinuxPCAP.o:	${PCAP.Headers}/PCAPPrototype.hpp ${PCAP.Headers}/LinuxPCAP.hpp ${PCAP.Sources}/LinuxPCAP.cpp

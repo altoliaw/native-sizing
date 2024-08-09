@@ -152,7 +152,7 @@ Commons::POSIXErrors InitializedJsonFileParser::getValueFromFileParser(const uns
     bool inQuotes = false;  // For verifying if a quote exists in the key string
     std::string token = "";
     {  // Parsing the instruction from the columnName
-        for (int i = 0; i < length; i++) {
+        for (unsigned int i = 0; i < length; i++) {
             if (columnName[i] == '\\') {
                 // When encountering the '\', the character shall not be reserved
                 // because the key which has the character in the key string in the .json file implies only the next character.

@@ -14,16 +14,17 @@
 
 #include "./PCAPPrototype.hpp"
 
+#include <vector>
 namespace PCAP {
 /**
- * The abstract class as the parent class
+ * The inherited class to the parent class, PCAPPrototype
  */
 class LinuxPCAP : public PCAPPrototype {
    public:
     pcap_t* pcapDescriptor;  // The pointer for referring to the variable "handle" from the prototype
     LinuxPCAP();
     ~LinuxPCAP();
-    void open(const char*, const int, const int, const int, int);
+    void open(const char*, const int, const int, const int, std::vector<int>*);
     void execute(void (*)(u_char*, const pcap_pkthdr*, const u_char*) = nullptr);
     void close(void);
 

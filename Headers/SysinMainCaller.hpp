@@ -16,16 +16,27 @@
 
 #include <algorithm>  // For std::max
 #include <mutex>
+#include <string>
 #include <thread>
+#include <vector>
+#include <sstream>
 
 #include "../Models/Commons/Headers/IOSpecification.hpp"
-#include "../Models/FileParsers/Headers/InitializedFileParser.hpp"
 #include "../Models/Commons/Headers/POSIXErrors.hpp"
 #include "../Models/Commons/Headers/Time.hpp"
+#include "../Models/FileParsers/Headers/InitializedJsonFileParser.hpp"
 #include "../Models/PCAP/Headers/LinuxPCAP.hpp"
 
 namespace SysinMainCaller {
-int start(int, char**);
+struct unitService {
+   public:
+    char interfaceName[256];
+    std::vector<int> port;
+    unitService();
+	~unitService();
+};
+
+Commons::POSIXErrors start(int, char**);
 void signalInterruptedHandler(int);
 void signalAlarmHandler(int);
 }  // namespace SysinMainCaller

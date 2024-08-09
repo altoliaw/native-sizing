@@ -8,19 +8,21 @@ namespace PCAP {
  * Constructor
  */
 LinuxPCAP::LinuxPCAP() {
+    errBuff[0] = '\0';
     descriptor = nullptr;
     pcapDescriptor = (pcap_t*)descriptor;
     deviceInterface = "";
-    port = 0;
     rxSize = 0;
     txSize = 0;
     rxPacketNumber = 0;
     txPacketNumber = 0;
-    errBuff[0] = '\0';
     maxRxSize = 0;
     maxTxSize = 0;
-    sqlRequestNumber = 0;
-    sqlRequestSize = 0;
+
+    // To ensure that the map is empty
+    if (portRelatedInformation.empty() == false) {
+        portRelatedInformation.clear();
+    }
 }
 
 /**
@@ -35,17 +37,19 @@ LinuxPCAP::~LinuxPCAP() {
         pcapDescriptor = nullptr;
         descriptor = nullptr;
     }
-    deviceInterface = "";
-    port = 0;
-    rxSize = 0;
-    txSize = 0;
-    rxPacketNumber = 0;
-    txPacketNumber = 0;
     errBuff[0] = '\0';
-    maxRxSize = 0;
-    maxTxSize = 0;
-    sqlRequestNumber = 0;
-    sqlRequestSize = 0;
+    deviceInterface = "";
+    long long rxSize = 0;
+    long long txSize = 0;
+    long rxPacketNumber = 0;
+    long txPacketNumber = 0;
+    long maxRxSize = 0;
+    long maxTxSize = 0;
+
+    // To ensure that the map is empty
+    if (portRelatedInformation.empty() == false) {
+        portRelatedInformation.clear();
+    }
 }
 
 /**
@@ -56,17 +60,22 @@ LinuxPCAP::~LinuxPCAP() {
  * @param promisc [const int] Specifying that the device is to be put into promiscuous mode.
  * A value of 1 (True) turns promiscuous mode on.
  * @param timeout [const int] Timeout (milliseconds)
- * @param port [const int] The port of the server for distinguishing with the packets from rx and tx
+ * @param port [std::vector<int>*] The port of the server for distinguishing with the packets from rx and tx
  */
-void LinuxPCAP::open(const char* device, const int snaplen, const int promisc, const int timeout, const int port) {
+void LinuxPCAP::open(const char* device, const int snaplen, const int promisc, const int timeout, std::vector<int>* port) {
     pcapDescriptor = pcap_open_live(device, snaplen, promisc, timeout, errBuff);
     if (pcapDescriptor == nullptr) {
         std::cerr << "[Error] PCAP open failed; please verifying if the permission is root\n";
     }
     std::string deviceInterface(device);
     this->deviceInterface = deviceInterface;
-    this->port = (int)port;
     descriptor = (void*)pcapDescriptor;
+    // Copying the ports information into each portRelatedInformation (set)
+    for (unsigned int i = 0; port->size(); i++) {
+        PCAPPortInformation PCAPPortInstance;
+        PCAPPortInstance.port = (*port)[i];
+        portRelatedInformation.insert(std::pair<int, PCAPPortInformation>((*port)[i], PCAPPortInstance));
+    }
 }
 
 /**
