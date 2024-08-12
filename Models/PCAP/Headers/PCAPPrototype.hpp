@@ -25,8 +25,14 @@ class PCAPPrototype {
     struct PCAPPortInformation {
        public:
         int port;                  // The port number for distinguishing to the packets of rx an tx
-        long sqlRequestNumber;     // The number if the packets containing SQL statement in rx
-        long long sqlRequestSize;  // The size if the packets containing SQL statement in rx
+        long long rxSize;          // The size of the rx channel with the port
+        long long txSize;          // The size of the rx channel with the port
+        long rxPacketNumber;       // The number of the packets in the rx channel with the port
+        long txPacketNumber;       // The number of the packets in the tx channel with the port
+        long maxRxSize;            // The max size of the rx packets during the time interval with the port
+        long maxTxSize;            // The max size of the tx packets during the time interval with the port
+        long sqlRequestNumber;     // The number if the packets containing SQL statement in rx with the port
+        long long sqlRequestSize;  // The size if the packets containing SQL statement in rx with the port
         PCAPPortInformation();
         ~PCAPPortInformation();
         long sqlRequestNumberPerTime(int);

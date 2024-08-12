@@ -53,7 +53,7 @@ LinuxPCAP::~LinuxPCAP() {
 }
 
 /**
- * Opening the PCAP
+ * Opening the PCAP object according to an interface with different ports
  *
  * @param device [const char*] The interface
  * @param snaplen [const int] The upper bound of the bits for each packet
@@ -67,9 +67,11 @@ void LinuxPCAP::open(const char* device, const int snaplen, const int promisc, c
     if (pcapDescriptor == nullptr) {
         std::cerr << "[Error] PCAP open failed; please verifying if the permission is root\n";
     }
+    descriptor = (void*)pcapDescriptor;  // Passing the descriptor to the general type
+
+    // Copying the NIC information into the object
     std::string deviceInterface(device);
     this->deviceInterface = deviceInterface;
-    descriptor = (void*)pcapDescriptor;
     // Copying the ports information into each portRelatedInformation (set)
     for (unsigned int i = 0; port->size(); i++) {
         PCAPPortInformation PCAPPortInstance;
@@ -87,10 +89,14 @@ void LinuxPCAP::open(const char* device, const int snaplen, const int promisc, c
  */
 void LinuxPCAP::execute(void (*callback)(u_char*, const pcap_pkthdr*, const u_char*)) {
     if (pcapDescriptor != nullptr) {
+        // The forth argument in the pcap_loop will be associated to the first one parameter in the function, callback.
+        // If the callback is not nullptr, the forth argument is the object.
         pcap_loop(pcapDescriptor,
                   0,
-                  ((callback == nullptr) ? LinuxPCAP::packetHandler : callback),
-                  reinterpret_cast<u_char*>(&rxPacketNumber));
+                  ((callback == nullptr) ? LinuxPCAP::packetHandler : callback),                                          // if callback is nullptr,
+                                                                                                                          // the function will be the default function in the class
+                  (callback == nullptr) ? reinterpret_cast<u_char*>(&rxPacketNumber) : reinterpret_cast<u_char*>(this));  // if callback is nullptr,
+                                                                                                                          // the function will be the default function in the class
     }
 }
 
@@ -107,10 +113,10 @@ void LinuxPCAP::close() {
 /**
  * Calculating the amount of the packets
  *
- * @param userData [u_char*]
- * @param pkthdr [const struct pcap_pkthdr*]
- * @param packet [const u_char*]
- * @param [void]
+ * @param userData [u_char*] The additional information for the function, packetHandler; the additional information will be binding with
+ * the forth argument in the pcap_loop
+ * @param pkthdr [const struct pcap_pkthdr*] The header of the packet
+ * @param packet [const u_char*] The data from the last position of the header of the packet
  */
 void LinuxPCAP::packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, const u_char* packet) {
     int* packetCount = (int*)userData;

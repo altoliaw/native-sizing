@@ -10,6 +10,12 @@ namespace PCAP {
  */
 PCAPPrototype::PCAPPortInformation::PCAPPortInformation() {
     port = 0;
+    rxSize = 0;
+    txSize = 0;
+    rxPacketNumber = 0;
+    txPacketNumber = 0;
+    maxRxSize = 0;
+    maxTxSize = 0;
     sqlRequestNumber = 0;
     sqlRequestSize = 0;
 }
@@ -19,6 +25,12 @@ PCAPPrototype::PCAPPortInformation::PCAPPortInformation() {
  */
 PCAPPrototype::PCAPPortInformation::~PCAPPortInformation() {
     port = 0;
+    rxSize = 0;
+    txSize = 0;
+    rxPacketNumber = 0;
+    txPacketNumber = 0;
+    maxRxSize = 0;
+    maxTxSize = 0;
     sqlRequestNumber = 0;
     sqlRequestSize = 0;
 }
