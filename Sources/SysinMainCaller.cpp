@@ -85,7 +85,7 @@ Commons::POSIXErrors start(int argC, char** argV) {
         FILE* fileDescriptor = nullptr;
         // n + 1  threads created; the n is equal to the number of interfaces;
         // When calling the functions in threads, the values in the thread imply function name,
-        // function argument 1, function argument2 and so on;\
+        // function argument 1, function argument2 and so on;
         // the first type threads (n from "n + 1")
         std::vector<std::thread> threads;
         for (unsigned int i = 0; i < pcapObjectOfInterface.size(); i++) {

@@ -118,6 +118,7 @@ ${Prdir}/${PjN}_Sysin: 	${Prdir}/${AppLoc}/SysinMain.o \
 					${Commons.Sources}/StringImplement.o \
 					${Commons.Sources}/Time.o \
 					${FileParsers.Sources}/InitializedJsonFileParser.o \
+					${PCAP.Sources}/PCAPPrototype.o \
 					${PCAP.Sources}/LinuxPCAP.o
 
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${FMSG} -o ${Prdir}/${Bin}/${PjN}_Sysin ${Prdir}/${AppLoc}/SysinMain.o \
@@ -127,6 +128,7 @@ ${Prdir}/${PjN}_Sysin: 	${Prdir}/${AppLoc}/SysinMain.o \
 	${Commons.Sources}/StringImplement.o \
 	${Commons.Sources}/Time.o \
 	${FileParsers.Sources}/InitializedJsonFileParser.o \
+	${PCAP.Sources}/PCAPPrototype.o \
 	${PCAP.Sources}/LinuxPCAP.o \
 	${LDFLAGS} \
 	${LDLIBS}
@@ -170,6 +172,10 @@ ${FileParsers.Sources}/InitializedFileParser.o:	${Commons.Headers}/HashTable.hpp
 # FileParsers.InitializedJsonFileParser
 ${FileParsers.Sources}/InitializedJsonFileParser.o:	${Vendors.Headers}/cJSON.h ${FileParsers.Headers}/InitializedJsonFileParser.hpp ${FileParsers.Sources}/InitializedJsonFileParser.cpp
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${FileParsers.Sources}/InitializedJsonFileParser.cpp -c ${FMSG} -o ${FileParsers.Sources}/InitializedJsonFileParser.o
+
+# PCAP.PCAPPrototype
+${PCAP.Sources}/PCAPPrototype.o:	${PCAP.Headers}/PCAPPrototype.hpp ${PCAP.Sources}/PCAPPrototype.cpp
+	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${PCAP.Sources}/PCAPPrototype.cpp -c ${FMSG} -o ${PCAP.Sources}/PCAPPrototype.o
 
 # PCAP.LinuxPCAP
 ${PCAP.Sources}/LinuxPCAP.o:	${PCAP.Headers}/PCAPPrototype.hpp ${PCAP.Headers}/LinuxPCAP.hpp ${PCAP.Sources}/LinuxPCAP.cpp

@@ -39,12 +39,12 @@ LinuxPCAP::~LinuxPCAP() {
     }
     errBuff[0] = '\0';
     deviceInterface = "";
-    long long rxSize = 0;
-    long long txSize = 0;
-    long rxPacketNumber = 0;
-    long txPacketNumber = 0;
-    long maxRxSize = 0;
-    long maxTxSize = 0;
+    rxSize = 0;
+    txSize = 0;
+    rxPacketNumber = 0;
+    txPacketNumber = 0;
+    maxRxSize = 0;
+    maxTxSize = 0;
 
     // To ensure that the map is empty
     if (portRelatedInformation.empty() == false) {
