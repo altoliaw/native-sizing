@@ -18,6 +18,7 @@
 #include <mutex>
 #include <string>
 #include <thread>
+#include <unordered_map>
 #include <vector>
 #include <sstream>
 
@@ -33,7 +34,7 @@ struct unitService {
     char interfaceName[256];
     std::vector<int> port;
     unitService();
-	~unitService();
+    ~unitService();
 };
 
 Commons::POSIXErrors start(int, char**);

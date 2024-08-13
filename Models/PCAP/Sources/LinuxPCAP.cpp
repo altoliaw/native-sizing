@@ -18,11 +18,6 @@ LinuxPCAP::LinuxPCAP() {
     txPacketNumber = 0;
     maxRxSize = 0;
     maxTxSize = 0;
-
-    // To ensure that the map is empty
-    if (portRelatedInformation.empty() == false) {
-        portRelatedInformation.clear();
-    }
 }
 
 /**
@@ -31,7 +26,7 @@ LinuxPCAP::LinuxPCAP() {
 LinuxPCAP::~LinuxPCAP() {
     // PCAP handle shall be closed and NULL.
     if (pcapDescriptor != nullptr) {
-        std::cerr << "Error.\n";
+        std::cerr << "[Error] pcapDescriptor shall has been deallocated.\n";
         this->close();
     } else {
         pcapDescriptor = nullptr;
@@ -48,6 +43,14 @@ LinuxPCAP::~LinuxPCAP() {
 
     // To ensure that the map is empty
     if (portRelatedInformation.empty() == false) {
+        for (std::unordered_map<int, PCAPPortInformation*>::iterator it = portRelatedInformation.begin();
+             it != portRelatedInformation.end();
+             it++) {
+            if (it->second != nullptr) {
+                delete (it->second);
+            }
+            (it->second) = nullptr;
+        }
         portRelatedInformation.clear();
     }
 }
@@ -73,10 +76,10 @@ void LinuxPCAP::open(const char* device, const int snaplen, const int promisc, c
     std::string deviceInterface(device);
     this->deviceInterface = deviceInterface;
     // Copying the ports information into each portRelatedInformation (set)
-    for (unsigned int i = 0; port->size(); i++) {
-        PCAPPortInformation PCAPPortInstance;
-        PCAPPortInstance.port = (*port)[i];
-        portRelatedInformation.insert(std::pair<int, PCAPPortInformation>((*port)[i], PCAPPortInstance));
+    for (unsigned int i = 0; i < port->size(); i++) {
+        PCAPPortInformation* PCAPPortInstance = new PCAPPortInformation();
+        PCAPPortInstance->port = (*port)[i];
+        portRelatedInformation.emplace((*port)[i], PCAPPortInstance);
     }
 }
 

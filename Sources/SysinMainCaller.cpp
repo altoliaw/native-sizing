@@ -26,7 +26,7 @@ FILE** _FILE_POINTER_ = nullptr;
 static Commons::POSIXErrors config(std::vector<unitService>*);
 static void packetHandler(u_char*, const struct pcap_pkthdr*, const u_char*);
 static void packetTask(PCAP::LinuxPCAP*, void (*)(u_char*, const pcap_pkthdr*, const u_char*));
-static void packetFileTask(FILE**, std::vector<PCAP::LinuxPCAP>*, const char*);
+static void packetFileTask(FILE**, const char*);
 
 /**
  * The starting process, the entry of the process
@@ -65,12 +65,14 @@ Commons::POSIXErrors start(int argC, char** argV) {
     signal(SIGINT, signalInterruptedHandler);
 
     {  // Creating objects, opening the interfaces, executing the packet calculations
-       // and closing the interfaces; the number of objects is equal to the number of
-       // the interfaces
-        std::vector<PCAP::LinuxPCAP> pcapObjectOfInterface;
+        // and closing the interfaces; the number of objects is equal to the number of
+        // the interfaces
+        std::vector<PCAP::LinuxPCAP*> pcapObjectOfInterface;  // Here each element shall be a pointer because there exsist a pointer which refers to a
+                                                              // resource in the class. When the vector reserve objects, the destructor will orccur twice in the following loop.
+                                                              // The best approach is used the dynamic memory allocation with pointers.
         for (unsigned int i = 0; i < interfaceNameArray.size(); i++) {
-            PCAP::LinuxPCAP pcapObject;
-            pcapObject.open(interfaceNameArray[i].interfaceName, BUFSIZ, 1, 1000, &(interfaceNameArray[i].port));
+            PCAP::LinuxPCAP* pcapObject = new PCAP::LinuxPCAP();
+            pcapObject->open(interfaceNameArray[i].interfaceName, BUFSIZ, 1, 1000, &(interfaceNameArray[i].port));
 
             // Putting each pcap object into thread array
             pcapObjectOfInterface.push_back(pcapObject);
@@ -92,28 +94,34 @@ Commons::POSIXErrors start(int argC, char** argV) {
             // A thread can be registered by using the command as below,
             // "std::thread packetThread{packetTask, &pcapObject, packetHandler};".
             // Therefore, users can use emplace_back on vector to construct the one immediately.
-            threads.emplace_back(packetTask, &(pcapObjectOfInterface[i]), packetHandler);
+            threads.emplace_back(packetTask, pcapObjectOfInterface[i], packetHandler);
 
             // Passing the pcap object to the global pointer
-            _PCAP_POINTER_.push_back(&(pcapObjectOfInterface[i]));
+            _PCAP_POINTER_.push_back(pcapObjectOfInterface[i]);
         }
 
         // The second type thread (1 from "n + 1")
-        std::thread writePacketFileThread{packetFileTask, &fileDescriptor, &pcapObjectOfInterface, OuputFilePathWithTime};
+        std::thread writePacketFileThread{packetFileTask, &fileDescriptor, OuputFilePathWithTime};
 
         // When the functions finish or interrupt, those n + 1 threads shall
         // be joined into the main process
-        for (unsigned int i = 0; i < interfaceNameArray.size(); i++) {
+        for (unsigned int i = 0; i < pcapObjectOfInterface.size(); i++) {
             threads[i].join();
         }
         writePacketFileThread.join();
 
         // All pcap objects shall call the close function
         for (unsigned int i = 0; i < pcapObjectOfInterface.size(); i++) {
-            (pcapObjectOfInterface[i]).close();
+            (pcapObjectOfInterface[i])->close();
+            if (pcapObjectOfInterface[i] != nullptr) {
+                delete (pcapObjectOfInterface[i]);
+            }
+            pcapObjectOfInterface[i] = nullptr;
         }
+        // Closing the file descriptor
         if (fileDescriptor != nullptr) {
             fclose(fileDescriptor);
+            fileDescriptor = nullptr;
         }
     }
 
@@ -146,6 +154,8 @@ static Commons::POSIXErrors config(std::vector<unitService>* services) {
     }
     // Parsing the string into the unsigned int
     std::stringstream stream;
+    stream.clear();  // Removing the error flags
+    stream.str("");  // Removing the value
     stream << serviceJsonString;
     stream >> _WRITING_FILE_SECOND_;
 
@@ -191,6 +201,8 @@ static Commons::POSIXErrors config(std::vector<unitService>* services) {
                 std::cerr << "base.service.[i].port.[j] does not exist in the .json file.\n";
                 break;
             }
+            stream.clear();  // Removing the error flags
+            stream.str("");  // Removing the value
             stream << serviceJsonString;
             stream >> portNumber;
             unit.port.push_back(portNumber);
@@ -223,11 +235,10 @@ static void packetTask(PCAP::LinuxPCAP* pcap, void (*packetHandler)(u_char*, con
  * information into the the specified file
  *
  * @param fileDescriptor [FILE**] The address of the pointer of the FILE descriptor
- * @param pcapCollection[std::vector<PCAP::LinuxPCAP>*] The pcap collection where the number of the collection is equal to the one of the interfaces
  * which users defined in .json file.
  * @param filePath [const char*] The file path for recording the information
  */
-static void packetFileTask(FILE** fileDescriptor, std::vector<PCAP::LinuxPCAP>* pcapCollection, const char* filePath) {
+static void packetFileTask(FILE** fileDescriptor, const char* filePath) {
     // Installing a signal handler, alarm
     signal(SIGALRM, signalAlarmHandler);
     _FILE_POINTER_ = fileDescriptor;  // Passing to the global variable
@@ -278,16 +289,16 @@ static void packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, co
     PCAP::PCAPPrototype* pcapInstance = (PCAP::PCAPPrototype*)userData;
     // Determining what the instance belong to
     PCAP::LinuxPCAP* linuxPCAP = nullptr;
-    if (dynamic_cast<PCAP::LinuxPCAP*>(pcapInstance)) {
+    if (dynamic_cast<PCAP::LinuxPCAP*>(pcapInstance)) {        
         linuxPCAP = dynamic_cast<PCAP::LinuxPCAP*>(pcapInstance);
     }
 
     // When the pcap belongs to linux pcap, ...
     if (linuxPCAP != nullptr) {
-        std::map<int, PCAP::PCAPPrototype::PCAPPortInformation>* tmpMap = &(linuxPCAP->portRelatedInformation);
+        std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>* tmpMap = &(linuxPCAP->portRelatedInformation);
 
         // The Ip collection, the variable will be static
-        static std::map<uint32_t, char> ipMap;
+        static std::unordered_map<uint32_t, char> ipMap;
 
         // Obtaining the IP header; the ip_p column implies the protocol;
         // the number of the TCP is 6, and the UDP is 17
@@ -337,15 +348,15 @@ static void packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, co
         // For readability, the author uses a variable, packetTypeDetermineSet, to determine the type of the packet. That implies that
         // a packet only belongs a type to demonstrate the phenomenons of mutual exclusion.
         if (packetTypeDetermineSet == 0x0) {  // TX packet
-            std::map<int, PCAP::PCAPPrototype::PCAPPortInformation>::iterator it = tmpMap->find((int)packetSourcePort);
+            std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>::iterator it = tmpMap->find((int)packetSourcePort);
             if (it != tmpMap->end()) {  // Hitting
                 // previousPacketType[it->first] = 0x0;
-                (it->second).txPacketNumber++;                    // txPacketNumber in the port shall plus 1.
-                (it->second).txSize += (long long)(pkthdr->len);  // txSize in the port shall plus the current one.
+                (it->second)->txPacketNumber++;                    // txPacketNumber in the port shall plus 1.
+                (it->second)->txSize += (long long)(pkthdr->len);  // txSize in the port shall plus the current one.
 
                 // Obtaining the maximum size in the port
-                if ((it->second).maxTxSize < (long long)(pkthdr->len)) {
-                    (it->second).maxTxSize = (long long)(pkthdr->len);
+                if ((it->second)->maxTxSize < (long long)(pkthdr->len)) {
+                    (it->second)->maxTxSize = (long long)(pkthdr->len);
                 }
 
                 linuxPCAP->txPacketNumber++;                    // txPacketNumber shall plus 1.
@@ -360,21 +371,22 @@ static void packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, co
         }
 
         if (packetTypeDetermineSet == 0x0) {  // RX packet
-            std::map<int, PCAP::PCAPPrototype::PCAPPortInformation>::iterator it = tmpMap->find((int)packetDestinationPort);
+            std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>::iterator it = tmpMap->find((int)packetDestinationPort);
             if (it != tmpMap->end()) {  // Hitting
                 // previousPacketType[it->first] = 0x1;
-                (it->second).rxPacketNumber++;                    // rxPacketNumber in the port shall plus 1.
-                (it->second).rxSize += (long long)(pkthdr->len);  // rxSize in the port shall plus the current one.
+                (it->second)->rxPacketNumber++;                    // rxPacketNumber in the port shall plus 1.
+                (it->second)->rxSize += (long long)(pkthdr->len);  // rxSize in the port shall plus the current one.
 
+                std::cerr << (it->second)->rxSize << "\n";
                 // Obtaining the maximum size in the port
-                if ((it->second).maxRxSize < (long long)(pkthdr->len)) {
-                    (it->second).maxRxSize = (long long)(pkthdr->len);
+                if ((it->second)->maxRxSize < (long long)(pkthdr->len)) {
+                    (it->second)->maxRxSize = (long long)(pkthdr->len);
                 }
 
                 // In this if section, the meaning implies that the packet from the client to server contain a SQL statement
                 if (tcpFlag == 0x18) {
-                    (it->second).sqlRequestNumber++;
-                    (it->second).sqlRequestSize += (long long)(pkthdr->len);
+                    (it->second)->sqlRequestNumber++;
+                    (it->second)->sqlRequestSize += (long long)(pkthdr->len);
                 }
 
                 linuxPCAP->rxPacketNumber++;                    // rxPacketNumber shall plus 1.
@@ -388,7 +400,7 @@ static void packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, co
 
                 // Recording the IP when first meeting the rx from the port; this IP will be reserved in the container for
                 // the case when the later packets' port are not in the defined array; this Ip can determine the type of the packet
-                std::map<uint32_t, char>::iterator itIp = ipMap.find(packetDestinationIp);
+                std::unordered_map<uint32_t, char>::iterator itIp = ipMap.find(packetDestinationIp);
                 if (itIp == ipMap.end()) {  // No one hitting
                     ipMap.emplace(packetDestinationIp, 0x0);
                 }
@@ -402,7 +414,7 @@ static void packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, co
             // For readability, the author uses a variable, packetTypeByIp, to determine the type of the packet. That implies that
             // a packet only belongs a type to demonstrate the phenomenons of mutual exclusion.
             if (packetTypeByIp == 0x0) {  // TX consideration
-                std::map<uint32_t, char>::iterator it = ipMap.find((int)packetSourceIp);
+                std::unordered_map<uint32_t, char>::iterator it = ipMap.find((int)packetSourceIp);
                 if (it != ipMap.end()) {  // Hitting
                     linuxPCAP->txPacketNumber++;
                     linuxPCAP->txSize += (long long)(pkthdr->len);
@@ -416,7 +428,7 @@ static void packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, co
             }
 
             if (packetTypeByIp == 0x0) {  // RX consideration
-                std::map<uint32_t, char>::iterator it = ipMap.find((int)packetDestinationIp);
+                std::unordered_map<uint32_t, char>::iterator it = ipMap.find((int)packetDestinationIp);
                 if (it != ipMap.end()) {  // Hitting
                     linuxPCAP->rxPacketNumber++;
                     linuxPCAP->rxSize += (long long)(pkthdr->len);
@@ -483,7 +495,7 @@ void signalAlarmHandler(int) {
                 if (dynamic_cast<PCAP::LinuxPCAP*>(*it)) {
                     // Passing the object to the correct type
                     PCAP::LinuxPCAP* tmp = dynamic_cast<PCAP::LinuxPCAP*>(*it);
-                    for (std::map<int, PCAP::PCAPPrototype::PCAPPortInformation>::iterator it2 = (tmp->portRelatedInformation).begin();
+                    for (std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>::iterator it2 = (tmp->portRelatedInformation).begin();
                          it2 != (tmp->portRelatedInformation).end();
                          it2++) {
                         // TX part; in the section, the last two result will be to zero because the packets
@@ -492,7 +504,7 @@ void signalAlarmHandler(int) {
                                              "%lu\tTX\t%s\t%d\t%lu\t%llu\t%lu\t%lu\t%llu\t%llu\n",
                                              timeEpoch,
                                              (tmp->deviceInterface).c_str(),
-                                             (it2)->first, // port number
+                                             (it2)->first,  // port number
                                              tmp->txPacketNumber,
                                              tmp->txSize,
                                              tmp->maxTxSize,
@@ -503,31 +515,31 @@ void signalAlarmHandler(int) {
                         tmp->txPacketNumber = 0;
                         tmp->txSize = 0;
                         tmp->maxTxSize = 0;
-                        ((it2)->second).txPacketNumber = 0;
-                        ((it2)->second).txSize = 0;
-                        ((it2)->second).maxTxSize = 0;
+                        ((it2)->second)->txPacketNumber = 0;
+                        ((it2)->second)->txSize = 0;
+                        ((it2)->second)->maxTxSize = 0;
 
                         // RX part
                         length = sprintf(output,
                                          "%lu\tRX\t%s\t%d\t%lu\t%llu\t%lu\t%lu\t%llu\t%llu\n",
                                          timeEpoch,
                                          (tmp->deviceInterface).c_str(),
-                                         (it2)->first, // port number
+                                         (it2)->first,  // port number
                                          tmp->rxPacketNumber,
                                          tmp->rxSize,
                                          tmp->maxRxSize,
-                                         (it2->second).sqlRequestNumber,
-                                         (it2->second).sqlRequestSize,
-                                         (it2->second).sqlRequestNumber / (long long)_WRITING_FILE_SECOND_);
+                                         (it2->second)->sqlRequestNumber,
+                                         (it2->second)->sqlRequestSize,
+                                         (it2->second)->sqlRequestNumber / (long long)_WRITING_FILE_SECOND_);
                         fwrite(output, sizeof(char), length, *_FILE_POINTER_);
                         tmp->rxPacketNumber = 0;
                         tmp->rxSize = 0;
                         tmp->maxRxSize = 0;
-                        ((it2)->second).rxPacketNumber = 0;
-                        ((it2)->second).rxSize = 0;
-                        ((it2)->second).maxRxSize = 0;
-                        ((it2)->second).sqlRequestNumber = 0;
-                        ((it2)->second).sqlRequestSize = 0;
+                        ((it2)->second)->rxPacketNumber = 0;
+                        ((it2)->second)->rxSize = 0;
+                        ((it2)->second)->maxRxSize = 0;
+                        ((it2)->second)->sqlRequestNumber = 0;
+                        ((it2)->second)->sqlRequestSize = 0;
                     }
                 }
             }

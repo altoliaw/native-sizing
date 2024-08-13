@@ -226,8 +226,31 @@ Commons::POSIXErrors InitializedJsonFileParser::getValueFromFileParser(const uns
                                 // to the value of the *item
             *item = current;
         }
-        length = strlen((const char*)cJSON_Print(current));
-        memcpy(value, (unsigned char*)cJSON_Print(current), length);
+
+        std::string output = "";
+        // Determining if the cJson type to return a suitable value
+        switch (current->type) {
+            case cJSON_False:
+            case cJSON_True:
+                output = (current->type == cJSON_True) ? "true" : "false";
+                break;
+            case cJSON_NULL:
+                break;
+            case cJSON_Number:
+                output = std::to_string(current->valuedouble);
+                break;
+            case cJSON_String:
+                output = current->valuestring;
+                break;
+            case cJSON_Array:
+            case cJSON_Object:
+            case cJSON_Raw:
+                std::string tmp(cJSON_Print(current));
+                output = tmp;
+                break;
+        }
+        length = output.length();
+        memcpy(value, (unsigned char*)(output.c_str()), length);
         value[length] = '\0';
     } else {
         // Clearing the vector buffer
