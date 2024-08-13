@@ -49,11 +49,11 @@ Vendors:=Vendors
 .Suffixs: .c .h .cpp .hpp
 
 .Phony: all
-all:	${Prdir}/${PjN}/Folders ${Prdir}/${PjN}_Sysin
+all:	${Prdir}/${PjN}/Folders ${Prdir}/${PjN}_Sizing
 	@mkdir -p Outputs
 	@mkdir -p Logs
-	@sudo chown root:root ${Prdir}/${Bin}/${PjN}_Sysin
-	@sudo chmod 4755 ${Prdir}//${Bin}/${PjN}_Sysin
+	@sudo chown root:root ${Prdir}/${Bin}/${PjN}_Sizing
+	@sudo chmod 4755 ${Prdir}//${Bin}/${PjN}_Sizing
 	@echo ""
 	@echo "=================[Execution]===================="
 	@echo ""
@@ -61,7 +61,7 @@ all:	${Prdir}/${PjN}/Folders ${Prdir}/${PjN}_Sysin
 	
 
 .Phony: build
-build: ${Prdir}/${PjN}/Folders ${Prdir}/${PjN}_Sysin/build
+build: ${Prdir}/${PjN}/Folders ${Prdir}/${PjN}_Sizing/build
 
 .Phony: clean
 clean:
@@ -70,7 +70,7 @@ clean:
 	@rm -rf ${Prdir}/*/*.o
 	@rm -rf ${Prdir}/*/*/*.o
 	@rm -rf ${Prdir}/*/*/*/*.o
-	@sudo rm -rf ${Prdir}/${Bin}/${PjN}_Sysin
+	@sudo rm -rf ${Prdir}/${Bin}/${PjN}_Sizing
 
 .Phony: cmakeClean
 cmakeClean:
@@ -98,12 +98,12 @@ createVendor: ${Prdir}/${PjN}/Folders
 ##dbsecure ALL=NOPASSWD: /bin/rm -rf /home/dbsecure/trafficMonitor/trafficMonitor
 .Phony: run
 run:	
-	${Prdir}/${Bin}/${PjN}_Sysin
+	${Prdir}/${Bin}/${PjN}_Sizing
 
 # Build
-${Prdir}/${PjN}_Sysin/build : ${Prdir}/${PjN}_Sysin
-	@sudo chown root:root ${Prdir}/${Bin}/${PjN}_Sysin
-	@sudo chmod 4755 ${Prdir}/${Bin}/${PjN}_Sysin
+${Prdir}/${PjN}_Sizing/build : ${Prdir}/${PjN}_Sizing
+	@sudo chown root:root ${Prdir}/${Bin}/${PjN}_Sizing
+	@sudo chmod 4755 ${Prdir}/${Bin}/${PjN}_Sizing
 			
 # The location for creating folders & a maintained file in advance
 ${Prdir}/${PjN}/Folders:
@@ -111,7 +111,7 @@ ${Prdir}/${PjN}/Folders:
 
 ##===============[Application]=========================================
 # Create an application
-${Prdir}/${PjN}_Sysin: 	${Prdir}/${AppLoc}/SysinMain.o \
+${Prdir}/${PjN}_Sizing: 	${Prdir}/${AppLoc}/SysinMain.o \
 					${Sources}/SysinMainCaller.o \
 					${Commons.Sources}/HashTable.o \
 					${Commons.Sources}/IOSpecification.o \
@@ -121,7 +121,7 @@ ${Prdir}/${PjN}_Sysin: 	${Prdir}/${AppLoc}/SysinMain.o \
 					${PCAP.Sources}/PCAPPrototype.o \
 					${PCAP.Sources}/LinuxPCAP.o
 
-	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${FMSG} -o ${Prdir}/${Bin}/${PjN}_Sysin ${Prdir}/${AppLoc}/SysinMain.o \
+	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${FMSG} -o ${Prdir}/${Bin}/${PjN}_Sizing ${Prdir}/${AppLoc}/SysinMain.o \
 	${Sources}/SysinMainCaller.o \
 	${Commons.Sources}/HashTable.o \
 	${Commons.Sources}/IOSpecification.o \
