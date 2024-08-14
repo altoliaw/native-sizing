@@ -64,6 +64,20 @@ function makeVersion() {
 	fi
 
 	# File name is shown as below.
-	# fileName="$projectName.$major.$minor.$patch.$copyRightDate.$(uname)$(uname -r).GIT$gitHash"
+	fileName="$projectName.$major.$minor.$patch.$copyRightDate.$(uname)$(uname -r).GIT$gitHash"
+
+	# Making a folder in the project
 	mkdir -p "$projectName"
+	cp -ar Settings ./"$projectName"
+	cp -ar Bin ./"$projectName"
+	cp -ar Outputs ./"$projectName"
+	tar zcvf "$fileName.tar.gz" "$projectName"
+
+	# Version migration
+	cp -pr "$versionFile" "$versionTmpFile"
+	content="[$sectionString]\n$variable=$version"
+	# Printing the content into the .tmp
+	echo -e "$content" > "$versionTmpFile"
+	mv "$versionTmpFile" "$versionFile"
+	rm -rf "$projectName"
 }

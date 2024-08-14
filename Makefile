@@ -91,10 +91,10 @@ vendor: ${Prdir}/${PjN}/Folders
 	@source ${Prdir}/Shells/installVendor.sh && dependenciesTraversal "${Prdir}/Settings/.Json/globalDependencies.json" "${Prdir}/${Vendors}/.${Vendors}.json"
 
 # To add the version 
-.Phony: version
-version: ${Prdir}/${PjN}/Folders
-	@make -f Apps/Console/Makefile_Process.mk "Prdir=${Prdir}"
-	@make -f Apps/Console/Makefile_Process.mk clean
+# .Phony: version
+# version: ${Prdir}/${PjN}/Folders
+# 	@make -f Apps/Console/Makefile_Process.mk "Prdir=${Prdir}"
+# 	@make -f Apps/Console/Makefile_Process.mk clean
 
 
 ##----------------------------------------------------------------------
