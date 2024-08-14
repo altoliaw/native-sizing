@@ -61,7 +61,7 @@ function getIniValues() {
 }
 
 # /**
-#  * Obtaining the variable's value from the string; all variables are modelled in "section.old key"
+#  * Public Caller, obtaining the variable's value from the string; all variables are modelled in "section.old key"
 #  *
 #  * @param $0 The function called by users
 #  * @param $1 The collected string from .ini file
@@ -108,3 +108,4 @@ function iniParser_getIni() {
 		echo "${result_dict["$2"]}"
 	fi
 }
+ 

@@ -1,3 +1,4 @@
+# The main makefile to compile all apps
 # Obtaining the project root path (to project's path)
 Prdir:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
@@ -84,14 +85,18 @@ cmake: ${Prdir}/${PjN}/Folders
 	cd build && ctest -V
 
 .Phony: vendor
-vendor:
+vendor: ${Prdir}/${PjN}/Folders
     # Creating the vendor and related folders by using the function, dependenciesTraversal, 
     # from the shell script, installVendor.sh, and determining the existence of the file & initializing the file
 	@source ${Prdir}/Shells/installVendor.sh && dependenciesTraversal "${Prdir}/Settings/.Json/globalDependencies.json" "${Prdir}/${Vendors}/.${Vendors}.json"
 
-# This phony, createVendor, is used for the shell script, namely installVendor
-.Phony: createVendor
-createVendor: ${Prdir}/${PjN}/Folders
+# To add the version 
+.Phony: version
+version: ${Prdir}/${PjN}/Folders
+	@make -f Apps/Console/Makefile_Process.mk "Prdir=${Prdir}"
+	@make -f Apps/Console/Makefile_Process.mk clean
+
+
 ##----------------------------------------------------------------------
 ## Nick editted manually
 ## ---------------------------------------------------------------------
