@@ -144,13 +144,13 @@ function dependenciesTraversal() {
             remove=$(echo "$remove" | sed 's/"//g')
 
             # Executing the download, command, installation and removing the download at last
-            # cd $(dirname "$vendorJsonFile") &&
-            #     eval "$remove" &&
-            #     eval "$download $folderName" &&
-            #     cd "$folderName" &&
-            #     eval "$command" &&
-            #     cd ../ && eval "$remove" && \
-            #     cd ../ # Leaving the folder, Vendors
+            cd $(dirname "$vendorJsonFile") &&
+                eval "$remove" &&
+                eval "$download $folderName" &&
+                cd "$folderName" &&
+                eval "$command" &&
+                cd ../ && eval "$remove" && \
+                cd ../ # Leaving the folder, Vendors
 
             # Registering the information into the temporary file
             jq ".dependencies += [{\"name\": $name, \"includes\": $includes, \"libs\": $libs, \"reference\":$reference}]" "$vendorJsonFile" >"$vendorJsonFile.tmp"
