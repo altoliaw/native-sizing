@@ -37,9 +37,9 @@ function searchElement() {
 
     # If the "jqParameter" is null, ...
     if [ -z "$jqParameter" ]; then
-        echo $(echo "$content" | jq "$searchedSyntax")
+        echo "$content" | jq "$searchedSyntax"
     else # If the "jqParameter" is not null, ...
-        echo $(echo "$content" | jq "$jqParameter" "$searchedSyntax")
+        echo "$content" | jq "$jqParameter" "$searchedSyntax"
     fi
 }
 
@@ -69,8 +69,8 @@ function vendorDependenciesInitailization() {
     if [ -f "$vendorFilePath.tmp" ]; then
         rm -rf "$vendorFilePath.tmp"
     fi
-    touch "$vendorFilePath.tmp" # A file for maintaining the modules in the folder, Vendors
-    jq -n '{"dependencies": []}' >"$vendorFilePath.tmp"
+    # touch "$vendorFilePath.tmp" # A file for maintaining the modules in the folder, Vendors
+    # jq -n '{"dependencies": []}' >"$vendorFilePath.tmp"
 }
 
 # /**
@@ -114,6 +114,7 @@ function dependenciesTraversal() {
     local dependenciesLength=$(obtainArrayLength "$dependencies")
     local vendorContent=$(echo "$(<$vendorJsonFile)" | jq '.dependencies')
 
+
     # Traversal of all elements from the array which obtains from the attribute, "dependencies"; the time complexity here is
     # O(n^{3}); however, the the editor guessed that the number of n is small; as a result, the time complexity is okay in this case
     for ((i = 0; i < $dependenciesLength; i++)); do
@@ -143,13 +144,13 @@ function dependenciesTraversal() {
             remove=$(echo "$remove" | sed 's/"//g')
 
             # Executing the download, command, installation and removing the download at last
-            cd $(dirname "$vendorJsonFile") &&
-                eval "$remove" &&
-                eval "$download $folderName" &&
-                cd "$folderName" &&
-                eval "$command" &&
-                cd ../ && eval "$remove" && \
-                cd ../ # Leaving the folder, Vendors
+            # cd $(dirname "$vendorJsonFile") &&
+            #     eval "$remove" &&
+            #     eval "$download $folderName" &&
+            #     cd "$folderName" &&
+            #     eval "$command" &&
+            #     cd ../ && eval "$remove" && \
+            #     cd ../ # Leaving the folder, Vendors
 
             # Registering the information into the temporary file
             jq ".dependencies += [{\"name\": $name, \"includes\": $includes, \"libs\": $libs, \"reference\":$reference}]" "$vendorJsonFile" >"$vendorJsonFile.tmp"
