@@ -122,8 +122,8 @@ function dependenciesTraversal() {
         local name=$(searchElement "$dependencies" ".[$i].name" "")
         local download=$(searchElement "$dependencies" ".[$i].download" "")
         local command=$(searchElement "$dependencies" ".[$i].command" "")
-        local includes=$(searchElement "$dependencies" ".[$i].includes" "")
-        local libs=$(searchElement "$dependencies" ".[$i].libs" "")
+        local includes=$(searchElement "$dependencies" ".[$i].includes" "-c")
+        local libs=$(searchElement "$dependencies" ".[$i].libs" "-c")
         local reference=$(searchElement "$dependencies" ".[$i].reference" "")
         local remove=$(searchElement "$dependencies" ".[$i].remove" "")
 
