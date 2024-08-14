@@ -7,7 +7,9 @@
 		"includes": ["cJSON.h"],
 		"libs": ["libcjson.a"],
 		"reference": "https://github.com/DaveGamble/cJSON",
-		"remove": "rm -rf cJson"
+		"remove": "rm -rf cJson",
+		"windows": true,
+		"linux": true
 	  } 
 	]
 }
