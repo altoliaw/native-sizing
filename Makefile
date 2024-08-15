@@ -1,9 +1,17 @@
 # The main makefile to compile all apps
+# Operating system
+OS:=$(shell uname -s)
+SUDO=
+ifeq (${OS}, Linux)
+	SUDO=sudo
+endif
+
+
 # Obtaining the project root path (to project's path)
 Prdir:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
 # Setting of the general compiled grammar
-## The Compiler, library, level of the compiler optimization, detected information, WALL and message
+## The compiler, library, level of the compiler optimization, detected information, WALL and message
 ## Obtaining the all compiler setting string from globalCompiling.ini and the function, iniParser_getIni, in the file, iniParser.sh;
 ## the return value is "compiler.STD=-std=c++11;compiler.DETAILINFO=-g0; ..."
 KVPAIR:=$(shell source ${Prdir}/Shells/iniParser.sh && echo $$(iniParser_getIni ${Prdir}/Settings/.Ini/globalCompiling.ini))
@@ -53,8 +61,10 @@ Vendors:=Vendors
 all:	${Prdir}/${PjN}/Folders ${Prdir}/${PjN}_Sizing
 	@mkdir -p Outputs
 	@mkdir -p Logs
-	@sudo chown root:root ${Prdir}/${Bin}/${PjN}_Sizing
-	@sudo chmod 4755 ${Prdir}//${Bin}/${PjN}_Sizing
+ifeq (${OS}, Linux)
+		@${SUDO} chown root:root ${Prdir}/${Bin}/${PjN}_Sizing
+endif
+	@${SUDO} chmod 4755 ${Prdir}//${Bin}/${PjN}_Sizing
 	@echo ""
 	@echo "=================[Execution]===================="
 	@echo ""
@@ -71,7 +81,7 @@ clean:
 	@rm -rf ${Prdir}/*/*.o
 	@rm -rf ${Prdir}/*/*/*.o
 	@rm -rf ${Prdir}/*/*/*/*.o
-	@sudo rm -rf ${Prdir}/${Bin}/${PjN}_Sizing
+	@${SUDO} rm -rf ${Prdir}/${Bin}/${PjN}_Sizing
 
 .Phony: cmakeClean
 cmakeClean:
@@ -107,8 +117,10 @@ run:
 
 # Build
 ${Prdir}/${PjN}_Sizing/build : ${Prdir}/${PjN}_Sizing
-	@sudo chown root:root ${Prdir}/${Bin}/${PjN}_Sizing
-	@sudo chmod 4755 ${Prdir}/${Bin}/${PjN}_Sizing
+ifeq (${OS}, Linux)
+	@${SUDO} chown root:root ${Prdir}/${Bin}/${PjN}_Sizing
+endif
+	@${SUDO} chmod 4755 ${Prdir}/${Bin}/${PjN}_Sizing
 			
 # The location for creating folders & a maintained file in advance
 ${Prdir}/${PjN}/Folders:

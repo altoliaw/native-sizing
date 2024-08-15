@@ -28,12 +28,19 @@
 
 #include <string.h>
 #include <time.h>
+
 #include <iostream>
+#include <memory>
 #include <string>
 
+#include "./POSIXErrors.hpp"
+
 #ifdef _WIN32
-#include <sstream>
+
 #include <ctime>
+#include <iomanip>
+#include <sstream>
+
 #endif
 
 namespace Commons {
@@ -59,6 +66,7 @@ class Time {
     static long getEpoch(time_t = time(NULL));
     static long getStringToEpoch(const char*);
     static std::string getEpochToString(const char*, Time::TimeZone, long = *(Time::timeEpochPointer));
+    static Commons::POSIXErrors strptime(const char*, const char*, tm&);
 
    private:
     Time();

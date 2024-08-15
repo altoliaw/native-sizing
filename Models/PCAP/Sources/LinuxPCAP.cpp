@@ -2,7 +2,7 @@
  * @see LinuxPCAP.hpp
  */
 #include "../Headers/LinuxPCAP.hpp"
-
+#ifdef __linux__
 namespace PCAP {
 /**
  * Constructor
@@ -131,5 +131,5 @@ void LinuxPCAP::packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr
     std::cout << pkthdr->len << "  total size\n";
     sleep(2);
 }
-
 }  // namespace PCAP
+#endif
