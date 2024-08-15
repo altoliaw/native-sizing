@@ -5,8 +5,12 @@
  * @author Nick, Liao
  * @date 2024/05/15
  */
+#ifdef __linux__  // Linux
 
 #include <unistd.h>
+
+#elif defined(_WIN32) || defined(_WIN64)
+#endif
 
 #include <iostream>
 #include <string>

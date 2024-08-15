@@ -152,6 +152,20 @@ ${Sources}/SysinMainCaller.o:	${Commons.Headers}/POSIXErrors.hpp \
 								${Sources}/SysinMainCaller.cpp
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${Sources}/SysinMainCaller.cpp -c ${FMSG} -o ${Sources}/SysinMainCaller.o
 
+# SysinMainCallerPrototype
+${Sources}/SysinMainCallerPrototype.o:	${Headers}/SysinMainCallerPrototype.hpp ${Sources}/SysinMainCallerPrototype.cpp
+	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${Sources}/SysinMainCallerPrototype.cpp -c ${FMSG} -o ${Sources}/SysinMainCallerPrototype.o
+
+# LinuxSysinMainCaller
+${Sources}/LinuxSysinMainCaller.o:	${Commons.Headers}/POSIXErrors.hpp \
+								${Commons.Headers}/IOSpecification.hpp \
+								${Commons.Headers}/Time.hpp \
+								${FileParsers.Headers}/InitializedJsonFileParser.hpp \
+								${PCAP.Headers}/LinuxPCAP.hpp \
+								${Headers}/LinuxSysinMainCaller.hpp \
+								${Sources}/LinuxSysinMainCaller.cpp
+	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${Sources}/LinuxSysinMainCaller.cpp -c ${FMSG} -o ${Sources}/LinuxSysinMainCaller.o
+
 
 ##===============[Dependencies]=========================================
 # Commons.HashTable
