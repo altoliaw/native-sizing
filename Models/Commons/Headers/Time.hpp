@@ -66,7 +66,7 @@ class Time {
     static long getEpoch(time_t = time(NULL));
     static long getStringToEpoch(const char*);
     static std::string getEpochToString(const char*, Time::TimeZone, long = *(Time::timeEpochPointer));
-    static Commons::POSIXErrors strptime(const char*, const char*, tm&);
+    static Commons::POSIXErrors windowStrptime(const char*, const char*, tm&);
 
    private:
     Time();

@@ -59,7 +59,7 @@ long Time::getStringToEpoch(const char* timeString) {
         return -1;
     }
 #elif defined(_WIN32)
-    if (Time::strptime(timeString, "%Y-%m-%d %H:%M:%S", tm) != Commons::POSIXErrors::OK) {
+    if (Time::windowStrptime(timeString, "%Y-%m-%d %H:%M:%S", tm) != Commons::POSIXErrors::OK) {
         std::cerr << "Failed to parse date string\n";
         return -1;
     }
@@ -141,11 +141,15 @@ std::string Time::getEpochToString(const char* format, Time::TimeZone zone, long
  * @return [Commons::POSIXErrors] The implemented result; the returned value can refer to
  * the definition in the "Commons::POSIXErrors"
  */
-Commons::POSIXErrors Time::strptime(const char* timeString, const char* format, tm& tm) {
+Commons::POSIXErrors Time::windowStrptime(const char* timeString, const char* format, tm& tm) {
     std::string input(timeString);
+#ifdef _WIN32
     std::istringstream ss(input);
     ss >> std::get_time(&tm, format);
     return (!ss.fail() ? Commons::POSIXErrors::OK : Commons::POSIXErrors::E_IO);
+#else
+    return Commons::POSIXErrors::E_IO;
+#endif
 }
 
 }  // namespace Commons
