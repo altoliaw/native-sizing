@@ -21,7 +21,5 @@ struct unitService {
 class SysinMainCallerPrototype {
    public:
     virtual Commons::POSIXErrors start(int, char**) = 0;
-    virtual void signalInterruptedHandler(int) = 0;
-    virtual void signalAlarmHandler(int) = 0;
 };
 }  // namespace SysinMainCaller

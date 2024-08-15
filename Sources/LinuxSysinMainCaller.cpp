@@ -23,10 +23,10 @@ std::vector<PCAP::PCAPPrototype*> _PCAP_POINTER_;
 // The address of the global pointer referring to the file descriptor object
 FILE** _FILE_POINTER_ = nullptr;
 
-static Commons::POSIXErrors config(std::vector<unitService>*);
-static void packetHandler(u_char*, const struct pcap_pkthdr*, const u_char*);
-static void packetTask(PCAP::LinuxPCAP*, void (*)(u_char*, const pcap_pkthdr*, const u_char*));
-static void packetFileTask(FILE**, const char*);
+// static Commons::POSIXErrors config(std::vector<unitService>*);
+// static void packetHandler(u_char*, const struct pcap_pkthdr*, const u_char*);
+// static void packetTask(PCAP::LinuxPCAP*, void (*)(u_char*, const pcap_pkthdr*, const u_char*));
+// static void packetFileTask(FILE**, const char*);
 
 
 /**
@@ -63,7 +63,7 @@ Commons::POSIXErrors LinuxSysinMainCaller::start(int argC, char** argV) {
     _WRITING_FILE_LOCATION_ = OuputFilePathWithTime;
 
     // Installing a signal handler, interrupt
-    signal(SIGINT, signalInterruptedHandler);
+    signal(SIGINT, LinuxSysinMainCaller::signalInterruptedHandler);
 
     {  // Creating objects, opening the interfaces, executing the packet calculations
         // and closing the interfaces; the number of objects is equal to the number of
@@ -137,7 +137,7 @@ Commons::POSIXErrors LinuxSysinMainCaller::start(int argC, char** argV) {
  * @return [Commons::POSIXErrors] The status defined in the class "POSIXErrors" The status
  * defined in the class "POSIXErrors"
  */
-static Commons::POSIXErrors config(std::vector<unitService>* services) {
+Commons::POSIXErrors LinuxSysinMainCaller::config(std::vector<unitService>* services) {
     Commons::POSIXErrors error = Commons::POSIXErrors::OK;
 
     // Loading information from the .json file for the application
@@ -225,7 +225,7 @@ static Commons::POSIXErrors config(std::vector<unitService>* services) {
  * @param pcap [PCAP::LinuxPCAP*] The address of the PCAP::LinuxPCAP object
  * @param packetHandler [void (*)(u_char*, const pcap_pkthdr*, const u_char*)] The callback function for pcap_loop
  */
-static void packetTask(PCAP::LinuxPCAP* pcap, void (*packetHandler)(u_char*, const pcap_pkthdr*, const u_char*)) {
+void LinuxSysinMainCaller::packetTask(PCAP::LinuxPCAP* pcap, void (*packetHandler)(u_char*, const pcap_pkthdr*, const u_char*)) {
     // The only argument will be set; as a result, the pcap object will be passed in the function, packetHandler.
     // For more information, please refer to the function, execute(.).
     pcap->execute(packetHandler);
@@ -239,9 +239,9 @@ static void packetTask(PCAP::LinuxPCAP* pcap, void (*packetHandler)(u_char*, con
  * which users defined in .json file.
  * @param filePath [const char*] The file path for recording the information
  */
-static void packetFileTask(FILE** fileDescriptor, const char* filePath) {
+void LinuxSysinMainCaller::packetFileTask(FILE** fileDescriptor, const char* filePath) {
     // Installing a signal handler, alarm
-    signal(SIGALRM, signalAlarmHandler);
+    signal(SIGALRM, LinuxSysinMainCaller::signalAlarmHandler);
     _FILE_POINTER_ = fileDescriptor;  // Passing to the global variable
 
     // The first calling the function
@@ -252,7 +252,7 @@ static void packetFileTask(FILE** fileDescriptor, const char* filePath) {
         *_FILE_POINTER_ = fopen(filePath, "a+");
         if (*_FILE_POINTER_ == nullptr) {
             std::cerr << "Error opening the file!\n";
-            signalInterruptedHandler(0);  // Going to the end of the thread
+            LinuxSysinMainCaller::signalInterruptedHandler(0);  // Going to the end of the thread
 
         } else {  // Adding the header information in a line to the file
             char output[1024] = {'\0'};
@@ -285,7 +285,7 @@ static void packetFileTask(FILE** fileDescriptor, const char* filePath) {
  * @param pkthdr [const struct pcap_pkthdr*] The address of the packet header
  * @param packet [const u_char*] The address of the packet
  */
-static void packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, const u_char* packet) {
+void LinuxSysinMainCaller::packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, const u_char* packet) {
     // Due to the setting of the function, execute(.), the data of userData is the object of children classes (LinuxPCAP, WindowPCAP and so on ...)
     PCAP::PCAPPrototype* pcapInstance = (PCAP::PCAPPrototype*)userData;
     // Determining what the instance belong to
@@ -482,7 +482,7 @@ void LinuxSysinMainCaller::signalAlarmHandler(int) {
 
         if (*_FILE_POINTER_ == nullptr) {
             std::cerr << "Error opening the file!\n";
-            signalInterruptedHandler(0);  // Going to the end of the thread
+            LinuxSysinMainCaller::signalInterruptedHandler(0);  // Going to the end of the thread
 
         } else {
             _MUTEX_.lock();

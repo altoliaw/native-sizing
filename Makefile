@@ -117,16 +117,20 @@ ${Prdir}/${PjN}/Folders:
 ##===============[Application]=========================================
 # Create an application
 ${Prdir}/${PjN}_Sizing: 	${Prdir}/${AppLoc}/SysinMain.o \
-					${Sources}/SysinMainCaller.o \
-					${Commons.Sources}/HashTable.o \
-					${Commons.Sources}/IOSpecification.o \
-					${Commons.Sources}/StringImplement.o \
-					${Commons.Sources}/Time.o \
-					${FileParsers.Sources}/InitializedJsonFileParser.o \
-					${PCAP.Sources}/PCAPPrototype.o \
-					${PCAP.Sources}/LinuxPCAP.o
+							${Sources}/SysinMainCallerPrototype.o \
+							${Sources}/LinuxSysinMainCaller.o \
+							${Sources}/SysinMainCaller.o \
+							${Commons.Sources}/HashTable.o \
+							${Commons.Sources}/IOSpecification.o \
+							${Commons.Sources}/StringImplement.o \
+							${Commons.Sources}/Time.o \
+							${FileParsers.Sources}/InitializedJsonFileParser.o \
+							${PCAP.Sources}/PCAPPrototype.o \
+							${PCAP.Sources}/LinuxPCAP.o
 
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${FMSG} -o ${Prdir}/${Bin}/${PjN}_Sizing ${Prdir}/${AppLoc}/SysinMain.o \
+	${Sources}/SysinMainCallerPrototype.o \
+	${Sources}/LinuxSysinMainCaller.o \
 	${Sources}/SysinMainCaller.o \
 	${Commons.Sources}/HashTable.o \
 	${Commons.Sources}/IOSpecification.o \
@@ -143,12 +147,7 @@ ${Prdir}/${AppLoc}/SysinMain.o:	${Headers}/SysinMainCaller.hpp ${Prdir}/${AppLoc
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${Prdir}/${AppLoc}/SysinMain.cpp -c ${FMSG} -o ${Prdir}/${AppLoc}/SysinMain.o
 
 # SysinMainCaller
-${Sources}/SysinMainCaller.o:	${Commons.Headers}/POSIXErrors.hpp \
-								${Commons.Headers}/IOSpecification.hpp \
-								${Commons.Headers}/Time.hpp \
-								${FileParsers.Headers}/InitializedJsonFileParser.hpp \
-								${PCAP.Headers}/LinuxPCAP.hpp \
-								${Headers}/SysinMainCaller.hpp \
+${Sources}/SysinMainCaller.o:	${Headers}/SysinMainCaller.hpp \
 								${Sources}/SysinMainCaller.cpp
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${Sources}/SysinMainCaller.cpp -c ${FMSG} -o ${Sources}/SysinMainCaller.o
 
