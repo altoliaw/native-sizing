@@ -6,8 +6,12 @@
  * @date 2024/05/15
  */
 
+#ifdef __linux__
 // The linux's pcap file, not PF-RING's one
 #include <pcap.h>
+#elif defined(_WIN32)
+#include <pcap.h>
+#endif
 
 #include <string>
 #include <unordered_map>

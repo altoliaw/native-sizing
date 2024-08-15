@@ -8,6 +8,7 @@
 
 #include <algorithm>
 
+#include "./SysinMainCallerPrototype.hpp"
 #include "../Models/Commons/Headers/POSIXErrors.hpp"
 
 #ifdef __linux__  // Linux
@@ -15,6 +16,9 @@
 #include "./LinuxSysinMainCaller.hpp"
 
 #elif defined(_WIN32) || defined(_WIN64)
+
+#include "./WindowsSysinMainCaller.hpp"
+
 #endif
 
 namespace SysinMainCaller {

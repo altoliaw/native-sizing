@@ -12,8 +12,6 @@
 
 #include <unistd.h>
 
-#elif defined(_WIN32) || defined(_WIN64)
-#endif
 #include <iostream>
 
 #include "./POSIXErrors.hpp"
@@ -40,3 +38,4 @@ class IOSpecification {
 };
 
 }  // namespace Commons
+#endif

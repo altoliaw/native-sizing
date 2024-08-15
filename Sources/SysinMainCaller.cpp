@@ -18,6 +18,9 @@ Commons::POSIXErrors SysinMainCaller::start(int argC, char** argV) {
     #ifdef __linux__
         LinuxSysinMainCaller instance;
         caller = &instance;
+    #elif defined(_WIN32)
+        WindowsSysinMainCaller instance;
+        caller = &instance;
     #endif
     
         result = caller->start(argC, argV);

@@ -5,6 +5,7 @@
       "includePath": [
         "${workspaceFolder}/**",
         "${workspaceFolder}/googletest/googletest/include",
+        "${workspaceFolder}/Vendors/nPcap/Includes",
       ],
       "compilerPath": "/usr/bin/gcc",
       "cStandard": "${default}",

@@ -23,12 +23,6 @@ std::vector<PCAP::PCAPPrototype*> _PCAP_POINTER_;
 // The address of the global pointer referring to the file descriptor object
 FILE** _FILE_POINTER_ = nullptr;
 
-// static Commons::POSIXErrors config(std::vector<unitService>*);
-// static void packetHandler(u_char*, const struct pcap_pkthdr*, const u_char*);
-// static void packetTask(PCAP::LinuxPCAP*, void (*)(u_char*, const pcap_pkthdr*, const u_char*));
-// static void packetFileTask(FILE**, const char*);
-
-
 /**
  * The starting process, the entry of the process
  *
