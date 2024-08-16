@@ -53,9 +53,8 @@ function vendorDependenciesInitailization() {
     local vendorFilePath=$1
     local vendorFolder=$(echo "$vendorFilePath" | sed 's|/[^/]*$||')
 
-    mkdir -p ${vendorFolder}          # Creating the folder for the third party software
-    mkdir -p ${vendorFolder}/Libs     # Creating the folder for the static/dynamic libraries
-    mkdir -p ${vendorFolder}/Includes # Creating the folder for the headers file
+    # Creating the folder for the third party software
+    mkdir -p ${vendorFolder}
 
     # Determining the existence of the file; if the file does not exist, please generate the
     # file and put the basic syntax into the .json file
@@ -69,8 +68,8 @@ function vendorDependenciesInitailization() {
     if [ -f "$vendorFilePath.tmp" ]; then
         rm -rf "$vendorFilePath.tmp"
     fi
-    # touch "$vendorFilePath.tmp" # A file for maintaining the modules in the folder, Vendors
-    # jq -n '{"dependencies": []}' >"$vendorFilePath.tmp"
+    touch "$vendorFilePath.tmp" # A file for maintaining the modules in the folder, Vendors
+    jq -n '{"dependencies": []}' >"$vendorFilePath.tmp"
 }
 
 # /**
@@ -99,7 +98,7 @@ function dependenciesTraversal() {
     # Obtaining the file name
     local jsonFile="$1"
     local vendorJsonFile="$2"
-    
+
     # To ensure that the folder and the files by using the command in the "Makefile" in the root of the project
     if [ ! -f $vendorJsonFile ]; then
         # make createVendor
@@ -113,7 +112,6 @@ function dependenciesTraversal() {
     # Obtaining the length of the arrary
     local dependenciesLength=$(obtainArrayLength "$dependencies")
     local vendorContent=$(echo "$(<$vendorJsonFile)" | jq '.dependencies')
-
 
     # Traversal of all elements from the array which obtains from the attribute, "dependencies"; the time complexity here is
     # O(n^{3}); however, the the editor guessed that the number of n is small; as a result, the time complexity is okay in this case
@@ -131,7 +129,7 @@ function dependenciesTraversal() {
         # Verifying if the element in .Json/globalDependencies is defined in "Vendors/.Vendors.json";
         # if the element exists, the return value will be obtained the block
         local block=$(searchElement "$vendorContent" ".[] | select(.name == "$name")" "")
-
+        local includesLength=$(obtainArrayLength "$includes")
         # If the returned value is null, ...
         if [ -z "$block" ]; then
             # Printing the message
@@ -143,14 +141,48 @@ function dependenciesTraversal() {
             command=$(echo "$command" | sed 's/"//g')
             remove=$(echo "$remove" | sed 's/"//g')
 
+            # Verifying if downloading, commanding & removing location shall be replaced to the $name.tmp (because the folder 
+            # $name is for the formal components where is used for the project)
+            download=$(echo "$download" | sed "s/{{name}}/$folderName.tmp/")
+            command=$(echo "$command" | sed "s/{{name}}/$folderName.tmp/")
+            remove=$(echo "$remove" | sed "s/{{name}}/$folderName.tmp/")
+
+
             # Executing the download, command, installation and removing the download at last
-            cd $(dirname "$vendorJsonFile") &&
-                eval "$remove" &&
-                eval "$download $folderName" &&
-                cd "$folderName" &&
-                eval "$command" &&
-                cd ../ && eval "$remove" && \
-                cd ../ # Leaving the folder, Vendors
+            local vendorDir=$(dirname "$vendorJsonFile") # Displaying the path of the the folder, "Vendors"
+            cd "$vendorDir" # Changing to the folder, "Vendors"
+            mkdir -p "$folderName" # Creating the formal folder
+            mkdir -p "$folderName/Includes"
+            mkdir -p "$folderName/Libs"
+
+            eval "$remove" # Removing the tmp folder (ensure that the .tmp folder does not locate in the Vendors)
+            eval "$download" # Implementing the download, tar and so on
+            cd "$folderName.tmp" # Changing to the .tmp folder automatically
+            eval "$command"
+
+            # Executing the copied files or folders to the folder, "Includes"
+            local includesLength=$(obtainArrayLength "$includes")
+            for ((j = 0; j < $includesLength; j++)); do
+                local activity=$(searchElement "$includes" ".[$j]" "-c")
+                # Copying all elements into the "Includes" folder
+                # Removing the quotes
+                activity=$(echo "$activity" | sed 's/"//g')
+                $(echo "cp -pr $activity $vendorDir/$folderName/Includes")
+            done
+
+            # Executing the copied files or folders to the folder, "Libs"
+            local libsLength=$(obtainArrayLength "$libs")
+            for ((j = 0; j < $libsLength; j++)); do
+                local activity=$(searchElement "$libs" ".[$j]" "-c")
+                # Copying all elements into the "Includes" folder
+                # Removing the quotes
+                activity=$(echo "$activity" | sed 's/"//g')
+                $(echo "cp -pr $activity $vendorDir/$folderName/Libs")
+            done
+
+            # Removing the .tmp folder
+            cd "$vendorDir" && eval "$remove"
+            cd ../ # Leaving the folder, "Vendors"
 
             # Registering the information into the temporary file
             jq ".dependencies += [{\"name\": $name, \"includes\": $includes, \"libs\": $libs, \"reference\":$reference}]" "$vendorJsonFile" >"$vendorJsonFile.tmp"

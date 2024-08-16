@@ -2,12 +2,12 @@
 	"dependencies": [
 	  {
 		"name": "cJson",
-		"download": "git clone https://github.com/DaveGamble/cJSON.git",
-		"command": "make && cp libcjson.a ../Libs/ && cp cJSON.h ../Includes/",
+		"download": "git clone https://github.com/DaveGamble/cJSON.git {{name}}",
+		"command": "make",
 		"includes": ["cJSON.h"],
 		"libs": ["libcjson.a"],
 		"reference": "https://github.com/DaveGamble/cJSON",
-		"remove": "rm -rf cJson",
+		"remove": "rm -rf {{name}}",
 		"windows": true,
 		"linux": true
 	  } 

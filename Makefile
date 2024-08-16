@@ -157,69 +157,56 @@ ${Prdir}/${PjN}_Sizing: 	${Prdir}/${AppLoc}/SysinMain.o \
 	${LDLIBS}
 
 # SysinMain
-${Prdir}/${AppLoc}/SysinMain.o:	${Headers}/SysinMainCaller.hpp ${Prdir}/${AppLoc}/SysinMain.cpp
+${Prdir}/${AppLoc}/SysinMain.o:	${Prdir}/${AppLoc}/SysinMain.cpp
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Prdir}/${AppLoc}/SysinMain.cpp -c ${FMSG} -o ${Prdir}/${AppLoc}/SysinMain.o
 
 # SysinMainCaller
-${Sources}/SysinMainCaller.o:	${Headers}/SysinMainCaller.hpp \
-								${Sources}/SysinMainCaller.cpp
+${Sources}/SysinMainCaller.o:	${Sources}/SysinMainCaller.cpp
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Sources}/SysinMainCaller.cpp -c ${FMSG} -o ${Sources}/SysinMainCaller.o
 
 # SysinMainCallerPrototype
-${Sources}/SysinMainCallerPrototype.o:	${Headers}/SysinMainCallerPrototype.hpp ${Sources}/SysinMainCallerPrototype.cpp
+${Sources}/SysinMainCallerPrototype.o:	${Sources}/SysinMainCallerPrototype.cpp
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Sources}/SysinMainCallerPrototype.cpp -c ${FMSG} -o ${Sources}/SysinMainCallerPrototype.o
 
 # LinuxSysinMainCaller
-${Sources}/LinuxSysinMainCaller.o:	${Commons.Headers}/POSIXErrors.hpp \
-								${Commons.Headers}/IOSpecification.hpp \
-								${Commons.Headers}/Time.hpp \
-								${FileParsers.Headers}/InitializedJsonFileParser.hpp \
-								${PCAP.Headers}/LinuxPCAP.hpp \
-								${Headers}/LinuxSysinMainCaller.hpp \
-								${Sources}/LinuxSysinMainCaller.cpp
+${Sources}/LinuxSysinMainCaller.o:	${Sources}/LinuxSysinMainCaller.cpp
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Sources}/LinuxSysinMainCaller.cpp -c ${FMSG} -o ${Sources}/LinuxSysinMainCaller.o
 
 # WindowsSysinMainCaller
-${Sources}/WindowsSysinMainCaller.o:	${Commons.Headers}/POSIXErrors.hpp \
-								${Commons.Headers}/IOSpecification.hpp \
-								${Commons.Headers}/Time.hpp \
-								${FileParsers.Headers}/InitializedJsonFileParser.hpp \
-								${PCAP.Headers}/LinuxPCAP.hpp \
-								${Headers}/WindowsSysinMainCaller.hpp \
-								${Sources}/WindowsSysinMainCaller.cpp
+${Sources}/WindowsSysinMainCaller.o:	${Sources}/WindowsSysinMainCaller.cpp
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Sources}/WindowsSysinMainCaller.cpp -c ${FMSG} -o ${Sources}/WindowsSysinMainCaller.o
 
 
 
 ##===============[Dependencies]=========================================
 # Commons.HashTable
-${Commons.Sources}/HashTable.o:	${Commons.Headers}/POSIXErrors.hpp ${Commons.Headers}/HashTable.hpp ${Commons.Sources}/HashTable.cpp
+${Commons.Sources}/HashTable.o:	${Commons.Sources}/HashTable.cpp
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Commons.Sources}/HashTable.cpp -c ${FMSG} -o ${Commons.Sources}/HashTable.o
 
 # Commons.IOSpecification
-${Commons.Sources}/IOSpecification.o:	${Commons.Headers}/POSIXErrors.hpp ${Commons.Headers}/IOSpecification.hpp ${Commons.Sources}/IOSpecification.cpp
+${Commons.Sources}/IOSpecification.o:	 ${Commons.Sources}/IOSpecification.cpp
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Commons.Sources}/IOSpecification.cpp -c ${FMSG} -o ${Commons.Sources}/IOSpecification.o
 
 # Commons.StringImplement
-${Commons.Sources}/StringImplement.o:	${Commons.Headers}/POSIXErrors.hpp ${Commons.Headers}/StringImplement.hpp ${Commons.Sources}/StringImplement.cpp
+${Commons.Sources}/StringImplement.o:	${Commons.Sources}/StringImplement.cpp
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Commons.Sources}/StringImplement.cpp -c ${FMSG} -o ${Commons.Sources}/StringImplement.o
 
 # Commons.Time
-${Commons.Sources}/Time.o:	${Commons.Headers}/POSIXErrors.hpp ${Commons.Headers}/Time.hpp ${Commons.Sources}/Time.cpp
+${Commons.Sources}/Time.o:	${Commons.Sources}/Time.cpp
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Commons.Sources}/Time.cpp -c ${FMSG} -o ${Commons.Sources}/Time.o
 
 # FileParsers.InitializedFileParser
-${FileParsers.Sources}/InitializedFileParser.o:	${Commons.Headers}/HashTable.hpp ${FileParsers.Headers}/InitializedFileParser.hpp ${FileParsers.Sources}/InitializedFileParser.cpp
+${FileParsers.Sources}/InitializedFileParser.o:	${FileParsers.Sources}/InitializedFileParser.cpp
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${FileParsers.Sources}/InitializedFileParser.cpp -c ${FMSG} -o ${FileParsers.Sources}/InitializedFileParser.o
 
 # FileParsers.InitializedJsonFileParser
-${FileParsers.Sources}/InitializedJsonFileParser.o:	${Vendors.Headers}/cJSON.h ${FileParsers.Headers}/InitializedJsonFileParser.hpp ${FileParsers.Sources}/InitializedJsonFileParser.cpp
+${FileParsers.Sources}/InitializedJsonFileParser.o:	${FileParsers.Sources}/InitializedJsonFileParser.cpp
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${FileParsers.Sources}/InitializedJsonFileParser.cpp -c ${FMSG} -o ${FileParsers.Sources}/InitializedJsonFileParser.o
 
 # PCAP.PCAPPrototype
-${PCAP.Sources}/PCAPPrototype.o:	${PCAP.Headers}/PCAPPrototype.hpp ${PCAP.Sources}/PCAPPrototype.cpp
+${PCAP.Sources}/PCAPPrototype.o:	${PCAP.Sources}/PCAPPrototype.cpp
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${PCAP.Sources}/PCAPPrototype.cpp -c ${FMSG} -o ${PCAP.Sources}/PCAPPrototype.o
 
 # PCAP.LinuxPCAP
-${PCAP.Sources}/LinuxPCAP.o:	${PCAP.Headers}/PCAPPrototype.hpp ${PCAP.Headers}/LinuxPCAP.hpp ${PCAP.Sources}/LinuxPCAP.cpp
+${PCAP.Sources}/LinuxPCAP.o:	${PCAP.Sources}/LinuxPCAP.cpp
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${PCAP.Sources}/LinuxPCAP.cpp -c ${FMSG} -o ${PCAP.Sources}/LinuxPCAP.o
