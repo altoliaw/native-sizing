@@ -26,6 +26,11 @@ CFLAGS		=$(shell source ${Prdir}/Shells/iniParser.sh && echo $$(getVariableValue
 LDFLAGS		=$(shell source ${Prdir}/Shells/iniParser.sh && echo $$(getVariableValue "${KVPAIR}" "compiler.LDFLAGS"))
 LDLIBS		=$(shell source ${Prdir}/Shells/iniParser.sh && echo $$(getVariableValue "${KVPAIR}" "compiler.LDLIBS"))
 
+ifneq ($(OS), Linux)
+LDLIBS		=$(shell source ${Prdir}/Shells/iniParser.sh && echo $$(getVariableValue "${KVPAIR}" "windows.LDLIBS"))
+endif
+
+
 # ------ 
 # Variable definition
 Headers=${Prdir}/Headers
