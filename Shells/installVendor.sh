@@ -124,13 +124,26 @@ function dependenciesTraversal() {
         local libs=$(searchElement "$dependencies" ".[$i].libs" "-c")
         local reference=$(searchElement "$dependencies" ".[$i].reference" "")
         local remove=$(searchElement "$dependencies" ".[$i].remove" "")
+        local windows=$(searchElement "$dependencies" ".[$i].windows" "")
+        local linux=$(searchElement "$dependencies" ".[$i].linux" "")
+
+        # Determining if the third application will be suitable in this platform by using linux platform
+        if [ $(uname -s) != "Linux" ]; then # Windows case
+            if [ "$windows" != "true" ]; then # False case
+                continue
+            fi
+        elif [ $(uname -s) == "Linux" ]; then # Linux case
+            if [ "$linux" != "true" ]; then # False case
+                continue
+            fi
+        fi
 
         # The contents from the attribute, .dependencies, in the Vendors/.Vendors.json
         # Verifying if the element in .Json/globalDependencies is defined in "Vendors/.Vendors.json";
         # if the element exists, the return value will be obtained the block
         local block=$(searchElement "$vendorContent" ".[] | select(.name == "$name")" "")
         local includesLength=$(obtainArrayLength "$includes")
-        # If the returned value is null, ...
+        # If the returned value is null in .Vendors.json (not found), ...
         if [ -z "$block" ]; then
             # Printing the message
             echo "Vendor, $name is installing."
@@ -147,7 +160,6 @@ function dependenciesTraversal() {
             command=$(echo "$command" | sed "s/{{name}}/$folderName.tmp/")
             remove=$(echo "$remove" | sed "s/{{name}}/$folderName.tmp/")
 
-
             # Executing the download, command, installation and removing the download at last
             local vendorDir=$(dirname "$vendorJsonFile") # Displaying the path of the the folder, "Vendors"
             cd "$vendorDir" # Changing to the folder, "Vendors"
@@ -156,6 +168,7 @@ function dependenciesTraversal() {
             mkdir -p "$folderName/Libs"
 
             eval "$remove" # Removing the tmp folder (ensure that the .tmp folder does not locate in the Vendors)
+            mkdir -p "$folderName.tmp" # Making the temporary folder
             eval "$download" # Implementing the download, tar and so on
             cd "$folderName.tmp" # Changing to the .tmp folder automatically
             eval "$command"
@@ -181,7 +194,8 @@ function dependenciesTraversal() {
             done
 
             # Removing the .tmp folder
-            cd "$vendorDir" && eval "$remove"
+            cd "$vendorDir"
+            eval "$remove"
             cd ../ # Leaving the folder, "Vendors"
 
             # Registering the information into the temporary file
