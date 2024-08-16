@@ -28,7 +28,7 @@
 			"reference": "https://npcap.com/#download",
 			"remove": "rm -rf {{name}}",
 			"windows": true,
-			"linux": true
+			"linux": false
 		}
 	]
 }
