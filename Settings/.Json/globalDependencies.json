@@ -23,7 +23,7 @@
 				"Include/*"
 			],
 			"libs": [
-				"Lib"
+				"Lib/*"
 			],
 			"reference": "https://npcap.com/#download",
 			"remove": "rm -rf {{name}}",
