@@ -17,6 +17,24 @@
       "defines":[
         "PROJECT_SecuEyes"
       ]
+    },
+    {
+      "name": "Windows-x64",
+      "includePath": [
+        "${workspaceFolder}/**",
+        "${workspaceFolder}/googletest/googletest/include",
+        "${workspaceFolder}/Vendors/nPcap/Includes",
+      ],
+      "compilerPath": "C:\\msys64\\mingw64\\bin\\g++.exe",
+      "cStandard": "${default}",
+      "cppStandard": "${default}",
+      "intelliSenseMode": "linux-gcc-x64",
+      "compilerArgs": [
+        ""
+      ],
+      "defines":[
+        "PROJECT_SecuEyes"
+      ]
     }
   ],
   "version": 4
