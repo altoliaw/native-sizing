@@ -62,8 +62,8 @@ Commons::POSIXErrors LinuxSysinMainCaller::start(int argC, char** argV) {
     {  // Creating objects, opening the interfaces, executing the packet calculations
         // and closing the interfaces; the number of objects is equal to the number of
         // the interfaces
-        std::vector<PCAP::LinuxPCAP*> pcapObjectOfInterface;  // Here each element shall be a pointer because there exsist a pointer which refers to a
-                                                              // resource in the class. When the vector reserve objects, the destructor will orccur twice in the following loop.
+        std::vector<PCAP::LinuxPCAP*> pcapObjectOfInterface;  // Here each element shall be a pointer because there exist a pointer which refers to a
+                                                              // resource in the class. When the vector reserve objects, the destructor will occur twice in the following loop.
                                                               // The best approach is used the dynamic memory allocation with pointers.
         for (unsigned int i = 0; i < interfaceNameArray.size(); i++) {
             PCAP::LinuxPCAP* pcapObject = new PCAP::LinuxPCAP();
@@ -107,8 +107,8 @@ Commons::POSIXErrors LinuxSysinMainCaller::start(int argC, char** argV) {
 
         // All pcap objects shall call the close function
         for (unsigned int i = 0; i < pcapObjectOfInterface.size(); i++) {
-            (pcapObjectOfInterface[i])->close();
             if (pcapObjectOfInterface[i] != nullptr) {
+                (pcapObjectOfInterface[i])->close();
                 delete (pcapObjectOfInterface[i]);
             }
             pcapObjectOfInterface[i] = nullptr;
@@ -284,7 +284,7 @@ void LinuxSysinMainCaller::packetHandler(u_char* userData, const struct pcap_pkt
     PCAP::PCAPPrototype* pcapInstance = (PCAP::PCAPPrototype*)userData;
     // Determining what the instance belong to
     PCAP::LinuxPCAP* linuxPCAP = nullptr;
-    if (dynamic_cast<PCAP::LinuxPCAP*>(pcapInstance)) {        
+    if (dynamic_cast<PCAP::LinuxPCAP*>(pcapInstance)) {
         linuxPCAP = dynamic_cast<PCAP::LinuxPCAP*>(pcapInstance);
     }
 
@@ -551,7 +551,6 @@ void LinuxSysinMainCaller::signalAlarmHandler(int) {
         *_FILE_POINTER_ = nullptr;
     }
 }
-
 
 }  // namespace SysinMainCaller
 #endif

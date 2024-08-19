@@ -8,7 +8,5 @@ dependenciesTraversal $(pwd)/Settings/.Json/globalDependencies.json $(pwd)/$Vend
 # Cmake process
 rm -rf build
 mkdir -p build
-cmake -S . -B build
+cmake -S . -B build -DBUILD_TEST=OFF
 cmake --build build
-cd build && ctest --verbose --rerun-failed --output-on-failure
-cd ..

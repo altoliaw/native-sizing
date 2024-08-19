@@ -60,66 +60,66 @@ Commons::POSIXErrors WindowsSysinMainCaller::start(int argC, char** argV) {
     // // Installing a signal handler, interrupt
     SetConsoleCtrlHandler(WindowsSysinMainCaller::signalInterruptedHandler, TRUE);
 
-    // {  // Creating objects, opening the interfaces, executing the packet calculations
-    //     // and closing the interfaces; the number of objects is equal to the number of
-    //     // the interfaces
-    //     std::vector<PCAP::LinuxPCAP*> pcapObjectOfInterface;  // Here each element shall be a pointer because there exsist a pointer which refers to a
-    //                                                           // resource in the class. When the vector reserve objects, the destructor will orccur twice in the following loop.
-    //                                                           // The best approach is used the dynamic memory allocation with pointers.
-    //     for (unsigned int i = 0; i < interfaceNameArray.size(); i++) {
-    //         PCAP::LinuxPCAP* pcapObject = new PCAP::LinuxPCAP();
-    //         pcapObject->open(interfaceNameArray[i].interfaceName, BUFSIZ, 1, 1000, &(interfaceNameArray[i].port));
+    {                                                           // Creating objects, opening the interfaces, executing the packet calculations
+                                                                // and closing the interfaces; the number of objects is equal to the number of
+                                                                // the interfaces
+        std::vector<PCAP::WindowsPCAP*> pcapObjectOfInterface;  // Here each element shall be a pointer because there exist a pointer which refers to a
+                                                                // resource in the class. When the vector reserve objects, the destructor will occur twice in the following loop.
+                                                                // The best approach is used the dynamic memory allocation with pointers.
+        for (unsigned int i = 0; i < interfaceNameArray.size(); i++) {
+            // PCAP::WindowsPCAP* pcapObject = new PCAP::WindowsPCAP();
+            // pcapObject->open(interfaceNameArray[i].interfaceName, BUFSIZ, 1, 1000, &(interfaceNameArray[i].port));
 
-    //         // Putting each pcap object into thread array
-    //         pcapObjectOfInterface.push_back(pcapObject);
-    //     }
+            // // Putting each pcap object into thread array
+            // pcapObjectOfInterface.push_back(pcapObject);
+        }
 
-    //     // Releasing the memory from the config because the config information has been reserved into each pcap
-    //     if (interfaceNameArray.empty() == false) {
-    //         interfaceNameArray.clear();
-    //         interfaceNameArray.shrink_to_fit();
-    //     }
+        //     // Releasing the memory from the config because the config information has been reserved into each pcap
+        //     if (interfaceNameArray.empty() == false) {
+        //         interfaceNameArray.clear();
+        //         interfaceNameArray.shrink_to_fit();
+        //     }
 
-    //     FILE* fileDescriptor = nullptr;
-    //     // n + 1  threads created; the n is equal to the number of interfaces;
-    //     // When calling the functions in threads, the values in the thread imply function name,
-    //     // function argument 1, function argument2 and so on;
-    //     // the first type threads (n from "n + 1")
-    //     std::vector<std::thread> threads;
-    //     for (unsigned int i = 0; i < pcapObjectOfInterface.size(); i++) {
-    //         // A thread can be registered by using the command as below,
-    //         // "std::thread packetThread{packetTask, &pcapObject, packetHandler};".
-    //         // Therefore, users can use emplace_back on vector to construct the one immediately.
-    //         threads.emplace_back(packetTask, pcapObjectOfInterface[i], packetHandler);
+        //     FILE* fileDescriptor = nullptr;
+        //     // n + 1  threads created; the n is equal to the number of interfaces;
+        //     // When calling the functions in threads, the values in the thread imply function name,
+        //     // function argument 1, function argument2 and so on;
+        //     // the first type threads (n from "n + 1")
+        //     std::vector<std::thread> threads;
+        //     for (unsigned int i = 0; i < pcapObjectOfInterface.size(); i++) {
+        //         // A thread can be registered by using the command as below,
+        //         // "std::thread packetThread{packetTask, &pcapObject, packetHandler};".
+        //         // Therefore, users can use emplace_back on vector to construct the one immediately.
+        //         threads.emplace_back(packetTask, pcapObjectOfInterface[i], packetHandler);
 
-    //         // Passing the pcap object to the global pointer
-    //         _PCAP_POINTER_.push_back(pcapObjectOfInterface[i]);
-    //     }
+        //         // Passing the pcap object to the global pointer
+        //         _PCAP_POINTER_.push_back(pcapObjectOfInterface[i]);
+        //     }
 
-    //     // The second type thread (1 from "n + 1")
-    //     std::thread writePacketFileThread{packetFileTask, &fileDescriptor, OuputFilePathWithTime};
+        //     // The second type thread (1 from "n + 1")
+        //     std::thread writePacketFileThread{packetFileTask, &fileDescriptor, OuputFilePathWithTime};
 
-    //     // When the functions finish or interrupt, those n + 1 threads shall
-    //     // be joined into the main process
-    //     for (unsigned int i = 0; i < pcapObjectOfInterface.size(); i++) {
-    //         threads[i].join();
-    //     }
-    //     writePacketFileThread.join();
+        //     // When the functions finish or interrupt, those n + 1 threads shall
+        //     // be joined into the main process
+        //     for (unsigned int i = 0; i < pcapObjectOfInterface.size(); i++) {
+        //         threads[i].join();
+        //     }
+        //     writePacketFileThread.join();
 
-    //     // All pcap objects shall call the close function
-    //     for (unsigned int i = 0; i < pcapObjectOfInterface.size(); i++) {
-    //         (pcapObjectOfInterface[i])->close();
-    //         if (pcapObjectOfInterface[i] != nullptr) {
-    //             delete (pcapObjectOfInterface[i]);
-    //         }
-    //         pcapObjectOfInterface[i] = nullptr;
-    //     }
-    //     // Closing the file descriptor
-    //     if (fileDescriptor != nullptr) {
-    //         fclose(fileDescriptor);
-    //         fileDescriptor = nullptr;
-    //     }
-    // }
+        // All pcap objects shall call the close function
+        for (unsigned int i = 0; i < pcapObjectOfInterface.size(); i++) {
+            if (pcapObjectOfInterface[i] != nullptr) {
+                (pcapObjectOfInterface[i])->close();
+                delete (pcapObjectOfInterface[i]);
+            }
+            pcapObjectOfInterface[i] = nullptr;
+        }
+        //     // Closing the file descriptor
+        //     if (fileDescriptor != nullptr) {
+        //         fclose(fileDescriptor);
+        //         fileDescriptor = nullptr;
+        //     }
+    }
 
     return result;
 }
@@ -455,7 +455,7 @@ Commons::POSIXErrors WindowsSysinMainCaller::config(std::vector<unitService>* se
  * @return [BOOL WINAPI] The successful result; the TRUE shows okay; otherwise false
  */
 BOOL WINAPI WindowsSysinMainCaller::signalInterruptedHandler(DWORD signal) {
-    if (signal  == CTRL_C_EVENT) { // When encountering the interrupted signal
+    if (signal == CTRL_C_EVENT) {  // When encountering the interrupted signal
         std::cerr << "\n"
                   << "Interrupted signal occurs, please wait.\n";
         // Using these two global variables to break the loops in different threads
