@@ -8,9 +8,14 @@
 
 #ifdef _WIN32
 
-#include <signal.h>            // For the alarm and interrupted signal
-#include <stdio.h>             // For some C io functions
-#include <stdlib.h>            // For some C functions
+#include <signal.h>  // For the alarm and interrupted signal
+#include <stdio.h>   // For some C io functions
+#include <stdlib.h>  // For some C functions
+
+// Windows
+#include <winsock2.h>  // This included library shall be put in the front of the one, namely "windows.h";
+                       // otherwise warning information will be displayed when compiling
+#include <windows.h>   // For capturing the interrupt signal
 
 #include <algorithm>  // For std::max
 #include <mutex>
@@ -32,8 +37,8 @@ namespace SysinMainCaller {
 class WindowsSysinMainCaller : public SysinMainCallerPrototype {
    public:
     Commons::POSIXErrors start(int, char**);
-    
-    // static void signalInterruptedHandler(int);
+
+    static BOOL WINAPI signalInterruptedHandler(DWORD signal);
     // static void signalAlarmHandler(int);
     static Commons::POSIXErrors config(std::vector<unitService>*);
     // static void packetHandler(u_char*, const struct pcap_pkthdr*, const u_char*);

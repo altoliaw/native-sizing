@@ -24,7 +24,6 @@ std::vector<PCAP::PCAPPrototype*> _PCAP_POINTER_;
 // The address of the global pointer referring to the file descriptor object
 FILE** _FILE_POINTER_ = nullptr;
 
-
 /**
  * The starting process, the entry of the process
  *
@@ -59,7 +58,7 @@ Commons::POSIXErrors WindowsSysinMainCaller::start(int argC, char** argV) {
     _WRITING_FILE_LOCATION_ = OuputFilePathWithTime;
 
     // // Installing a signal handler, interrupt
-    // signal(SIGINT, LinuxSysinMainCaller::signalInterruptedHandler);
+    SetConsoleCtrlHandler(WindowsSysinMainCaller::signalInterruptedHandler, TRUE);
 
     // {  // Creating objects, opening the interfaces, executing the packet calculations
     //     // and closing the interfaces; the number of objects is equal to the number of
@@ -286,7 +285,7 @@ Commons::POSIXErrors WindowsSysinMainCaller::config(std::vector<unitService>* se
 //     PCAP::PCAPPrototype* pcapInstance = (PCAP::PCAPPrototype*)userData;
 //     // Determining what the instance belong to
 //     PCAP::LinuxPCAP* linuxPCAP = nullptr;
-//     if (dynamic_cast<PCAP::LinuxPCAP*>(pcapInstance)) {        
+//     if (dynamic_cast<PCAP::LinuxPCAP*>(pcapInstance)) {
 //         linuxPCAP = dynamic_cast<PCAP::LinuxPCAP*>(pcapInstance);
 //     }
 
@@ -452,16 +451,20 @@ Commons::POSIXErrors WindowsSysinMainCaller::config(std::vector<unitService>* se
 /**
  * A handler when receiving the SIGINT signal
  *
- * @param [int] The signal type (ignore)
+ * @param signal [DWORD] The signal type
+ * @return [BOOL WINAPI] The successful result; the TRUE shows okay; otherwise false
  */
-// void LinuxSysinMainCaller::signalInterruptedHandler(int) {
-//     std::cerr << "\n"
-//               << "Interrupted signal occurs, please wait.\n";
-//     // Using these two global variables to break the loops in different threads
-//     _IS_PCAP_WORKED_ = 0x0;
-//     _IS_ALARM_WORKED_ = 0x0;
-//     alarm(0);
-// }
+BOOL WINAPI WindowsSysinMainCaller::signalInterruptedHandler(DWORD signal) {
+    if (signal  == CTRL_C_EVENT) { // When encountering the interrupted signal
+        std::cerr << "\n"
+                  << "Interrupted signal occurs, please wait.\n";
+        // Using these two global variables to break the loops in different threads
+        _IS_PCAP_WORKED_ = 0x0;
+        _IS_ALARM_WORKED_ = 0x0;
+    }
+    // alarm(0);
+    return TRUE;
+}
 
 /**
  * A handler when receiving the SIGALRM signal; in the function, the main task is
@@ -553,7 +556,6 @@ Commons::POSIXErrors WindowsSysinMainCaller::config(std::vector<unitService>* se
 //         *_FILE_POINTER_ = nullptr;
 //     }
 // }
-
 
 }  // namespace SysinMainCaller
 #endif
