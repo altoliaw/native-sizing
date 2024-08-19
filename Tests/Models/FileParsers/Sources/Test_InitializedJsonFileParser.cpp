@@ -35,7 +35,7 @@ TEST(FileParsers, Test_InitializedJsonFileParser_parseInitializedFile) {
 	 *  cJSON_False, cJSON_NULL and others.
 	*/
 	ASSERT_EQ(Commons::POSIXErrors::OK, error);
-	ASSERT_EQ(current->type, cJSON_Number);
+	ASSERT_EQ(current->type, cJSON_String);
 	ASSERT_STREQ((char*)value, "1521");
 
     FileParsers::InitializedJsonFileParser::releaseInitializedFileParserInitialization();
