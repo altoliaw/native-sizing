@@ -1,5 +1,6 @@
 #include "../Headers/Test_HashTable.hpp"
 
+#ifdef __linux__
 TEST(Commons, HashTable_addNRemoveFirstElements) {
     Commons::HashTable table(1);
     std::string columnName = "default";
@@ -240,3 +241,4 @@ TEST(Commons, HashTable_addNRemoveNonExistedElements) {
     Commons::POSIXErrors result = table.removeElementByName((char*)(columnName.c_str()));
     ASSERT_EQ(result, Commons::POSIXErrors::E_NOITEM);
 }
+#endif

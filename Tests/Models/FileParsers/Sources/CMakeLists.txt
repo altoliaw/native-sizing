@@ -13,7 +13,7 @@ target_include_directories(
 	../Headers 
 	../../../../Models/Commons/Headers 
 	../../../../Models/FileParsers/Headers
-	${STATIC_LIB_PATH}/Includes
+	${STATIC_LIB_PATH}/cJson/Includes
 )
 
 # linking to the gtest library
@@ -21,7 +21,7 @@ target_link_libraries(
 	Tests.FileParsers
 	Models.FileParsers
 	Models.Commons
-	${STATIC_LIB_PATH}/Libs/libcjson.a
+	${STATIC_LIB_PATH}/cJson/Libs/libcjson.a
 	GTest::gtest_main
 
 )

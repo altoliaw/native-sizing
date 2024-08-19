@@ -1,5 +1,6 @@
 #include "../Headers/Test_InitializedJsonFileParser.hpp"
 
+#ifdef __linux__
 TEST(FileParsers, Test_InitializedJsonFileParser_getInitializedFileParserInitialization) {
     std::unique_ptr<FileParsers::InitializedJsonFileParser>& instance =
         FileParsers::InitializedJsonFileParser::getInitializedFileParserInitialization();
@@ -39,3 +40,4 @@ TEST(FileParsers, Test_InitializedJsonFileParser_parseInitializedFile) {
 
     FileParsers::InitializedJsonFileParser::releaseInitializedFileParserInitialization();
 }
+#endif
