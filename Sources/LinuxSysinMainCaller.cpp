@@ -33,6 +33,14 @@ FILE** _FILE_POINTER_ = nullptr;
 Commons::POSIXErrors LinuxSysinMainCaller::start(int argC, char** argV) {
     Commons::POSIXErrors result = Commons::POSIXErrors::OK;
 
+    // TODO: This section shall be implemented by using "Bison" instead of the section defined in the following.
+    // To determine if the argument is passed for the execution
+    if(argC == 2 && strcmp(argV[1], "-l") == 0) {
+        // Showing the information
+        PCAP::LinuxPCAP::show();
+        return result;
+    }
+
     // The data structure from the configure function
     // The array for reserving the interface name
     std::vector<unitService> interfaceNameArray;

@@ -131,5 +131,16 @@ void LinuxPCAP::packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr
     std::cout << pkthdr->len << "  total size\n";
     sleep(2);
 }
+
+/**
+ * Displaying the devices for .Json settings; this function is for windows platform because
+ * the interface name on windows platform is involved with the registered machine codes; as
+ * a result, the on windows platform, the editor shall provide device information for users'
+ * json definition
+ */
+void LinuxPCAP::show() {
+    std::cout << "Please refer to the command, \"ifconfig\", manually.\n";
+}
+
 }  // namespace PCAP
 #endif

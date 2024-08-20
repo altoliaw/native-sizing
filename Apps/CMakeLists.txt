@@ -19,6 +19,6 @@ target_link_libraries(
 	Models.FileParsers
 	Models.PCAP
 	${STATIC_LIB_PATH}/cJson/Libs/libcjson.a
-	${STATIC_LIB_PATH}/nPcap/Libs/Packet.lib
-	${STATIC_LIB_PATH}/nPcap/Libs/wpcap.lib
+	${STATIC_LIB_PATH}/nPcap/Libs/x64/Packet.lib
+	${STATIC_LIB_PATH}/nPcap/Libs/x64/wpcap.lib
 )

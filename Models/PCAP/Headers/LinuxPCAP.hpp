@@ -29,10 +29,13 @@ class LinuxPCAP : public PCAPPrototype {
     void open(const char*, const int, const int, const int, std::vector<int>*);
     void execute(void (*)(u_char*, const pcap_pkthdr*, const u_char*) = nullptr);
     void close(void);
+    
+    static void show(void);
 
    private:
     static void packetHandler(u_char*, const struct pcap_pkthdr*, const u_char*);
 };
+
 
 }  // namespace PCAP
 #endif

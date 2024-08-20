@@ -43,9 +43,9 @@ class PCAPPrototype {
     };
 
     std::unordered_map<int, PCAPPortInformation*> portRelatedInformation;  // The port related information
-    char errBuff[PCAP_ERRBUF_SIZE];                                       // For error message
-    void* descriptor;                                                     // PCAP descriptor
-    std::string deviceInterface;                                          // The interface name
+    char errBuff[PCAP_ERRBUF_SIZE];                                        // For error message
+    void* descriptor;                                                      // PCAP descriptor
+    std::string deviceInterface;                                           // The interface name
     // All information of the interface
     long long rxSize;     // The size of the rx channel
     long long txSize;     // The size of the rx channel

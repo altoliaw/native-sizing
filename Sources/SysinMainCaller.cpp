@@ -15,15 +15,16 @@ namespace SysinMainCaller {
 Commons::POSIXErrors SysinMainCaller::start(int argC, char** argV) {
     Commons::POSIXErrors result = Commons::POSIXErrors::OK;
     SysinMainCallerPrototype* caller;
-    #ifdef __linux__
-        LinuxSysinMainCaller instance;
-        caller = &instance;
-    #elif defined(_WIN32)
-        WindowsSysinMainCaller instance;
-        caller = &instance;
-    #endif
+
+#ifdef __linux__
+    LinuxSysinMainCaller instance;
+    caller = &instance;
+#elif defined(_WIN32)
+    WindowsSysinMainCaller instance;
+    caller = &instance;
+#endif
     
-        result = caller->start(argC, argV);
+    result = caller->start(argC, argV);
     return result;
 }
 }  // namespace SysinMainCaller

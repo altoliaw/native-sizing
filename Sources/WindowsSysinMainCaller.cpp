@@ -34,6 +34,14 @@ FILE** _FILE_POINTER_ = nullptr;
 Commons::POSIXErrors WindowsSysinMainCaller::start(int argC, char** argV) {
     Commons::POSIXErrors result = Commons::POSIXErrors::OK;
 
+    // TODO: This section shall be implemented by using "Bison" instead of the section defined in the following.
+    // To determine if the argument is passed for the execution
+    if(argC == 2 && strcmp(argV[1], "-l") == 0) {
+        // Showing the information
+        PCAP::WindowsPCAP::show();
+        return result;
+    }
+
     // The data structure from the configure function
     // The array for reserving the interface name
     std::vector<unitService> interfaceNameArray;
@@ -67,11 +75,11 @@ Commons::POSIXErrors WindowsSysinMainCaller::start(int argC, char** argV) {
                                                                 // resource in the class. When the vector reserve objects, the destructor will occur twice in the following loop.
                                                                 // The best approach is used the dynamic memory allocation with pointers.
         for (unsigned int i = 0; i < interfaceNameArray.size(); i++) {
-            // PCAP::WindowsPCAP* pcapObject = new PCAP::WindowsPCAP();
-            // pcapObject->open(interfaceNameArray[i].interfaceName, BUFSIZ, 1, 1000, &(interfaceNameArray[i].port));
+            PCAP::WindowsPCAP* pcapObject = new PCAP::WindowsPCAP();
+            pcapObject->open(interfaceNameArray[i].interfaceName, BUFSIZ, 1, 1000, &(interfaceNameArray[i].port));
 
-            // // Putting each pcap object into thread array
-            // pcapObjectOfInterface.push_back(pcapObject);
+            // Putting each pcap object into thread array
+            pcapObjectOfInterface.push_back(pcapObject);
         }
 
         //     // Releasing the memory from the config because the config information has been reserved into each pcap
