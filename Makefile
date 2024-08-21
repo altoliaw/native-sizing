@@ -109,12 +109,6 @@ vendor: ${Prdir}/${PjN}/Folders
     # from the shell script, installVendor.sh, and determining the existence of the file & initializing the file
 	@source ${Prdir}/Shells/installVendor.sh && dependenciesTraversal "${Prdir}/Settings/.Json/globalDependencies.json" "${Prdir}/${Vendors}/.${Vendors}.json"
 
-# To add the version 
-# .Phony: version
-# version: ${Prdir}/${PjN}/Folders
-# 	@make -f Apps/Console/Makefile_Process.mk "Prdir=${Prdir}"
-# 	@make -f Apps/Console/Makefile_Process.mk clean
-
 
 ##----------------------------------------------------------------------
 ## Nick editted manually

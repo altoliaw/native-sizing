@@ -1,6 +1,7 @@
 if (NOT BUILD_TEST)
 	# For windows compiling because some third party libraries are made by MSVC
 	# Creating an execution in each model
+	set(CMAKE_EXE_LINKER_FLAGS "-static")
 	add_executable(
 		SysinMain_Windows
 		SysinMain.cpp
@@ -14,7 +15,7 @@ if (NOT BUILD_TEST)
 
 	# Linking to the gtest library
 	target_link_libraries(
-		SysinMain_Windows
+		SysinMain_Windows -static
 		Main.Sources
 		Models.Commons
 		Models.FileParsers
