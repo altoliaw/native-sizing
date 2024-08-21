@@ -79,6 +79,10 @@ endif
 .Phony: build
 build: ${Prdir}/${PjN}/Folders ${Prdir}/${PjN}_Sizing/build
 
+.Phony: build_windows
+build_windows: ${Prdir}/${PjN}/Folders
+	@eval ./windowsMake.sh
+
 .Phony: clean
 clean:
 	@clear

@@ -29,6 +29,10 @@ function makeVersion() {
 	local major=$(echo "$version" | awk -F '.' '{print $1}')
 	local minor=$(echo "$version" | awk -F '.' '{print $2}')
 	local patch=$(echo "$version" | awk -F '.' '{print $3}')
+	echo "$versionString"
+	echo "$major"	
+	echo "$minor"
+	echo "$patch"
 
 	# Obtaining the length of the instruction
 	local length=${#instruction}
@@ -78,6 +82,6 @@ function makeVersion() {
 	content="[$sectionString]\n$variable=$version"
 	# Printing the content into the .tmp
 	echo -e "$content" > "$versionTmpFile"
-	mv "$versionTmpFile" "$versionFile"
+	# mv "$versionTmpFile" "$versionFile"
 	rm -rf "$projectName"
 }

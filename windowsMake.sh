@@ -11,6 +11,5 @@ mkdir -p build
 cmake -S . -B build -DBUILD_TEST=OFF
 cmake --build build
 cd build
-echo "=============================[Execution]============================="
-./Apps/Apps.SysinMain.exe
+cp -ar ./Apps/SysinMain_Windows.exe ../Bin/
 cd ..

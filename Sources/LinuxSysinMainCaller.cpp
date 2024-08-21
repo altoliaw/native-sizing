@@ -380,7 +380,6 @@ void LinuxSysinMainCaller::packetHandler(u_char* userData, const struct pcap_pkt
                 (it->second)->rxPacketNumber++;                    // rxPacketNumber in the port shall plus 1.
                 (it->second)->rxSize += (long long)(pkthdr->len);  // rxSize in the port shall plus the current one.
 
-                std::cerr << (it->second)->rxSize << "\n";
                 // Obtaining the maximum size in the port
                 if ((it->second)->maxRxSize < (long long)(pkthdr->len)) {
                     (it->second)->maxRxSize = (long long)(pkthdr->len);
