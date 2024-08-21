@@ -36,14 +36,74 @@
 namespace SysinMainCaller {
 class WindowsSysinMainCaller : public SysinMainCallerPrototype {
    public:
+    /**
+     * Definition for the Windows's ether_header structure; this structure is
+     * equivalent to the one defined in linux (including the field names); to
+     * more information, please refer to the following URL. https://www.cnblogs.com/LyShark/p/12989949.html
+     */
+    struct ether_header {
+        u_char ether_dhost[6];  // Destination address (MAC address)
+        u_char ether_shost[6];  // Source address (MAC address)
+        u_short ether_type;
+    };
+
+    /**
+     * Definition for the Windows's ether_header structure; this structure is
+     * equivalent to the one defined in linux (including the field names); to
+     * more information, please refer to the following URL. https://www.cnblogs.com/LyShark/p/12989949.html
+     */
+    struct ip {
+        unsigned char ip_hl : 4;  // 4 bits
+        unsigned char ip_v : 4;   // 4 bits
+        unsigned char ip_tos;
+        unsigned short ip_len;
+        unsigned short ip_id;
+        unsigned short ip_off;
+        unsigned char ip_ttl;
+        unsigned char ip_p;
+        unsigned short ip_sum;
+        struct in_addr ip_src;
+        struct in_addr ip_dst;
+    };
+
+    /**
+     * Definition for the Windows's ether_header structure; this structure is
+     * equivalent to the one defined in linux (including the field names); to
+     * more information, please refer to the following URL. https://www.cnblogs.com/LyShark/p/12989949.html
+     */
+    struct tcphdr {
+        u_short th_sport;
+        u_short th_dport;
+        u_int th_seq;
+        u_int th_ack;
+        u_char th_x2 : 4;   // 4 bits
+        u_char th_off : 4;  // 4 bits
+        u_char th_flags;
+        u_short th_win;
+        u_short th_sum;
+        u_short th_urp;
+    };
+
+    /**
+     * Definition for the Windows's ether_header structure; this structure is
+     * equivalent to the one defined in linux (including the field names); to
+     * more information, please refer to the following URL. https://www.cnblogs.com/LyShark/p/12989949.html
+     */
+    struct udphdr {
+        u_short uh_sport;
+        u_short uh_dport;
+        u_short uh_ulen;
+        u_short uh_sum;
+    };
+
     Commons::POSIXErrors start(int, char**);
 
-    static BOOL WINAPI signalInterruptedHandler(DWORD signal);
-    // static void signalAlarmHandler(int);
+    static BOOL WINAPI signalInterruptedHandler(DWORD);
+    static void CALLBACK signalAlarmHandler(LPVOID , DWORD, DWORD);
     static Commons::POSIXErrors config(std::vector<unitService>*);
-    // static void packetHandler(u_char*, const struct pcap_pkthdr*, const u_char*);
-    // static void packetTask(PCAP::LinuxPCAP*, void (*)(u_char*, const pcap_pkthdr*, const u_char*));
-    // static void packetFileTask(FILE**, const char*);
+    static void packetHandler(u_char*, const struct pcap_pkthdr*, const u_char*);
+    static void packetTask(PCAP::WindowsPCAP*, void (*)(u_char*, const pcap_pkthdr*, const u_char*));
+    static void packetFileTask(FILE**, const char*);
 };
 }  // namespace SysinMainCaller
 #endif

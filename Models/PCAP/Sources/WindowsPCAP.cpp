@@ -67,21 +67,21 @@ WindowsPCAP::~WindowsPCAP() {
  * @param port [std::vector<int>*] The port of the server for distinguishing with the packets from rx and tx
  */
 void WindowsPCAP::open(const char* device, const int snaplen, const int promisc, const int timeout, std::vector<int>* port) {
-    // pcapDescriptor = pcap_open_live(device, snaplen, promisc, timeout, errBuff);
-    // if (pcapDescriptor == nullptr) {
-    //     std::cerr << "[Error] PCAP open failed; please verifying if the permission is root\n";
-    // }
-    // descriptor = (void*)pcapDescriptor;  // Passing the descriptor to the general type
+    pcapDescriptor = pcap_open_live(device, snaplen, promisc, timeout, errBuff);
+    if (pcapDescriptor == nullptr) {
+        std::cerr << "[Error] PCAP open failed; please verifying if the permission is root\n";
+    }
+    descriptor = (void*)pcapDescriptor;  // Passing the descriptor to the general type
 
-    // // Copying the NIC information into the object
-    // std::string deviceInterface(device);
-    // this->deviceInterface = deviceInterface;
-    // // Copying the ports information into each portRelatedInformation (set)
-    // for (unsigned int i = 0; i < port->size(); i++) {
-    //     PCAPPortInformation* PCAPPortInstance = new PCAPPortInformation();
-    //     PCAPPortInstance->port = (*port)[i];
-    //     portRelatedInformation.emplace((*port)[i], PCAPPortInstance);
-    // }
+    // Copying the NIC information into the object
+    std::string deviceInterface(device);
+    this->deviceInterface = deviceInterface;
+    // Copying the ports information into each portRelatedInformation (set)
+    for (unsigned int i = 0; i < port->size(); i++) {
+        PCAPPortInformation* PCAPPortInstance = new PCAPPortInformation();
+        PCAPPortInstance->port = (*port)[i];
+        portRelatedInformation.emplace((*port)[i], PCAPPortInstance);
+    }
 }
 
 /**
@@ -92,26 +92,26 @@ void WindowsPCAP::open(const char* device, const int snaplen, const int promisc,
  * the default value of the function is "nullptr" (has been initialized in the declaration)
  */
 void WindowsPCAP::execute(void (*callback)(u_char*, const pcap_pkthdr*, const u_char*)) {
-    // if (pcapDescriptor != nullptr) {
-    //     // The forth argument in the pcap_loop will be associated to the first one parameter in the function, callback.
-    //     // If the callback is not nullptr, the forth argument is the object.
-    //     pcap_loop(pcapDescriptor,
-    //               0,
-    //               ((callback == nullptr) ? WindowsPCAP::packetHandler : callback),                                        // if callback is nullptr,
-    //                                                                                                                       // the function will be the default function in the class
-    //               (callback == nullptr) ? reinterpret_cast<u_char*>(&rxPacketNumber) : reinterpret_cast<u_char*>(this));  // if callback is nullptr,
-    //                                                                                                                       // the function will be the default function in the class
-    // }
+    if (pcapDescriptor != nullptr) {
+        // The forth argument in the pcap_loop will be associated to the first one parameter in the function, callback.
+        // If the callback is not nullptr, the forth argument is the object.
+        pcap_loop(pcapDescriptor,
+                  0,
+                  ((callback == nullptr) ? WindowsPCAP::packetHandler : callback),                                        // if callback is nullptr,
+                                                                                                                          // the function will be the default function in the class
+                  (callback == nullptr) ? reinterpret_cast<u_char*>(&rxPacketNumber) : reinterpret_cast<u_char*>(this));  // if callback is nullptr,
+                                                                                                                          // the function will be the default function in the class
+    }
 }
 
 /**
  * Closing the PCAP
  */
 void WindowsPCAP::close() {
-    // if (pcapDescriptor != nullptr) {
-    //     pcap_close(pcapDescriptor);
-    //     pcapDescriptor = nullptr;
-    // }
+    if (pcapDescriptor != nullptr) {
+        pcap_close(pcapDescriptor);
+        pcapDescriptor = nullptr;
+    }
 }
 
 /**
@@ -162,6 +162,12 @@ void WindowsPCAP::show() {
         } else {
             std::cout << " (No description available)" << "\n";
         }
+    }
+
+    // Releasing the memory which was allocated for the devices
+    if (allDevices != nullptr) {
+        pcap_freealldevs(allDevices);
+        allDevices = nullptr;
     }
 }
 

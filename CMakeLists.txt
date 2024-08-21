@@ -39,8 +39,9 @@ endif()
 # Others involved in the testing process and compiling process
 configure_file(${CMAKE_SOURCE_DIR}/Settings/.Json/SysinMain.json ${CMAKE_BINARY_DIR}/Settings/.Json/SysinMain.json COPYONLY)
 
-## Copying the third party software into the Vendors folder for testing
+## Copying the third party software into the Vendors folder and the Outputs for testing
 file(COPY ${CMAKE_SOURCE_DIR}/Vendors DESTINATION ${CMAKE_BINARY_DIR})
+file(COPY ${CMAKE_SOURCE_DIR}/Outputs DESTINATION ${CMAKE_BINARY_DIR})
 
 
 # [Included Directories]

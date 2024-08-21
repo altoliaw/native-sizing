@@ -16,8 +16,10 @@ unsigned int _WRITING_FILE_SECOND_ = 30;
 volatile char _IS_PCAP_WORKED_ = 0x1;
 // Determining if the alarm shall be still working, 0x0: halting, 0x1: working
 volatile char _IS_ALARM_WORKED_ = 0x1;
-// Mutual locker
-// std::mutex _MUTEX_;
+// Mutual locker(Windows version), using by the critical section (only works on a process on Windows)
+CRITICAL_SECTION _CRITICAL_SECTION_;
+// For windows timer
+HANDLE _TIMER_ = nullptr;
 
 // Referring to the objects for stopping "pcap_loop"
 std::vector<PCAP::PCAPPrototype*> _PCAP_POINTER_;
@@ -36,7 +38,7 @@ Commons::POSIXErrors WindowsSysinMainCaller::start(int argC, char** argV) {
 
     // TODO: This section shall be implemented by using "Bison" instead of the section defined in the following.
     // To determine if the argument is passed for the execution
-    if(argC == 2 && strcmp(argV[1], "-l") == 0) {
+    if (argC == 2 && strcmp(argV[1], "-l") == 0) {
         // Showing the information
         PCAP::WindowsPCAP::show();
         return result;
@@ -82,37 +84,44 @@ Commons::POSIXErrors WindowsSysinMainCaller::start(int argC, char** argV) {
             pcapObjectOfInterface.push_back(pcapObject);
         }
 
-        //     // Releasing the memory from the config because the config information has been reserved into each pcap
-        //     if (interfaceNameArray.empty() == false) {
-        //         interfaceNameArray.clear();
-        //         interfaceNameArray.shrink_to_fit();
-        //     }
+        // Releasing the memory from the config because the config information has been reserved into each pcap
+        if (interfaceNameArray.empty() == false) {
+            interfaceNameArray.clear();
+            interfaceNameArray.shrink_to_fit();
+        }
 
-        //     FILE* fileDescriptor = nullptr;
-        //     // n + 1  threads created; the n is equal to the number of interfaces;
-        //     // When calling the functions in threads, the values in the thread imply function name,
-        //     // function argument 1, function argument2 and so on;
-        //     // the first type threads (n from "n + 1")
-        //     std::vector<std::thread> threads;
-        //     for (unsigned int i = 0; i < pcapObjectOfInterface.size(); i++) {
-        //         // A thread can be registered by using the command as below,
-        //         // "std::thread packetThread{packetTask, &pcapObject, packetHandler};".
-        //         // Therefore, users can use emplace_back on vector to construct the one immediately.
-        //         threads.emplace_back(packetTask, pcapObjectOfInterface[i], packetHandler);
+        // Before the threads, the MUTEX locker on Windows shall be initialized.
+        InitializeCriticalSection(&_CRITICAL_SECTION_);
 
-        //         // Passing the pcap object to the global pointer
-        //         _PCAP_POINTER_.push_back(pcapObjectOfInterface[i]);
-        //     }
+        FILE* fileDescriptor = nullptr;
+        // n + 1  threads created; the n is equal to the number of interfaces;
+        // When calling the functions in threads, the values in the thread imply function name,
+        // function argument 1, function argument2 and so on;
+        // the first type threads (n from "n + 1")
+        std::vector<std::thread> threads;
+        for (unsigned int i = 0; i < pcapObjectOfInterface.size(); i++) {
+            // A thread can be registered by using the command as below,
+            // "std::thread packetThread{packetTask, &pcapObject, packetHandler};".
+            // Therefore, users can use emplace_back on vector to construct the one immediately.
+            threads.emplace_back(packetTask, pcapObjectOfInterface[i], packetHandler);
 
-        //     // The second type thread (1 from "n + 1")
-        //     std::thread writePacketFileThread{packetFileTask, &fileDescriptor, OuputFilePathWithTime};
+            // Passing the pcap object to the global pointer
+            _PCAP_POINTER_.push_back(pcapObjectOfInterface[i]);
+        }
 
-        //     // When the functions finish or interrupt, those n + 1 threads shall
-        //     // be joined into the main process
-        //     for (unsigned int i = 0; i < pcapObjectOfInterface.size(); i++) {
-        //         threads[i].join();
-        //     }
-        //     writePacketFileThread.join();
+        // The second type thread (1 from "n + 1")
+        std::thread writePacketFileThread{packetFileTask, &fileDescriptor, OuputFilePathWithTime};
+
+        // When the functions finish or interrupt, those n + 1 threads shall
+        // be joined into the main process
+        for (unsigned int i = 0; i < pcapObjectOfInterface.size(); i++) {
+            threads[i].join();
+        }
+
+        writePacketFileThread.join();
+
+        // After threads have joined, the mutex locker shall be released.
+        DeleteCriticalSection(&_CRITICAL_SECTION_);
 
         // All pcap objects shall call the close function
         for (unsigned int i = 0; i < pcapObjectOfInterface.size(); i++) {
@@ -122,11 +131,11 @@ Commons::POSIXErrors WindowsSysinMainCaller::start(int argC, char** argV) {
             }
             pcapObjectOfInterface[i] = nullptr;
         }
-        //     // Closing the file descriptor
-        //     if (fileDescriptor != nullptr) {
-        //         fclose(fileDescriptor);
-        //         fileDescriptor = nullptr;
-        //     }
+        // Closing the file descriptor
+        if (fileDescriptor != nullptr) {
+            fclose(fileDescriptor);
+            fileDescriptor = nullptr;
+        }
     }
 
     return result;
@@ -228,11 +237,11 @@ Commons::POSIXErrors WindowsSysinMainCaller::config(std::vector<unitService>* se
  * @param pcap [PCAP::LinuxPCAP*] The address of the PCAP::LinuxPCAP object
  * @param packetHandler [void (*)(u_char*, const pcap_pkthdr*, const u_char*)] The callback function for pcap_loop
  */
-// void LinuxSysinMainCaller::packetTask(PCAP::LinuxPCAP* pcap, void (*packetHandler)(u_char*, const pcap_pkthdr*, const u_char*)) {
-//     // The only argument will be set; as a result, the pcap object will be passed in the function, packetHandler.
-//     // For more information, please refer to the function, execute(.).
-//     pcap->execute(packetHandler);
-// }
+void WindowsSysinMainCaller::packetTask(PCAP::WindowsPCAP* pcap, void (*packetHandler)(u_char*, const pcap_pkthdr*, const u_char*)) {
+    // The only argument will be set; as a result, the pcap object will be passed in the function, packetHandler.
+    // For more information, please refer to the function, execute(.).
+    pcap->execute(packetHandler);
+}
 
 /**
  * The function for the second type of the thread, writePacketFileThread; the task is to write the packet
@@ -242,44 +251,65 @@ Commons::POSIXErrors WindowsSysinMainCaller::config(std::vector<unitService>* se
  * which users defined in .json file.
  * @param filePath [const char*] The file path for recording the information
  */
-// void LinuxSysinMainCaller::packetFileTask(FILE** fileDescriptor, const char* filePath) {
-//     // Installing a signal handler, alarm
-//     signal(SIGALRM, LinuxSysinMainCaller::signalAlarmHandler);
-//     _FILE_POINTER_ = fileDescriptor;  // Passing to the global variable
+void WindowsSysinMainCaller::packetFileTask(FILE** fileDescriptor, const char* filePath) {
+    // Installing a signal handler, alarm, on Windows
+    _TIMER_ = CreateWaitableTimer(NULL, TRUE, NULL);
+    if (_TIMER_ == nullptr) {
+        std::cerr << "[Error] Failed to create a waitable timer.\n";
+        _IS_ALARM_WORKED_ = 0x0;  // Disabled alarm
+        return;
+    }
+    _FILE_POINTER_ = fileDescriptor;  // Passing to the global variable
 
-//     // The first calling the function
-//     alarm(_WRITING_FILE_SECOND_);
+    // Opening the file with the file descriptor
+    if (*_FILE_POINTER_ == nullptr) {
+        *_FILE_POINTER_ = fopen(filePath, "a+");
+        if (*_FILE_POINTER_ == nullptr) {
+            std::cerr << "Error opening the file!\n";
+            WindowsSysinMainCaller::signalInterruptedHandler(CTRL_C_EVENT);  // Going to the end of the thread
 
-//     // Opening the file with the file descriptor
-//     if (*_FILE_POINTER_ == nullptr) {
-//         *_FILE_POINTER_ = fopen(filePath, "a+");
-//         if (*_FILE_POINTER_ == nullptr) {
-//             std::cerr << "Error opening the file!\n";
-//             LinuxSysinMainCaller::signalInterruptedHandler(0);  // Going to the end of the thread
+        } else {  // Adding the header information in a line to the file
+            char output[1024] = {'\0'};
+            int length = sprintf(output,
+                                 "UTC\tType\tInterface\tPort\tNumber(amount)\tSize(bytes)\tMaxSize(bytes)\t"
+                                 "SQL number in the time interval\tSQL size(bytes) in the time interval\tSQL number per time interval(eps)\n");
+            fwrite(output, sizeof(char), length, *_FILE_POINTER_);
+            if (*_FILE_POINTER_ != nullptr) {
+                fclose(*_FILE_POINTER_);
+                *_FILE_POINTER_ = nullptr;
+            }
+        }
+    }
 
-//         } else {  // Adding the header information in a line to the file
-//             char output[1024] = {'\0'};
-//             int length = sprintf(output,
-//                                  "UTC\tType\tInterface\tPort\tNumber(amount)\tSize(bytes)\tMaxSize(bytes)\t"
-//                                  "SQL number in the time interval\tSQL size(bytes) in the time interval\tSQL size per time interval(eps)\n");
-//             fwrite(output, sizeof(char), length, *_FILE_POINTER_);
-//             if (*_FILE_POINTER_ != nullptr) {
-//                 fclose(*_FILE_POINTER_);
-//                 *_FILE_POINTER_ = nullptr;
-//             }
-//         }
-//     }
+    // Setting the alarm information
+    LARGE_INTEGER dueTime;
+    dueTime.QuadPart = (LONGLONG)(-1) * (1000000LL) * (LONGLONG)_WRITING_FILE_SECOND_;  // Setting the first execution time when the timer executes
 
-//     // Using a global variable to verify if the interrupt occurs
-//     while (_IS_ALARM_WORKED_ == 0x1) {
-//         sleep(5);  // A routine clock checker
-//     }
+    // Setting the alarm and the callback function, signalAlarmHandler, will awake every "(_WRITING_FILE_SECOND_ * 1000)" milliseconds;
+    // when the SetWaitableTimer(.) successes, the timer will executes periodically
+    if (!SetWaitableTimer(_TIMER_, &dueTime, (_WRITING_FILE_SECOND_ * 1000), signalAlarmHandler, NULL, TRUE)) {
+        std::cerr << "[Error] Failed to create a waitable timer.\n";
+        _IS_ALARM_WORKED_ = 0x0;  // Disabled alarm
+        return;
+    }
 
-//     // Closing the file
-//     if (*_FILE_POINTER_ != nullptr) {
-//         fclose(*_FILE_POINTER_);
-//     }
-// }
+    // Using a global variable to verify if the interrupt occurs
+    while (_IS_ALARM_WORKED_ == 0x1) {
+        Sleep(5000);  // A routine clock checker
+    }
+
+    // When the timer does not belong to nullptr, ...
+    if (_TIMER_ != nullptr) {
+        // Closing the timer
+        CloseHandle(_TIMER_);
+        _TIMER_ = nullptr;
+    }
+
+    // Closing the file
+    if (*_FILE_POINTER_ != nullptr) {
+        fclose(*_FILE_POINTER_);
+    }
+}
 
 /**
  * Calculating the amount of the packets
@@ -288,173 +318,175 @@ Commons::POSIXErrors WindowsSysinMainCaller::config(std::vector<unitService>* se
  * @param pkthdr [const struct pcap_pkthdr*] The address of the packet header
  * @param packet [const u_char*] The address of the packet
  */
-// void LinuxSysinMainCaller::packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, const u_char* packet) {
-//     // Due to the setting of the function, execute(.), the data of userData is the object of children classes (LinuxPCAP, WindowPCAP and so on ...)
-//     PCAP::PCAPPrototype* pcapInstance = (PCAP::PCAPPrototype*)userData;
-//     // Determining what the instance belong to
-//     PCAP::LinuxPCAP* linuxPCAP = nullptr;
-//     if (dynamic_cast<PCAP::LinuxPCAP*>(pcapInstance)) {
-//         linuxPCAP = dynamic_cast<PCAP::LinuxPCAP*>(pcapInstance);
-//     }
+void WindowsSysinMainCaller::packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, const u_char* packet) {
+    // Due to the setting of the function, execute(.), the data of userData is the object of children classes (LinuxPCAP, WindowsPCAP and so on ...)
+    PCAP::PCAPPrototype* pcapInstance = (PCAP::PCAPPrototype*)userData;
+    // Determining what the instance belong to
+    PCAP::WindowsPCAP* windowsPCAP = nullptr;
+    if (dynamic_cast<PCAP::WindowsPCAP*>(pcapInstance)) {
+        windowsPCAP = dynamic_cast<PCAP::WindowsPCAP*>(pcapInstance);
+    }
 
-//     // When the pcap belongs to linux pcap, ...
-//     if (linuxPCAP != nullptr) {
-//         std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>* tmpMap = &(linuxPCAP->portRelatedInformation);
+    // When the pcap belongs to linux pcap, ...
+    if (windowsPCAP != nullptr) {
+        std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>* tmpMap = &(windowsPCAP->portRelatedInformation);
 
-//         // The Ip collection, the variable will be static
-//         static std::unordered_map<uint32_t, char> ipMap;
+        // The Ip collection, the variable will be static
+        static std::unordered_map<uint32_t, char> ipMap;
 
-//         // Obtaining the IP header; the ip_p column implies the protocol;
-//         // the number of the TCP is 6, and the UDP is 17
-//         ip* ip_header = (ip*)(packet + sizeof(ether_header));
+        // Obtaining the IP header; the ip_p column implies the protocol;
+        // the number of the TCP is 6, and the UDP is 17
+        ip* ip_header = (ip*)(packet + sizeof(ether_header));
 
-//         // Preparing the headers and the packet source/destination port variables
-//         tcphdr* tcpHeader = nullptr;
-//         udphdr* udpHeader = nullptr;
-//         uint16_t packetSourcePort = 0;
-//         uint16_t packetDestinationPort = 0;
-//         uint32_t packetSourceIp = 0;
-//         uint32_t packetDestinationIp = 0;
-//         // Preparing the flag information of the tcp;
-//         // when the flag of the tcp is equal to 0x18, the packet belongs to SQL packets
-//         uint8_t tcpFlag = 0;
+        // Preparing the headers and the packet source/destination port variables
+        tcphdr* tcpHeader = nullptr;
+        udphdr* udpHeader = nullptr;
+        uint16_t packetSourcePort = 0;
+        uint16_t packetDestinationPort = 0;
+        uint32_t packetSourceIp = 0;
+        uint32_t packetDestinationIp = 0;
+        // Preparing the flag information of the tcp;
+        // when the flag of the tcp is equal to 0x18, the packet belongs to SQL packets
+        uint8_t tcpFlag = 0;
 
-//         // Determining the protocol (TCP or UDP)
-//         switch (ip_header->ip_p) {
-//             case IPPROTO_TCP:  // TCP
-//                 tcpHeader = (tcphdr*)(packet + sizeof(ether_header) + sizeof(ip));
-//                 packetSourcePort = ntohs(tcpHeader->th_sport);
-//                 packetDestinationPort = ntohs(tcpHeader->th_dport);
-//                 tcpFlag = tcpHeader->th_flags;
-//                 packetSourceIp = ip_header->ip_src.s_addr;
-//                 packetDestinationIp = ip_header->ip_dst.s_addr;
-//                 break;
-//             case IPPROTO_UDP:  // UDP
-//                 udpHeader = (udphdr*)(packet + sizeof(ether_header) + sizeof(ip));
-//                 packetSourcePort = ntohs(udpHeader->uh_sport);
-//                 packetDestinationPort = ntohs(udpHeader->uh_dport);
-//                 packetSourceIp = ip_header->ip_src.s_addr;
-//                 packetDestinationIp = ip_header->ip_dst.s_addr;
-//                 break;
-//             default:
-//                 tcpHeader = (tcphdr*)(packet + sizeof(ether_header) + sizeof(ip));
-//                 packetSourcePort = ntohs(tcpHeader->th_sport);
-//                 packetDestinationPort = ntohs(tcpHeader->th_dport);
-//                 tcpFlag = tcpHeader->th_flags;
-//                 packetSourceIp = ip_header->ip_src.s_addr;
-//                 packetDestinationIp = ip_header->ip_dst.s_addr;
-//         }
+        // Determining the protocol (TCP or UDP)
+        switch (ip_header->ip_p) {
+            case IPPROTO_TCP:  // TCP
+                tcpHeader = (tcphdr*)(packet + sizeof(ether_header) + sizeof(ip));
+                packetSourcePort = ntohs(tcpHeader->th_sport);
+                packetDestinationPort = ntohs(tcpHeader->th_dport);
+                tcpFlag = tcpHeader->th_flags;
+                packetSourceIp = ip_header->ip_src.s_addr;
+                packetDestinationIp = ip_header->ip_dst.s_addr;
+                break;
+            case IPPROTO_UDP:  // UDP
+                udpHeader = (udphdr*)(packet + sizeof(ether_header) + sizeof(ip));
+                packetSourcePort = ntohs(udpHeader->uh_sport);
+                packetDestinationPort = ntohs(udpHeader->uh_dport);
+                packetSourceIp = ip_header->ip_src.s_addr;
+                packetDestinationIp = ip_header->ip_dst.s_addr;
+                break;
+            default:
+                tcpHeader = (tcphdr*)(packet + sizeof(ether_header) + sizeof(ip));
+                packetSourcePort = ntohs(tcpHeader->th_sport);
+                packetDestinationPort = ntohs(tcpHeader->th_dport);
+                tcpFlag = tcpHeader->th_flags;
+                packetSourceIp = ip_header->ip_src.s_addr;
+                packetDestinationIp = ip_header->ip_dst.s_addr;
+        }
 
-//         // Critical section, accessing the data area
-//         _MUTEX_.lock();
-//         // Comparing source and destination ports with the port to determine the direction
-//         char packetTypeDetermineSet = 0x0;  // A variable to determine the type of the packet
-//         // For readability, the author uses a variable, packetTypeDetermineSet, to determine the type of the packet. That implies that
-//         // a packet only belongs a type to demonstrate the phenomenons of mutual exclusion.
-//         if (packetTypeDetermineSet == 0x0) {  // TX packet
-//             std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>::iterator it = tmpMap->find((int)packetSourcePort);
-//             if (it != tmpMap->end()) {  // Hitting
-//                 // previousPacketType[it->first] = 0x0;
-//                 (it->second)->txPacketNumber++;                    // txPacketNumber in the port shall plus 1.
-//                 (it->second)->txSize += (long long)(pkthdr->len);  // txSize in the port shall plus the current one.
+        // Critical section, accessing the data area
+        EnterCriticalSection(&_CRITICAL_SECTION_);
 
-//                 // Obtaining the maximum size in the port
-//                 if ((it->second)->maxTxSize < (long long)(pkthdr->len)) {
-//                     (it->second)->maxTxSize = (long long)(pkthdr->len);
-//                 }
+        // Comparing source and destination ports with the port to determine the direction
+        char packetTypeDetermineSet = 0x0;  // A variable to determine the type of the packet
+        // For readability, the author uses a variable, packetTypeDetermineSet, to determine the type of the packet. That implies that
+        // a packet only belongs a type to demonstrate the phenomenons of mutual exclusion.
+        if (packetTypeDetermineSet == 0x0) {  // TX packet
+            std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>::iterator it = tmpMap->find((int)packetSourcePort);
+            if (it != tmpMap->end()) {  // Hitting
+                // previousPacketType[it->first] = 0x0;
+                (it->second)->txPacketNumber++;                    // txPacketNumber in the port shall plus 1.
+                (it->second)->txSize += (long long)(pkthdr->len);  // txSize in the port shall plus the current one.
 
-//                 linuxPCAP->txPacketNumber++;                    // txPacketNumber shall plus 1.
-//                 linuxPCAP->txSize += (long long)(pkthdr->len);  // txSize shall plus the current one.
+                // Obtaining the maximum size in the port
+                if ((it->second)->maxTxSize < (long long)(pkthdr->len)) {
+                    (it->second)->maxTxSize = (long long)(pkthdr->len);
+                }
 
-//                 // Obtaining the maximum size
-//                 if (linuxPCAP->maxTxSize < (long long)(pkthdr->len)) {
-//                     linuxPCAP->maxTxSize = (long long)(pkthdr->len);
-//                 }
-//                 packetTypeDetermineSet = 0x1;
-//             }
-//         }
+                windowsPCAP->txPacketNumber++;                    // txPacketNumber shall plus 1.
+                windowsPCAP->txSize += (long long)(pkthdr->len);  // txSize shall plus the current one.
 
-//         if (packetTypeDetermineSet == 0x0) {  // RX packet
-//             std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>::iterator it = tmpMap->find((int)packetDestinationPort);
-//             if (it != tmpMap->end()) {  // Hitting
-//                 // previousPacketType[it->first] = 0x1;
-//                 (it->second)->rxPacketNumber++;                    // rxPacketNumber in the port shall plus 1.
-//                 (it->second)->rxSize += (long long)(pkthdr->len);  // rxSize in the port shall plus the current one.
+                // Obtaining the maximum size
+                if (windowsPCAP->maxTxSize < (long long)(pkthdr->len)) {
+                    windowsPCAP->maxTxSize = (long long)(pkthdr->len);
+                }
+                packetTypeDetermineSet = 0x1;
+            }
+        }
 
-//                 std::cerr << (it->second)->rxSize << "\n";
-//                 // Obtaining the maximum size in the port
-//                 if ((it->second)->maxRxSize < (long long)(pkthdr->len)) {
-//                     (it->second)->maxRxSize = (long long)(pkthdr->len);
-//                 }
+        if (packetTypeDetermineSet == 0x0) {  // RX packet
+            std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>::iterator it = tmpMap->find((int)packetDestinationPort);
+            if (it != tmpMap->end()) {  // Hitting
+                // previousPacketType[it->first] = 0x1;
+                (it->second)->rxPacketNumber++;                    // rxPacketNumber in the port shall plus 1.
+                (it->second)->rxSize += (long long)(pkthdr->len);  // rxSize in the port shall plus the current one.
 
-//                 // In this if section, the meaning implies that the packet from the client to server contain a SQL statement
-//                 if (tcpFlag == 0x18) {
-//                     (it->second)->sqlRequestNumber++;
-//                     (it->second)->sqlRequestSize += (long long)(pkthdr->len);
-//                 }
+                std::cerr << (it->second)->rxSize << "\n";
+                // Obtaining the maximum size in the port
+                if ((it->second)->maxRxSize < (long long)(pkthdr->len)) {
+                    (it->second)->maxRxSize = (long long)(pkthdr->len);
+                }
 
-//                 linuxPCAP->rxPacketNumber++;                    // rxPacketNumber shall plus 1.
-//                 linuxPCAP->rxSize += (long long)(pkthdr->len);  // rxSize shall plus the current one.
+                // In this if section, the meaning implies that the packet from the client to server contain a SQL statement
+                if (tcpFlag == 0x18) {
+                    (it->second)->sqlRequestNumber++;
+                    (it->second)->sqlRequestSize += (long long)(pkthdr->len);
+                }
 
-//                 // Obtaining the maximum size
-//                 if (linuxPCAP->maxRxSize < (long long)(pkthdr->len)) {
-//                     linuxPCAP->maxRxSize = (long long)(pkthdr->len);
-//                 }
-//                 packetTypeDetermineSet = 0x1;
+                windowsPCAP->rxPacketNumber++;                    // rxPacketNumber shall plus 1.
+                windowsPCAP->rxSize += (long long)(pkthdr->len);  // rxSize shall plus the current one.
 
-//                 // Recording the IP when first meeting the rx from the port; this IP will be reserved in the container for
-//                 // the case when the later packets' port are not in the defined array; this Ip can determine the type of the packet
-//                 std::unordered_map<uint32_t, char>::iterator itIp = ipMap.find(packetDestinationIp);
-//                 if (itIp == ipMap.end()) {  // No one hitting
-//                     ipMap.emplace(packetDestinationIp, 0x0);
-//                 }
-//             }
-//         }
+                // Obtaining the maximum size
+                if (windowsPCAP->maxRxSize < (long long)(pkthdr->len)) {
+                    windowsPCAP->maxRxSize = (long long)(pkthdr->len);
+                }
+                packetTypeDetermineSet = 0x1;
 
-//         if (packetTypeDetermineSet == 0x0) {  // The port is not defined in the .json file
+                // Recording the IP when first meeting the rx from the port; this IP will be reserved in the container for
+                // the case when the later packets' port are not in the defined array; this Ip can determine the type of the packet
+                std::unordered_map<uint32_t, char>::iterator itIp = ipMap.find(packetDestinationIp);
+                if (itIp == ipMap.end()) {  // No one hitting
+                    ipMap.emplace(packetDestinationIp, 0x0);
+                }
+            }
+        }
 
-//             // Obtaining no type; because there are no ports match in the array that users defined
-//             char packetTypeByIp = 0x0;
-//             // For readability, the author uses a variable, packetTypeByIp, to determine the type of the packet. That implies that
-//             // a packet only belongs a type to demonstrate the phenomenons of mutual exclusion.
-//             if (packetTypeByIp == 0x0) {  // TX consideration
-//                 std::unordered_map<uint32_t, char>::iterator it = ipMap.find((int)packetSourceIp);
-//                 if (it != ipMap.end()) {  // Hitting
-//                     linuxPCAP->txPacketNumber++;
-//                     linuxPCAP->txSize += (long long)(pkthdr->len);
+        if (packetTypeDetermineSet == 0x0) {  // The port is not defined in the .json file
 
-//                     // Obtaining the maximum size
-//                     if (linuxPCAP->maxTxSize < (long long)(pkthdr->len)) {
-//                         linuxPCAP->maxTxSize = (long long)(pkthdr->len);
-//                     }
-//                     packetTypeByIp = 0x1;
-//                 }
-//             }
+            // Obtaining no type; because there are no ports match in the array that users defined
+            char packetTypeByIp = 0x0;
+            // For readability, the author uses a variable, packetTypeByIp, to determine the type of the packet. That implies that
+            // a packet only belongs a type to demonstrate the phenomenons of mutual exclusion.
+            if (packetTypeByIp == 0x0) {  // TX consideration
+                std::unordered_map<uint32_t, char>::iterator it = ipMap.find((int)packetSourceIp);
+                if (it != ipMap.end()) {  // Hitting
+                    windowsPCAP->txPacketNumber++;
+                    windowsPCAP->txSize += (long long)(pkthdr->len);
 
-//             if (packetTypeByIp == 0x0) {  // RX consideration
-//                 std::unordered_map<uint32_t, char>::iterator it = ipMap.find((int)packetDestinationIp);
-//                 if (it != ipMap.end()) {  // Hitting
-//                     linuxPCAP->rxPacketNumber++;
-//                     linuxPCAP->rxSize += (long long)(pkthdr->len);
+                    // Obtaining the maximum size
+                    if (windowsPCAP->maxTxSize < (long long)(pkthdr->len)) {
+                        windowsPCAP->maxTxSize = (long long)(pkthdr->len);
+                    }
+                    packetTypeByIp = 0x1;
+                }
+            }
 
-//                     // Obtaining the maximum size
-//                     if (linuxPCAP->maxRxSize < (long long)(pkthdr->len)) {
-//                         linuxPCAP->maxRxSize = (long long)(pkthdr->len);
-//                     }
-//                     packetTypeByIp = 0x1;
-//                 }
-//             }
-//         }
-//         // Critical section end
-//         _MUTEX_.unlock();
-//     }
+            if (packetTypeByIp == 0x0) {  // RX consideration
+                std::unordered_map<uint32_t, char>::iterator it = ipMap.find((int)packetDestinationIp);
+                if (it != ipMap.end()) {  // Hitting
+                    windowsPCAP->rxPacketNumber++;
+                    windowsPCAP->rxSize += (long long)(pkthdr->len);
 
-//     // Verifying if the "pcap_loop" shall be stopped; "_IS_PCAP_WORKED_" is
-//     // a global variable and is controlled by the signal mechanism
-//     if (_IS_PCAP_WORKED_ == 0x0) {
-//         pcap_breakloop((pcap_t*)linuxPCAP->descriptor);
-//     }
-// }
+                    // Obtaining the maximum size
+                    if (windowsPCAP->maxRxSize < (long long)(pkthdr->len)) {
+                        windowsPCAP->maxRxSize = (long long)(pkthdr->len);
+                    }
+                    packetTypeByIp = 0x1;
+                }
+            }
+        }
+
+        // Critical section end
+        LeaveCriticalSection(&_CRITICAL_SECTION_);
+    }
+
+    // Verifying if the "pcap_loop" shall be stopped; "_IS_PCAP_WORKED_" is
+    // a global variable and is controlled by the signal mechanism
+    if (_IS_PCAP_WORKED_ == 0x0) {
+        pcap_breakloop((pcap_t*)windowsPCAP->descriptor);
+    }
+}
 
 /**
  * A handler when receiving the SIGINT signal
@@ -469,8 +501,17 @@ BOOL WINAPI WindowsSysinMainCaller::signalInterruptedHandler(DWORD signal) {
         // Using these two global variables to break the loops in different threads
         _IS_PCAP_WORKED_ = 0x0;
         _IS_ALARM_WORKED_ = 0x0;
+
+        // Cancelling the timer
+        if (_TIMER_ != nullptr) {
+            CancelWaitableTimer(_TIMER_);
+            // Calling the signalAlarmHandler
+            signalAlarmHandler(nullptr, 0, 0);
+            // Closing the timer
+            CloseHandle(_TIMER_);
+            _TIMER_ = nullptr;
+        }
     }
-    // alarm(0);
     return TRUE;
 }
 
@@ -480,90 +521,93 @@ BOOL WINAPI WindowsSysinMainCaller::signalInterruptedHandler(DWORD signal) {
  *
  * @param signalType [int] The signal type and the parameter is useless in this method
  */
-// void LinuxSysinMainCaller::signalAlarmHandler(int) {
-//     // File writing
-//     char output[1024] = {"\0"};
-//     if (*_FILE_POINTER_ == nullptr) {
-//         // Opening the file
-//         *_FILE_POINTER_ = fopen(_WRITING_FILE_LOCATION_, "a+");
+void CALLBACK WindowsSysinMainCaller::signalAlarmHandler(LPVOID, DWORD, DWORD) {
+    // File writing
+    char output[1024] = {"\0"};
+    if (*_FILE_POINTER_ == nullptr) {
+        // Opening the file
+        *_FILE_POINTER_ = fopen(_WRITING_FILE_LOCATION_, "a+");
 
-//         if (*_FILE_POINTER_ == nullptr) {
-//             std::cerr << "Error opening the file!\n";
-//             LinuxSysinMainCaller::signalInterruptedHandler(0);  // Going to the end of the thread
+        if (*_FILE_POINTER_ == nullptr) {
+            std::cerr << "Error opening the file!\n";
+            WindowsSysinMainCaller::signalInterruptedHandler(CTRL_C_EVENT);  // Going to the end of the thread
 
-//         } else {
-//             _MUTEX_.lock();
-//             // "UTC\tType\tPort\tNumber(amount)\tSize(byte)\tMaxSize\tSQL number per time interval(eps)\tSQL size per time interval(eps)\n";
-//             time_t timeEpoch = Commons::Time::getEpoch();
+        } else {
+            // Critical section, accessing the data area
+            EnterCriticalSection(&_CRITICAL_SECTION_);
 
-//             // Looping all pcap object for printing the results
-//             for (std::vector<PCAP::PCAPPrototype*>::iterator it = _PCAP_POINTER_.begin();
-//                  it != _PCAP_POINTER_.end();
-//                  it++) {
-//                 if (dynamic_cast<PCAP::LinuxPCAP*>(*it)) {
-//                     // Passing the object to the correct type
-//                     PCAP::LinuxPCAP* tmp = dynamic_cast<PCAP::LinuxPCAP*>(*it);
-//                     for (std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>::iterator it2 = (tmp->portRelatedInformation).begin();
-//                          it2 != (tmp->portRelatedInformation).end();
-//                          it2++) {
-//                         // TX part; in the section, the last two result will be to zero because the packets
-//                         // from the record set from the SQL server shall be ignored
-//                         int length = sprintf(output,
-//                                              "%lu\tTX\t%s\t%d\t%lu\t%llu\t%lu\t%lu\t%llu\t%llu\n",
-//                                              timeEpoch,
-//                                              (tmp->deviceInterface).c_str(),
-//                                              (it2)->first,  // port number
-//                                              tmp->txPacketNumber,
-//                                              tmp->txSize,
-//                                              tmp->maxTxSize,
-//                                              (long)0,
-//                                              (long long)0,
-//                                              (long long)0);
-//                         fwrite(output, sizeof(char), length, *_FILE_POINTER_);
-//                         tmp->txPacketNumber = 0;
-//                         tmp->txSize = 0;
-//                         tmp->maxTxSize = 0;
-//                         ((it2)->second)->txPacketNumber = 0;
-//                         ((it2)->second)->txSize = 0;
-//                         ((it2)->second)->maxTxSize = 0;
+            // "UTC\tType\tPort\tNumber(amount)\tSize(byte)\tMaxSize\tSQL number per time interval(eps)\tSQL size per time interval(eps)\n";
+            time_t timeEpoch = Commons::Time::getEpoch();
 
-//                         // RX part
-//                         length = sprintf(output,
-//                                          "%lu\tRX\t%s\t%d\t%lu\t%llu\t%lu\t%lu\t%llu\t%llu\n",
-//                                          timeEpoch,
-//                                          (tmp->deviceInterface).c_str(),
-//                                          (it2)->first,  // port number
-//                                          tmp->rxPacketNumber,
-//                                          tmp->rxSize,
-//                                          tmp->maxRxSize,
-//                                          (it2->second)->sqlRequestNumber,
-//                                          (it2->second)->sqlRequestSize,
-//                                          (it2->second)->sqlRequestNumber / (long long)_WRITING_FILE_SECOND_);
-//                         fwrite(output, sizeof(char), length, *_FILE_POINTER_);
-//                         tmp->rxPacketNumber = 0;
-//                         tmp->rxSize = 0;
-//                         tmp->maxRxSize = 0;
-//                         ((it2)->second)->rxPacketNumber = 0;
-//                         ((it2)->second)->rxSize = 0;
-//                         ((it2)->second)->maxRxSize = 0;
-//                         ((it2)->second)->sqlRequestNumber = 0;
-//                         ((it2)->second)->sqlRequestSize = 0;
-//                     }
-//                 }
-//             }
-//             _MUTEX_.unlock();
-//             alarm(_WRITING_FILE_SECOND_);
-//             // Closing the file
-//             if (*_FILE_POINTER_ != nullptr) {
-//                 fclose(*_FILE_POINTER_);
-//                 *_FILE_POINTER_ = nullptr;
-//             }
-//         }
-//     } else {  // Closing the descriptor and skipping the handling in the ith loop
-//         fclose(*_FILE_POINTER_);
-//         *_FILE_POINTER_ = nullptr;
-//     }
-// }
+            // Looping all pcap object for printing the results
+            for (std::vector<PCAP::PCAPPrototype*>::iterator it = _PCAP_POINTER_.begin();
+                 it != _PCAP_POINTER_.end();
+                 it++) {
+                if (dynamic_cast<PCAP::WindowsPCAP*>(*it)) {
+                    // Passing the object to the correct type
+                    PCAP::WindowsPCAP* tmp = dynamic_cast<PCAP::WindowsPCAP*>(*it);
+                    for (std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>::iterator it2 = (tmp->portRelatedInformation).begin();
+                         it2 != (tmp->portRelatedInformation).end();
+                         it2++) {
+                        // TX part; in the section, the last two result will be to zero because the packets
+                        // from the record set from the SQL server shall be ignored
+                        int length = sprintf(output,
+                                             "%lu\tTX\t%s\t%d\t%lu\t%llu\t%lu\t%lu\t%llu\t%llu\n",
+                                             timeEpoch,
+                                             (tmp->deviceInterface).c_str(),
+                                             (it2)->first,  // port number
+                                             tmp->txPacketNumber,
+                                             tmp->txSize,
+                                             tmp->maxTxSize,
+                                             (long)0,
+                                             (long long)0,
+                                             (long long)0);
+                        fwrite(output, sizeof(char), length, *_FILE_POINTER_);
+                        tmp->txPacketNumber = 0;
+                        tmp->txSize = 0;
+                        tmp->maxTxSize = 0;
+                        ((it2)->second)->txPacketNumber = 0;
+                        ((it2)->second)->txSize = 0;
+                        ((it2)->second)->maxTxSize = 0;
+
+                        // RX part
+                        length = sprintf(output,
+                                         "%lu\tRX\t%s\t%d\t%lu\t%llu\t%lu\t%lu\t%llu\t%llu\n",
+                                         timeEpoch,
+                                         (tmp->deviceInterface).c_str(),
+                                         (it2)->first,  // port number
+                                         tmp->rxPacketNumber,
+                                         tmp->rxSize,
+                                         tmp->maxRxSize,
+                                         (it2->second)->sqlRequestNumber,
+                                         (it2->second)->sqlRequestSize,
+                                         (it2->second)->sqlRequestNumber / (long long)_WRITING_FILE_SECOND_);
+                        fwrite(output, sizeof(char), length, *_FILE_POINTER_);
+                        tmp->rxPacketNumber = 0;
+                        tmp->rxSize = 0;
+                        tmp->maxRxSize = 0;
+                        ((it2)->second)->rxPacketNumber = 0;
+                        ((it2)->second)->rxSize = 0;
+                        ((it2)->second)->maxRxSize = 0;
+                        ((it2)->second)->sqlRequestNumber = 0;
+                        ((it2)->second)->sqlRequestSize = 0;
+                    }
+                }
+            }
+            // Critical section end
+            LeaveCriticalSection(&_CRITICAL_SECTION_);
+
+            // Closing the file
+            if (*_FILE_POINTER_ != nullptr) {
+                fclose(*_FILE_POINTER_);
+                *_FILE_POINTER_ = nullptr;
+            }
+        }
+    } else {  // Closing the descriptor and skipping the handling in the ith loop
+        fclose(*_FILE_POINTER_);
+        *_FILE_POINTER_ = nullptr;
+    }
+}
 
 }  // namespace SysinMainCaller
 #endif

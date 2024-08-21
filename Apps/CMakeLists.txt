@@ -18,6 +18,9 @@ target_link_libraries(
 	Models.Commons
 	Models.FileParsers
 	Models.PCAP
+	# Windows built-in libraries
+	ws2_32
+	# Vendor-specific libraries
 	${STATIC_LIB_PATH}/cJson/Libs/libcjson.a
 	${STATIC_LIB_PATH}/nPcap/Libs/x64/Packet.lib
 	${STATIC_LIB_PATH}/nPcap/Libs/x64/wpcap.lib

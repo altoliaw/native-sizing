@@ -10,4 +10,7 @@ rm -rf build
 mkdir -p build
 cmake -S . -B build -DBUILD_TEST=OFF
 cmake --build build
-cd build && ./Apps/Apps.SysinMain.exe -l
+cd build
+echo "=============================[Execution]============================="
+./Apps/Apps.SysinMain.exe
+cd ..

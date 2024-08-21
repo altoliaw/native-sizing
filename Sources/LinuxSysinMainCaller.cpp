@@ -260,7 +260,7 @@ void LinuxSysinMainCaller::packetFileTask(FILE** fileDescriptor, const char* fil
             char output[1024] = {'\0'};
             int length = sprintf(output,
                                  "UTC\tType\tInterface\tPort\tNumber(amount)\tSize(bytes)\tMaxSize(bytes)\t"
-                                 "SQL number in the time interval\tSQL size(bytes) in the time interval\tSQL size per time interval(eps)\n");
+                                 "SQL number in the time interval\tSQL size(bytes) in the time interval\tSQL number per time interval(eps)\n");
             fwrite(output, sizeof(char), length, *_FILE_POINTER_);
             if (*_FILE_POINTER_ != nullptr) {
                 fclose(*_FILE_POINTER_);
@@ -288,7 +288,7 @@ void LinuxSysinMainCaller::packetFileTask(FILE** fileDescriptor, const char* fil
  * @param packet [const u_char*] The address of the packet
  */
 void LinuxSysinMainCaller::packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, const u_char* packet) {
-    // Due to the setting of the function, execute(.), the data of userData is the object of children classes (LinuxPCAP, WindowPCAP and so on ...)
+    // Due to the setting of the function, execute(.), the data of userData is the object of children classes (LinuxPCAP, WindowsPCAP and so on ...)
     PCAP::PCAPPrototype* pcapInstance = (PCAP::PCAPPrototype*)userData;
     // Determining what the instance belong to
     PCAP::LinuxPCAP* linuxPCAP = nullptr;
