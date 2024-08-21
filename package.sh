@@ -6,4 +6,9 @@ source $(pwd)/Shells/makeVersion.sh
 versionLocation="$(pwd)/Settings/.version"
 verString="$(cat $versionLocation)"
 
-makeVersion "$versionLocation" "$verString" "#"
+
+if [ -z "$1" ]; then
+	makeVersion "$versionLocation" "$verString" "#"
+else
+	makeVersion "$versionLocation" "$verString" "-"
+fi
