@@ -90,12 +90,13 @@ clean:
 	@rm -rf ${Prdir}/*/*.o
 	@rm -rf ${Prdir}/*/*/*.o
 	@rm -rf ${Prdir}/*/*/*/*.o
-	@${SUDO} rm -rf ${Prdir}/${Bin}/${PjN}_Sizing
+	@${SUDO} rm -rf ${Prdir}/${Bin}
 
 .Phony: cmakeClean
 cmakeClean:
 	@clear
 	@rm -rf ${Prdir}/build
+	@${SUDO} rm -rf ${Prdir}/${Bin}
 
 .Phony: cmake
 cmake: ${Prdir}/${PjN}/Folders
