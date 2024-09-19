@@ -2,7 +2,7 @@
  * @see IOSpecification.hpp
  */
 #include "../Headers/IOSpecification.hpp"
-
+#ifdef __linux__
 namespace Commons {
 /**
  * Constructor
@@ -74,3 +74,4 @@ int IOSpecification::recoverOutput() {
 }
 
 }  // namespace Commons
+#endif

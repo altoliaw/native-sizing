@@ -1,13 +1,14 @@
 /**
- * @see LinuxPCAP.hpp
+ * @see WindowsPCAP.hpp
  */
-#include "../Headers/LinuxPCAP.hpp"
-#ifdef __linux__
+#include "../Headers/WindowsPCAP.hpp"
+
+#ifdef _WIN32
 namespace PCAP {
 /**
  * Constructor
  */
-LinuxPCAP::LinuxPCAP() {
+WindowsPCAP::WindowsPCAP() {
     errBuff[0] = '\0';
     descriptor = nullptr;
     pcapDescriptor = (pcap_t*)descriptor;
@@ -23,7 +24,7 @@ LinuxPCAP::LinuxPCAP() {
 /**
  * Destructor
  */
-LinuxPCAP::~LinuxPCAP() {
+WindowsPCAP::~WindowsPCAP() {
     // PCAP handle shall be closed and NULL.
     if (pcapDescriptor != nullptr) {
         std::cerr << "[Error] pcapDescriptor shall has been deallocated.\n";
@@ -65,7 +66,7 @@ LinuxPCAP::~LinuxPCAP() {
  * @param timeout [const int] Timeout (milliseconds)
  * @param port [std::vector<int>*] The port of the server for distinguishing with the packets from rx and tx
  */
-void LinuxPCAP::open(const char* device, const int snaplen, const int promisc, const int timeout, std::vector<int>* port) {
+void WindowsPCAP::open(const char* device, const int snaplen, const int promisc, const int timeout, std::vector<int>* port) {
     pcapDescriptor = pcap_open_live(device, snaplen, promisc, timeout, errBuff);
     if (pcapDescriptor == nullptr) {
         std::cerr << "[Error] PCAP open failed; please verifying if the permission is root\n";
@@ -90,13 +91,13 @@ void LinuxPCAP::open(const char* device, const int snaplen, const int promisc, c
  * @param callback [void (*)(u_char*, const pcap_pkthdr*, const u_char*)] The callback function for pcap_loop;
  * the default value of the function is "nullptr" (has been initialized in the declaration)
  */
-void LinuxPCAP::execute(void (*callback)(u_char*, const pcap_pkthdr*, const u_char*)) {
+void WindowsPCAP::execute(void (*callback)(u_char*, const pcap_pkthdr*, const u_char*)) {
     if (pcapDescriptor != nullptr) {
         // The forth argument in the pcap_loop will be associated to the first one parameter in the function, callback.
         // If the callback is not nullptr, the forth argument is the object.
         pcap_loop(pcapDescriptor,
                   0,
-                  ((callback == nullptr) ? LinuxPCAP::packetHandler : callback),                                          // if callback is nullptr,
+                  ((callback == nullptr) ? WindowsPCAP::packetHandler : callback),                                        // if callback is nullptr,
                                                                                                                           // the function will be the default function in the class
                   (callback == nullptr) ? reinterpret_cast<u_char*>(&rxPacketNumber) : reinterpret_cast<u_char*>(this));  // if callback is nullptr,
                                                                                                                           // the function will be the default function in the class
@@ -106,7 +107,7 @@ void LinuxPCAP::execute(void (*callback)(u_char*, const pcap_pkthdr*, const u_ch
 /**
  * Closing the PCAP
  */
-void LinuxPCAP::close() {
+void WindowsPCAP::close() {
     if (pcapDescriptor != nullptr) {
         pcap_close(pcapDescriptor);
         pcapDescriptor = nullptr;
@@ -121,7 +122,7 @@ void LinuxPCAP::close() {
  * @param pkthdr [const struct pcap_pkthdr*] The header of the packet
  * @param packet [const u_char*] The data from the last position of the header of the packet
  */
-void LinuxPCAP::packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, const u_char* packet) {
+void WindowsPCAP::packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, const u_char* packet) {
     int* packetCount = (int*)userData;
     (*packetCount)++;
     std::cout << *packetCount << "  packets\t";
@@ -129,7 +130,8 @@ void LinuxPCAP::packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr
     long* totalSize = (long*)(userData + sizeof(int));
     *totalSize += pkthdr->len;
     std::cout << pkthdr->len << "  total size\n";
-    sleep(2);
+    // Unit: milliseconds; 2000 milliseconds = 2 seconds
+    Sleep(2000);
 }
 
 /**
@@ -138,8 +140,35 @@ void LinuxPCAP::packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr
  * a result, the on windows platform, the editor shall provide device information for users'
  * json definition
  */
-void LinuxPCAP::show() {
-    std::cout << "Please refer to the command, \"ifconfig\", manually.\n";
+void WindowsPCAP::show() {
+    pcap_if_t* allDevices;  // All devices (linked list)
+    pcap_if_t* device;      // Each device pointer
+
+    char errBuff[PCAP_ERRBUF_SIZE];  // For error message
+    // Obtaining all devices into the device list; when there are no devices here, -1 will be obtained
+    if (pcap_findalldevs(&allDevices, errBuff) == -1) {
+        std::cerr << "Error in pcap_findalldevs: " << errBuff << "\n";
+        return;
+    }
+
+    int index = 0;  // The index for device traversal
+    std::cout << "The devices on Windows platform are listed with the format \"$1: $2 ($3)\" in the following "
+              << "where the {{$#}}s are denoted as the serial number, device name, and device description in sequence. "
+              << "Please copy the device name into the .json file in the \"Settings\" directory.\n\n";
+    for (device = allDevices; device != nullptr; device = device->next) {
+        std::cout << ++index << ": " << device->name << "\t";
+        if (device->description) {
+            std::cout << " (" << device->description << ")" << "\n";
+        } else {
+            std::cout << " (No description available)" << "\n";
+        }
+    }
+
+    // Releasing the memory which was allocated for the devices
+    if (allDevices != nullptr) {
+        pcap_freealldevs(allDevices);
+        allDevices = nullptr;
+    }
 }
 
 }  // namespace PCAP

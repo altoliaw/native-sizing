@@ -6,8 +6,12 @@
  * @date 2024/05/15
  */
 
+#ifdef __linux__
 // The linux's pcap file, not PF-RING's one
 #include <pcap.h>
+#elif defined(_WIN32)
+#include <pcap.h>
+#endif
 
 #include <string>
 #include <unordered_map>
@@ -39,9 +43,9 @@ class PCAPPrototype {
     };
 
     std::unordered_map<int, PCAPPortInformation*> portRelatedInformation;  // The port related information
-    char errBuff[PCAP_ERRBUF_SIZE];                                       // For error message
-    void* descriptor;                                                     // PCAP descriptor
-    std::string deviceInterface;                                          // The interface name
+    char errBuff[PCAP_ERRBUF_SIZE];                                        // For error message
+    void* descriptor;                                                      // PCAP descriptor
+    std::string deviceInterface;                                           // The interface name
     // All information of the interface
     long long rxSize;     // The size of the rx channel
     long long txSize;     // The size of the rx channel

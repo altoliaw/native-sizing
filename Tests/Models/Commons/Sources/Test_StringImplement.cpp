@@ -1,5 +1,6 @@
 #include "../Headers/Test_StringImplement.hpp"
 
+#ifdef __linux__
 TEST(Commons, StringImplement_obtainFirstNotSpaceCharLocation) {
     const unsigned char* string = (const unsigned char*)" 12   ";
     int index = Commons::StringImplement::obtainFirstNotSpaceCharLocation(string);
@@ -72,3 +73,4 @@ TEST(Commons, StringImplement_mergeRedundantSpace) {
     ASSERT_EQ(originalLength - 1, length);
     ASSERT_EQ(originalLength - 1, (int)(strlen((const char*)(*string))));
 }
+#endif

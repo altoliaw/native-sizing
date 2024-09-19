@@ -1,5 +1,6 @@
 #include "../Headers/Test_InitializedFileParser.hpp"
 
+#ifdef __linux__
 TEST(FileParsers, Test_InitializedFileParser_getInitializedFileParserInitialization) {
     std::unique_ptr<FileParsers::InitializedFileParser>& instance =
         FileParsers::InitializedFileParser::getInitializedFileParserInitialization();
@@ -47,3 +48,4 @@ TEST(FileParsers, Test_InitializedFileParser_parseInitializedFile2) {
 	ASSERT_STREQ((char*)"-fmessage-length=0 -pthread", (char*)value);
 	FileParsers::InitializedFileParser::releaseInitializedFileParserInitialization();
 }
+#endif

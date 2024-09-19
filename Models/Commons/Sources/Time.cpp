@@ -17,7 +17,7 @@ void Time::getTimeInitialization() {
     static long timeEpoch = (now <= -1) ? (long)-1 : (long)now;
 
     // Referring the static variable to the static field in class if the static field is nullptr
-    if(Time::timeEpochPointer == nullptr) {
+    if (Time::timeEpochPointer == nullptr) {
         Time::timeEpochPointer = &timeEpoch;
     }
 }
@@ -30,7 +30,6 @@ void Time::getTimeInitialization() {
  * @return [long] The epoch; if the value is -1, the error occurs
  */
 long Time::getEpoch(time_t timeInstance) {
-
     // Initialization automatically if the pointer is equal to nullptr
     Time::getTimeInitialization();
 
@@ -46,19 +45,25 @@ long Time::getEpoch(time_t timeInstance) {
  * @return [long] The epoch; if the value is -1, the error occurs
  */
 long Time::getStringToEpoch(const char* timeString) {
-
     // Initialization automatically if the pointer is equal to nullptr
     Time::getTimeInitialization();
-    
+
     // ISO C "broken-down" time structure
     tm tm;
     memset(&tm, 0, sizeof(tm));
 
-    // Parsing the string into the tm object
+// Parsing the string into the tm object
+#ifdef __linux__
     if (strptime(timeString, "%Y-%m-%d %H:%M:%S", &tm) == nullptr) {
         std::cerr << "Failed to parse date string\n";
         return -1;
     }
+#elif defined(_WIN32)
+    if (Time::windowStrptime(timeString, "%Y-%m-%d %H:%M:%S", tm) != Commons::POSIXErrors::OK) {
+        std::cerr << "Failed to parse date string\n";
+        return -1;
+    }
+#endif
 
     // Putting the time by using the mktime and reserving the value into the static variable from the
     // function, getTimeInitialization
@@ -82,7 +87,6 @@ long Time::getStringToEpoch(const char* timeString) {
  * @return [std::string] The time string
  */
 std::string Time::getEpochToString(const char* format, Time::TimeZone zone, long timeEpoch) {
-
     // Initialization automatically if the pointer is equal to nullptr
     Time::getTimeInitialization();
 
@@ -94,7 +98,8 @@ std::string Time::getEpochToString(const char* format, Time::TimeZone zone, long
     switch (zone) {
         case Time::TimeZone::UTC:
         case Time::TimeZone::GMT:
-            tm = gmtime(&timeEpoch);
+            tmpTimeEpoch = (time_t)timeEpoch;
+            tm = gmtime(&tmpTimeEpoch);
             break;
 
         case Time::TimeZone::PST:
@@ -110,17 +115,41 @@ std::string Time::getEpochToString(const char* format, Time::TimeZone zone, long
             break;
 
         default:  // Same as the UTC/GMT
-            tm = gmtime(&timeEpoch);
+            tmpTimeEpoch = (time_t)timeEpoch;
+            tm = gmtime(&tmpTimeEpoch);
     }
 
     // Copying the time string into the buffer
     int length = (int)strlen(format) * 4;
-    char buffer[length] = {'\0'};
-    strftime(buffer, (size_t)length, format, tm);
-    std::string timeString(buffer);
+    std::unique_ptr<char[]> buffer(new char[length]);
+    buffer[0] = '\0';
+    strftime(buffer.get(), (size_t)length, format, tm);
+    std::string timeString(buffer.get());
     *(Time::timeEpochPointer) = timeEpoch;
 
     return timeString;
+}
+
+/**
+ * For windows version; the function, strptime, does not support in windows platform;
+ * to decrease the time cost, here the editor implements a strptime function in the function;
+ * and this function cannot be called by users
+ *
+ * @param timeString [const char*]
+ * @param format [const char*]
+ * @param tm [tm&] The time object by reference
+ * @return [Commons::POSIXErrors] The implemented result; the returned value can refer to
+ * the definition in the "Commons::POSIXErrors"
+ */
+Commons::POSIXErrors Time::windowStrptime(const char* timeString, const char* format, tm& tm) {
+    std::string input(timeString);
+#ifdef _WIN32
+    std::istringstream ss(input);
+    ss >> std::get_time(&tm, format);
+    return (!ss.fail() ? Commons::POSIXErrors::OK : Commons::POSIXErrors::E_IO);
+#else
+    return Commons::POSIXErrors::E_IO;
+#endif
 }
 
 }  // namespace Commons

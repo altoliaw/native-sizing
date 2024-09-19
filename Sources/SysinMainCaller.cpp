@@ -13,9 +13,18 @@ namespace SysinMainCaller {
  * @return [Commons::POSIXErrors] The status defined in the class "POSIXErrors" The status defined in the class "POSIXErrors"
  */
 Commons::POSIXErrors SysinMainCaller::start(int argC, char** argV) {
-    int result = Commons::POSIXErrors::OK;
-    #ifdef __linux__
-        result = std::max((int)LinuxSysinMainCaller::start(argC, argV), result);
-    #endif
+    Commons::POSIXErrors result = Commons::POSIXErrors::OK;
+    SysinMainCallerPrototype* caller;
+
+#ifdef __linux__
+    LinuxSysinMainCaller instance;
+    caller = &instance;
+#elif defined(_WIN32)
+    WindowsSysinMainCaller instance;
+    caller = &instance;
+#endif
+    
+    result = caller->start(argC, argV);
+    return result;
 }
 }  // namespace SysinMainCaller

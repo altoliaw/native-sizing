@@ -6,3 +6,5 @@
 *.hpp             text eol=lf
 *.ini             text eol=lf
 *.cfg             text eol=lf
+*.version         text eol=lf
+*.version.tmp     text eol=lf

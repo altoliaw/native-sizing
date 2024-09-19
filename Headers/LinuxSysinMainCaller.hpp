@@ -11,11 +11,10 @@
 #include <netinet/ip.h>        // For IP header structure
 #include <netinet/tcp.h>       // For TCP header structure
 #include <netinet/udp.h>       // For UDP header structure
-#include <unistd.h>            // For sleep and pid functions
-
 #include <signal.h>            // For the alarm and interrupted signal
 #include <stdio.h>             // For some C io functions
 #include <stdlib.h>            // For some C functions
+#include <unistd.h>            // For sleep and pid functions
 
 #include <algorithm>  // For std::max
 #include <mutex>
@@ -36,8 +35,13 @@ namespace SysinMainCaller {
 class LinuxSysinMainCaller : public SysinMainCallerPrototype {
    public:
     Commons::POSIXErrors start(int, char**);
-    void signalInterruptedHandler(int);
-    void signalAlarmHandler(int);
+    
+    static void signalInterruptedHandler(int);
+    static void signalAlarmHandler(int);
+    static Commons::POSIXErrors config(std::vector<unitService>*);
+    static void packetHandler(u_char*, const struct pcap_pkthdr*, const u_char*);
+    static void packetTask(PCAP::LinuxPCAP*, void (*)(u_char*, const pcap_pkthdr*, const u_char*));
+    static void packetFileTask(FILE**, const char*);
 };
 }  // namespace SysinMainCaller
 #endif

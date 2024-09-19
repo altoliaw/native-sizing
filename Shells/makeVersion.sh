@@ -19,11 +19,11 @@ function makeVersion() {
 	local instruction="$3"
 
 	# Obtaining the first token before the character "."
-	local sectionString=$(echo "$versionString" | awk -F '.' '{print $1}')
+	local sectionString=$(echo "$versionString" | awk -F '[][]' '/\[.*\]/ {print $2}')
 	# Obtaining the token between the characters "." and "="
-	local variable=$(echo "$versionString" | awk -F '[.=]' '{print $2}')
+	local variable=$(echo "$versionString" | awk -F '=' '!/\[.*\]/ {print $1}')
 	# Obtianing the token after the character "="
-	local version=$(echo "$versionString" | awk -F '=' '{print $2}')
+	local version=$(echo "$versionString" | awk -F '=' '!/\[.*\]/ {print $2}')
 
 	# Obtaining the major, minor and patch
 	local major=$(echo "$version" | awk -F '.' '{print $1}')
@@ -35,7 +35,7 @@ function makeVersion() {
 
 	# Major, minor and patch rules
 	# When the length =1 and the value is '#' or the length of the instruction is zero, ...
-	if [ "$length" = "1" ] && [ "$instruction" = '#' ] || [ -z "$instruction" ]; then
+	if ([ "$length" = "1" ] && [ "$instruction" = '#' ]) || [ -z "$instruction" ]; then
 		# The patch number will be + 1.
 		patch=$((patch + 1))
 	elif [ "$length" = "2" ] && [ "$instruction" = '##' ]; then
@@ -75,7 +75,7 @@ function makeVersion() {
 
 	# Version migration
 	cp -pr "$versionFile" "$versionTmpFile"
-	content="[$sectionString]\n$variable=$version"
+	content="[$sectionString]\n$variable=$major.$minor.$patch"
 	# Printing the content into the .tmp
 	echo -e "$content" > "$versionTmpFile"
 	mv "$versionTmpFile" "$versionFile"

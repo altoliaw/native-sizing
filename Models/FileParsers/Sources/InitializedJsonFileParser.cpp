@@ -83,9 +83,13 @@ Commons::POSIXErrors InitializedJsonFileParser::parseInitializedFile(const unsig
     std::unique_ptr<unsigned char[]> jsonContent = nullptr;
     jsonContent.reset(new unsigned char[length + 1]);
     unsigned int readLength = fread(jsonContent.get(), 1, length, descriptor);
-
-    // If the length from the fread function is not equal to the one from ftell function, ...
-    if (readLength != (unsigned int)length) {
+    
+    // If the length from the fread function is not equal to the one from ftell function in the linux or
+    // the length from the fread function is not equal to and less than the one from ftell function in the windows, ...
+    // The length from the fread function and the length from the ftell function are different in windows because
+    // in this case, the author used fopen(.,"r"). If the author used only mode "r", the file will open in Unix format.
+    // To see more information, please refer to the URL: https://stackoverflow.com/questions/23690436/fread-dropping-carriage-returns-in-c 
+    if (readLength > (unsigned int)length) {
         if (initialedFileParserInstance->jsonParsedContent != nullptr) {
             std::cerr << "Releasing the memory of the cJson object\n";
             cJSON_Delete(initialedFileParserInstance->jsonParsedContent);
@@ -98,7 +102,7 @@ Commons::POSIXErrors InitializedJsonFileParser::parseInitializedFile(const unsig
         }
         return Commons::POSIXErrors::E_EXIST;
     }
-    jsonContent[length] = '\0';
+    jsonContent[readLength] = '\0';
 
     // Closing the descriptor
     if (descriptor != nullptr) {
@@ -113,6 +117,7 @@ Commons::POSIXErrors InitializedJsonFileParser::parseInitializedFile(const unsig
         initialedFileParserInstance->jsonParsedContent = nullptr;
     }
 
+    // Json content parsing
     initialedFileParserInstance->jsonParsedContent = cJSON_Parse((char*)(jsonContent.get()));
     if (initialedFileParserInstance->jsonParsedContent == nullptr) {  // JSON syntax is error.
         jsonContent.reset(nullptr);
@@ -200,6 +205,7 @@ Commons::POSIXErrors InitializedJsonFileParser::getValueFromFileParser(const uns
         for (std::vector<std::string>::iterator it = tokenSet.begin();
              it != tokenSet.end();
              ++it) {
+
             // When the instruction implies the .json's array, the '[' and ']' shall be removed for cJSON to search item.
             if ((*it).front() == '[' && (*it).back() == ']') {
                 std::string indexStr = (*it).substr(1, (*it).size() - 2);

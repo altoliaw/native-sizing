@@ -1,7 +1,11 @@
 add_library(Main.Sources
 	SysinMainCallerPrototype.cpp
 	SysinMainCaller.cpp
-	LinuxSysinMainCaller.cpp
+	WindowsSysinMainCaller.cpp
 )
 
-target_include_directories(Main.Sources PUBLIC ../Headers)
+set(STATIC_LIB_PATH ${CMAKE_BINARY_DIR}/Vendors)
+
+target_include_directories(Main.Sources PUBLIC 
+	../Headers 
+	${STATIC_LIB_PATH}/nPcap/Includes)
