@@ -132,11 +132,11 @@ ${Prdir}/${PjN}/Folders:
 
 ##===============[Application]=========================================
 # Create an application
-${Prdir}/${PjN}_Sizing: 	${Prdir}/${AppLoc}/SysinMain.o \
-							${Sources}/SysinMainCallerPrototype.o \
-							${Sources}/LinuxSysinMainCaller.o \
-							${Sources}/WindowsSysinMainCaller.o \
-							${Sources}/SysinMainCaller.o \
+${Prdir}/${PjN}_Sizing: 	${Prdir}/${AppLoc}/SizingMain.o \
+							${Sources}/SizingMainCallerPrototype.o \
+							${Sources}/LinuxSizingMainCaller.o \
+							${Sources}/WindowsSizingMainCaller.o \
+							${Sources}/SizingMainCaller.o \
 							${Commons.Sources}/HashTable.o \
 							${Commons.Sources}/IOSpecification.o \
 							${Commons.Sources}/StringImplement.o \
@@ -145,11 +145,11 @@ ${Prdir}/${PjN}_Sizing: 	${Prdir}/${AppLoc}/SysinMain.o \
 							${PCAP.Sources}/PCAPPrototype.o \
 							${PCAP.Sources}/LinuxPCAP.o
 
-	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${FMSG} -o ${Prdir}/${Bin}/${PjN}_Sizing ${Prdir}/${AppLoc}/SysinMain.o \
-	${Sources}/SysinMainCallerPrototype.o \
-	${Sources}/LinuxSysinMainCaller.o \
-	${Sources}/WindowsSysinMainCaller.o \
-	${Sources}/SysinMainCaller.o \
+	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${FMSG} -o ${Prdir}/${Bin}/${PjN}_Sizing ${Prdir}/${AppLoc}/SizingMain.o \
+	${Sources}/SizingMainCallerPrototype.o \
+	${Sources}/LinuxSizingMainCaller.o \
+	${Sources}/WindowsSizingMainCaller.o \
+	${Sources}/SizingMainCaller.o \
 	${Commons.Sources}/HashTable.o \
 	${Commons.Sources}/IOSpecification.o \
 	${Commons.Sources}/StringImplement.o \
@@ -160,25 +160,25 @@ ${Prdir}/${PjN}_Sizing: 	${Prdir}/${AppLoc}/SysinMain.o \
 	${LDFLAGS} \
 	${LDLIBS}
 
-# SysinMain
-${Prdir}/${AppLoc}/SysinMain.o:	${Prdir}/${AppLoc}/SysinMain.cpp
-	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Prdir}/${AppLoc}/SysinMain.cpp -c ${FMSG} -o ${Prdir}/${AppLoc}/SysinMain.o
+# SizingMain
+${Prdir}/${AppLoc}/SizingMain.o:	${Prdir}/${AppLoc}/SizingMain.cpp
+	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Prdir}/${AppLoc}/SizingMain.cpp -c ${FMSG} -o ${Prdir}/${AppLoc}/SizingMain.o
 
-# SysinMainCaller
-${Sources}/SysinMainCaller.o:	${Sources}/SysinMainCaller.cpp
-	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Sources}/SysinMainCaller.cpp -c ${FMSG} -o ${Sources}/SysinMainCaller.o
+# SizingMainCaller
+${Sources}/SizingMainCaller.o:	${Sources}/SizingMainCaller.cpp
+	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Sources}/SizingMainCaller.cpp -c ${FMSG} -o ${Sources}/SizingMainCaller.o
 
-# SysinMainCallerPrototype
-${Sources}/SysinMainCallerPrototype.o:	${Sources}/SysinMainCallerPrototype.cpp
-	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Sources}/SysinMainCallerPrototype.cpp -c ${FMSG} -o ${Sources}/SysinMainCallerPrototype.o
+# SizingMainCallerPrototype
+${Sources}/SizingMainCallerPrototype.o:	${Sources}/SizingMainCallerPrototype.cpp
+	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Sources}/SizingMainCallerPrototype.cpp -c ${FMSG} -o ${Sources}/SizingMainCallerPrototype.o
 
-# LinuxSysinMainCaller
-${Sources}/LinuxSysinMainCaller.o:	${Sources}/LinuxSysinMainCaller.cpp
-	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Sources}/LinuxSysinMainCaller.cpp -c ${FMSG} -o ${Sources}/LinuxSysinMainCaller.o
+# LinuxSizingMainCaller
+${Sources}/LinuxSizingMainCaller.o:	${Sources}/LinuxSizingMainCaller.cpp
+	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Sources}/LinuxSizingMainCaller.cpp -c ${FMSG} -o ${Sources}/LinuxSizingMainCaller.o
 
-# WindowsSysinMainCaller
-${Sources}/WindowsSysinMainCaller.o:	${Sources}/WindowsSysinMainCaller.cpp
-	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Sources}/WindowsSysinMainCaller.cpp -c ${FMSG} -o ${Sources}/WindowsSysinMainCaller.o
+# WindowsSizingMainCaller
+${Sources}/WindowsSizingMainCaller.o:	${Sources}/WindowsSizingMainCaller.cpp
+	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Sources}/WindowsSizingMainCaller.cpp -c ${FMSG} -o ${Sources}/WindowsSizingMainCaller.o
 
 
 

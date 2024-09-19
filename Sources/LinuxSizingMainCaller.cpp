@@ -1,9 +1,9 @@
 /**
- * @see SysinMainCaller.hpp
+ * @see SizingMainCaller.hpp
  */
-#include "../Headers/LinuxSysinMainCaller.hpp"
+#include "../Headers/LinuxSizingMainCaller.hpp"
 #ifdef __linux__
-namespace SysinMainCaller {
+namespace SizingMainCaller {
 //===Global Declaration===
 // Variables in .ini file
 // Writing file path
@@ -30,7 +30,7 @@ FILE** _FILE_POINTER_ = nullptr;
  * @param argV [char**] The array of the argument
  * @return [Commons::POSIXErrors] The status defined in the class "POSIXErrors" The status defined in the class "POSIXErrors"
  */
-Commons::POSIXErrors LinuxSysinMainCaller::start(int argC, char** argV) {
+Commons::POSIXErrors LinuxSizingMainCaller::start(int argC, char** argV) {
     Commons::POSIXErrors result = Commons::POSIXErrors::OK;
 
     // TODO: This section shall be implemented by using "Bison" instead of the section defined in the following.
@@ -65,7 +65,7 @@ Commons::POSIXErrors LinuxSysinMainCaller::start(int argC, char** argV) {
     _WRITING_FILE_LOCATION_ = OuputFilePathWithTime;
 
     // Installing a signal handler, interrupt
-    signal(SIGINT, LinuxSysinMainCaller::signalInterruptedHandler);
+    signal(SIGINT, LinuxSizingMainCaller::signalInterruptedHandler);
 
     {  // Creating objects, opening the interfaces, executing the packet calculations
         // and closing the interfaces; the number of objects is equal to the number of
@@ -139,12 +139,12 @@ Commons::POSIXErrors LinuxSysinMainCaller::start(int argC, char** argV) {
  * @return [Commons::POSIXErrors] The status defined in the class "POSIXErrors" The status
  * defined in the class "POSIXErrors"
  */
-Commons::POSIXErrors LinuxSysinMainCaller::config(std::vector<unitService>* services) {
+Commons::POSIXErrors LinuxSizingMainCaller::config(std::vector<unitService>* services) {
     Commons::POSIXErrors error = Commons::POSIXErrors::OK;
 
     // Loading information from the .json file for the application
     // The current working directory is the project root; as a result, the related path is shown as follows.
-    const unsigned char* path = (const unsigned char*)"Settings/.Json/SysinMain.json";
+    const unsigned char* path = (const unsigned char*)"Settings/.Json/SizingMain.json";
     FileParsers::InitializedJsonFileParser::parseInitializedFile(path);
 
     // Obtaining the number of interfaces
@@ -227,7 +227,7 @@ Commons::POSIXErrors LinuxSysinMainCaller::config(std::vector<unitService>* serv
  * @param pcap [PCAP::LinuxPCAP*] The address of the PCAP::LinuxPCAP object
  * @param packetHandler [void (*)(u_char*, const pcap_pkthdr*, const u_char*)] The callback function for pcap_loop
  */
-void LinuxSysinMainCaller::packetTask(PCAP::LinuxPCAP* pcap, void (*packetHandler)(u_char*, const pcap_pkthdr*, const u_char*)) {
+void LinuxSizingMainCaller::packetTask(PCAP::LinuxPCAP* pcap, void (*packetHandler)(u_char*, const pcap_pkthdr*, const u_char*)) {
     // The only argument will be set; as a result, the pcap object will be passed in the function, packetHandler.
     // For more information, please refer to the function, execute(.).
     pcap->execute(packetHandler);
@@ -241,9 +241,9 @@ void LinuxSysinMainCaller::packetTask(PCAP::LinuxPCAP* pcap, void (*packetHandle
  * which users defined in .json file.
  * @param filePath [const char*] The file path for recording the information
  */
-void LinuxSysinMainCaller::packetFileTask(FILE** fileDescriptor, const char* filePath) {
+void LinuxSizingMainCaller::packetFileTask(FILE** fileDescriptor, const char* filePath) {
     // Installing a signal handler, alarm
-    signal(SIGALRM, LinuxSysinMainCaller::signalAlarmHandler);
+    signal(SIGALRM, LinuxSizingMainCaller::signalAlarmHandler);
     _FILE_POINTER_ = fileDescriptor;  // Passing to the global variable
 
     // The first calling the function
@@ -254,7 +254,7 @@ void LinuxSysinMainCaller::packetFileTask(FILE** fileDescriptor, const char* fil
         *_FILE_POINTER_ = fopen(filePath, "a+");
         if (*_FILE_POINTER_ == nullptr) {
             std::cerr << "Error opening the file!\n";
-            LinuxSysinMainCaller::signalInterruptedHandler(0);  // Going to the end of the thread
+            LinuxSizingMainCaller::signalInterruptedHandler(0);  // Going to the end of the thread
 
         } else {  // Adding the header information in a line to the file
             char output[1024] = {'\0'};
@@ -287,7 +287,7 @@ void LinuxSysinMainCaller::packetFileTask(FILE** fileDescriptor, const char* fil
  * @param pkthdr [const struct pcap_pkthdr*] The address of the packet header
  * @param packet [const u_char*] The address of the packet
  */
-void LinuxSysinMainCaller::packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, const u_char* packet) {
+void LinuxSizingMainCaller::packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, const u_char* packet) {
     // Due to the setting of the function, execute(.), the data of userData is the object of children classes (LinuxPCAP, WindowsPCAP and so on ...)
     PCAP::PCAPPrototype* pcapInstance = (PCAP::PCAPPrototype*)userData;
     // Determining what the instance belong to
@@ -459,7 +459,7 @@ void LinuxSysinMainCaller::packetHandler(u_char* userData, const struct pcap_pkt
  *
  * @param [int] The signal type (ignore)
  */
-void LinuxSysinMainCaller::signalInterruptedHandler(int) {
+void LinuxSizingMainCaller::signalInterruptedHandler(int) {
     std::cerr << "\n"
               << "Interrupted signal occurs, please wait.\n";
     // Using these two global variables to break the loops in different threads
@@ -474,7 +474,7 @@ void LinuxSysinMainCaller::signalInterruptedHandler(int) {
  *
  * @param signalType [int] The signal type and the parameter is useless in this method
  */
-void LinuxSysinMainCaller::signalAlarmHandler(int) {
+void LinuxSizingMainCaller::signalAlarmHandler(int) {
     // File writing
     char output[1024] = {"\0"};
     if (*_FILE_POINTER_ == nullptr) {
@@ -483,7 +483,7 @@ void LinuxSysinMainCaller::signalAlarmHandler(int) {
 
         if (*_FILE_POINTER_ == nullptr) {
             std::cerr << "Error opening the file!\n";
-            LinuxSysinMainCaller::signalInterruptedHandler(0);  // Going to the end of the thread
+            LinuxSizingMainCaller::signalInterruptedHandler(0);  // Going to the end of the thread
 
         } else {
             _MUTEX_.lock();
@@ -559,5 +559,5 @@ void LinuxSysinMainCaller::signalAlarmHandler(int) {
     }
 }
 
-}  // namespace SysinMainCaller
+}  // namespace SizingMainCaller
 #endif

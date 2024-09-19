@@ -1,10 +1,10 @@
 /**
- * @see WindowsSysinMainCaller.hpp
+ * @see WindowsSizingMainCaller.hpp
  */
-#include "../Headers/WindowsSysinMainCaller.hpp"
+#include "../Headers/WindowsSizingMainCaller.hpp"
 #ifdef _WIN32
 
-namespace SysinMainCaller {
+namespace SizingMainCaller {
 //===Global Declaration===
 // Variables in .ini file
 // Writing file path
@@ -33,7 +33,7 @@ FILE** _FILE_POINTER_ = nullptr;
  * @param argV [char**] The array of the argument
  * @return [Commons::POSIXErrors] The status defined in the class "POSIXErrors" The status defined in the class "POSIXErrors"
  */
-Commons::POSIXErrors WindowsSysinMainCaller::start(int argC, char** argV) {
+Commons::POSIXErrors WindowsSizingMainCaller::start(int argC, char** argV) {
     Commons::POSIXErrors result = Commons::POSIXErrors::OK;
 
     // TODO: This section shall be implemented by using "Bison" instead of the section defined in the following.
@@ -68,7 +68,7 @@ Commons::POSIXErrors WindowsSysinMainCaller::start(int argC, char** argV) {
     _WRITING_FILE_LOCATION_ = OuputFilePathWithTime;
 
     // // Installing a signal handler, interrupt
-    SetConsoleCtrlHandler(WindowsSysinMainCaller::signalInterruptedHandler, TRUE);
+    SetConsoleCtrlHandler(WindowsSizingMainCaller::signalInterruptedHandler, TRUE);
 
     {                                                           // Creating objects, opening the interfaces, executing the packet calculations
                                                                 // and closing the interfaces; the number of objects is equal to the number of
@@ -149,12 +149,12 @@ Commons::POSIXErrors WindowsSysinMainCaller::start(int argC, char** argV) {
  * @return [Commons::POSIXErrors] The status defined in the class "POSIXErrors" The status
  * defined in the class "POSIXErrors"
  */
-Commons::POSIXErrors WindowsSysinMainCaller::config(std::vector<unitService>* services) {
+Commons::POSIXErrors WindowsSizingMainCaller::config(std::vector<unitService>* services) {
     Commons::POSIXErrors error = Commons::POSIXErrors::OK;
 
     // Loading information from the .json file for the application
     // The current working directory is the project root; as a result, the related path is shown as follows.
-    const unsigned char* path = (const unsigned char*)"Settings/.Json/SysinMain.json";
+    const unsigned char* path = (const unsigned char*)"Settings/.Json/SizingMain.json";
     FileParsers::InitializedJsonFileParser::parseInitializedFile(path);
 
     // Obtaining the number of interfaces
@@ -237,7 +237,7 @@ Commons::POSIXErrors WindowsSysinMainCaller::config(std::vector<unitService>* se
  * @param pcap [PCAP::LinuxPCAP*] The address of the PCAP::LinuxPCAP object
  * @param packetHandler [void (*)(u_char*, const pcap_pkthdr*, const u_char*)] The callback function for pcap_loop
  */
-void WindowsSysinMainCaller::packetTask(PCAP::WindowsPCAP* pcap, void (*packetHandler)(u_char*, const pcap_pkthdr*, const u_char*)) {
+void WindowsSizingMainCaller::packetTask(PCAP::WindowsPCAP* pcap, void (*packetHandler)(u_char*, const pcap_pkthdr*, const u_char*)) {
     // The only argument will be set; as a result, the pcap object will be passed in the function, packetHandler.
     // For more information, please refer to the function, execute(.).
     pcap->execute(packetHandler);
@@ -251,7 +251,7 @@ void WindowsSysinMainCaller::packetTask(PCAP::WindowsPCAP* pcap, void (*packetHa
  * which users defined in .json file.
  * @param filePath [const char*] The file path for recording the information
  */
-void WindowsSysinMainCaller::packetFileTask(FILE** fileDescriptor, const char* filePath) {
+void WindowsSizingMainCaller::packetFileTask(FILE** fileDescriptor, const char* filePath) {
     // Installing a signal handler, alarm, on Windows
     _TIMER_ = CreateWaitableTimer(NULL, TRUE, NULL);
     if (_TIMER_ == nullptr) {
@@ -266,7 +266,7 @@ void WindowsSysinMainCaller::packetFileTask(FILE** fileDescriptor, const char* f
         *_FILE_POINTER_ = fopen(filePath, "a+");
         if (*_FILE_POINTER_ == nullptr) {
             std::cerr << "Error opening the file!\n";
-            WindowsSysinMainCaller::signalInterruptedHandler(CTRL_C_EVENT);  // Going to the end of the thread
+            WindowsSizingMainCaller::signalInterruptedHandler(CTRL_C_EVENT);  // Going to the end of the thread
 
         } else {  // Adding the header information in a line to the file
             char output[1024] = {'\0'};
@@ -318,7 +318,7 @@ void WindowsSysinMainCaller::packetFileTask(FILE** fileDescriptor, const char* f
  * @param pkthdr [const struct pcap_pkthdr*] The address of the packet header
  * @param packet [const u_char*] The address of the packet
  */
-void WindowsSysinMainCaller::packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, const u_char* packet) {
+void WindowsSizingMainCaller::packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, const u_char* packet) {
     // Due to the setting of the function, execute(.), the data of userData is the object of children classes (LinuxPCAP, WindowsPCAP and so on ...)
     PCAP::PCAPPrototype* pcapInstance = (PCAP::PCAPPrototype*)userData;
     // Determining what the instance belong to
@@ -493,7 +493,7 @@ void WindowsSysinMainCaller::packetHandler(u_char* userData, const struct pcap_p
  * @param signal [DWORD] The signal type
  * @return [BOOL WINAPI] The successful result; the TRUE shows okay; otherwise false
  */
-BOOL WINAPI WindowsSysinMainCaller::signalInterruptedHandler(DWORD signal) {
+BOOL WINAPI WindowsSizingMainCaller::signalInterruptedHandler(DWORD signal) {
     if (signal == CTRL_C_EVENT) {  // When encountering the interrupted signal
         std::cerr << "\n"
                   << "Interrupted signal occurs, please wait.\n";
@@ -520,7 +520,7 @@ BOOL WINAPI WindowsSysinMainCaller::signalInterruptedHandler(DWORD signal) {
  *
  * @param signalType [int] The signal type and the parameter is useless in this method
  */
-void CALLBACK WindowsSysinMainCaller::signalAlarmHandler(LPVOID, DWORD, DWORD) {
+void CALLBACK WindowsSizingMainCaller::signalAlarmHandler(LPVOID, DWORD, DWORD) {
     // File writing
     char output[1024] = {"\0"};
     if (*_FILE_POINTER_ == nullptr) {
@@ -529,7 +529,7 @@ void CALLBACK WindowsSysinMainCaller::signalAlarmHandler(LPVOID, DWORD, DWORD) {
 
         if (*_FILE_POINTER_ == nullptr) {
             std::cerr << "Error opening the file!\n";
-            WindowsSysinMainCaller::signalInterruptedHandler(CTRL_C_EVENT);  // Going to the end of the thread
+            WindowsSizingMainCaller::signalInterruptedHandler(CTRL_C_EVENT);  // Going to the end of the thread
 
         } else {
             // Critical section, accessing the data area
@@ -608,5 +608,5 @@ void CALLBACK WindowsSysinMainCaller::signalAlarmHandler(LPVOID, DWORD, DWORD) {
     }
 }
 
-}  // namespace SysinMainCaller
+}  // namespace SizingMainCaller
 #endif

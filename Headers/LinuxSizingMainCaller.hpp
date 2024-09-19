@@ -1,5 +1,5 @@
 #pragma once
-/** @file LinuxSysinMainCaller.hpp
+/** @file LinuxSizingMainCaller.hpp
  * The headers and global variables from other package for Linux programs
  *
  * @author Nick, Liao
@@ -29,10 +29,10 @@
 #include "../Models/Commons/Headers/Time.hpp"
 #include "../Models/FileParsers/Headers/InitializedJsonFileParser.hpp"
 #include "../Models/PCAP/Headers/LinuxPCAP.hpp"
-#include "./SysinMainCallerPrototype.hpp"
+#include "./SizingMainCallerPrototype.hpp"
 
-namespace SysinMainCaller {
-class LinuxSysinMainCaller : public SysinMainCallerPrototype {
+namespace SizingMainCaller {
+class LinuxSizingMainCaller : public SizingMainCallerPrototype {
    public:
     Commons::POSIXErrors start(int, char**);
     
@@ -43,5 +43,5 @@ class LinuxSysinMainCaller : public SysinMainCallerPrototype {
     static void packetTask(PCAP::LinuxPCAP*, void (*)(u_char*, const pcap_pkthdr*, const u_char*));
     static void packetFileTask(FILE**, const char*);
 };
-}  // namespace SysinMainCaller
+}  // namespace SizingMainCaller
 #endif

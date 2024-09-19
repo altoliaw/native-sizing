@@ -1,5 +1,5 @@
 #pragma once
-/** @file WindowsSysinMainCaller.hpp
+/** @file WindowsSizingMainCaller.hpp
  * The headers and global variables from other package for Linux programs
  *
  * @author Nick, Liao
@@ -31,10 +31,10 @@
 #include "../Models/FileParsers/Headers/InitializedJsonFileParser.hpp"
 #include "../Models/PCAP/Headers/PCAPPrototype.hpp"
 #include "../Models/PCAP/Headers/WindowsPCAP.hpp"
-#include "./SysinMainCallerPrototype.hpp"
+#include "./SizingMainCallerPrototype.hpp"
 
-namespace SysinMainCaller {
-class WindowsSysinMainCaller : public SysinMainCallerPrototype {
+namespace SizingMainCaller {
+class WindowsSizingMainCaller : public SizingMainCallerPrototype {
    public:
     /**
      * Definition for the Windows's ether_header structure; this structure is
@@ -105,5 +105,5 @@ class WindowsSysinMainCaller : public SysinMainCallerPrototype {
     static void packetTask(PCAP::WindowsPCAP*, void (*)(u_char*, const pcap_pkthdr*, const u_char*));
     static void packetFileTask(FILE**, const char*);
 };
-}  // namespace SysinMainCaller
+}  // namespace SizingMainCaller
 #endif

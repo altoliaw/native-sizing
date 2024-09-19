@@ -1,5 +1,5 @@
 #pragma once
-/** @file SysinMainCaller.hpp
+/** @file SizingMainCaller.hpp
  * The headers and global variables from other package
  *
  * @author Nick, Liao
@@ -9,21 +9,21 @@
 #include <algorithm>
 
 #include "../Models/Commons/Headers/POSIXErrors.hpp"
-#include "./SysinMainCallerPrototype.hpp"
+#include "./SizingMainCallerPrototype.hpp"
 
 #ifdef __linux__  // Linux
 
-#include "./LinuxSysinMainCaller.hpp"
+#include "./LinuxSizingMainCaller.hpp"
 
 #elif defined(_WIN32) || defined(_WIN64)
 
-#include "./WindowsSysinMainCaller.hpp"
+#include "./WindowsSizingMainCaller.hpp"
 
 #endif
 
-namespace SysinMainCaller {
-class SysinMainCaller {
+namespace SizingMainCaller {
+class SizingMainCaller {
    public:
     Commons::POSIXErrors start(int, char**);
 };
-}  // namespace SysinMainCaller
+}  // namespace SizingMainCaller

@@ -1,7 +1,7 @@
 add_library(Main.Sources
-	SysinMainCallerPrototype.cpp
-	SysinMainCaller.cpp
-	WindowsSysinMainCaller.cpp
+	SizingMainCallerPrototype.cpp
+	SizingMainCaller.cpp
+	WindowsSizingMainCaller.cpp
 )
 
 set(STATIC_LIB_PATH ${CMAKE_BINARY_DIR}/Vendors)
