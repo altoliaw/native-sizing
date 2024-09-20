@@ -11,7 +11,7 @@ if (NOT BUILD_TEST)
 	set(STATIC_LIB_PATH ${CMAKE_BINARY_DIR}/Vendors)
 
 	# Linking to the headers
-	target_include_directories(SizingMain_Windows PUBLIC ../Headers)
+	target_include_directories(SizingMain_Windows PUBLIC ../Headers/SizingController)
 
 	# Linking to the gtest library
 	target_link_libraries(

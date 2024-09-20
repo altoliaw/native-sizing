@@ -7,7 +7,8 @@ ifeq (${OS}, Linux)
 endif
 
 
-# Obtaining the project root path (to project's path)
+# Obtaining the project root path (to project's path); using this approach to obtain the path even though the current working directory
+# does not in the place where the makefile locates
 Prdir:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
 
 # Setting of the general compiled grammar
@@ -61,6 +62,11 @@ Vendors:=Vendors
 
 # Make's Processes
 .Suffixs: .c .h .cpp .hpp
+
+.Phony: path
+path:
+# Prdir:=$(shell dirname $(realpath $(firstword $(MAKEFILE_LIST))))
+	echo "${Prdir}"
 
 .Phony: all
 all:	${Prdir}/${PjN}/Folders ${Prdir}/${PjN}_Sizing
@@ -133,10 +139,10 @@ ${Prdir}/${PjN}/Folders:
 ##===============[Application]=========================================
 # Create an application
 ${Prdir}/${PjN}_Sizing: 	${Prdir}/${AppLoc}/SizingMain.o \
-							${Sources}/SizingMainCallerPrototype.o \
-							${Sources}/LinuxSizingMainCaller.o \
-							${Sources}/WindowsSizingMainCaller.o \
-							${Sources}/SizingMainCaller.o \
+							${Sources}/SizingController/SizingMainCallerPrototype.o \
+							${Sources}/SizingController/LinuxSizingMainCaller.o \
+							${Sources}/SizingController/WindowsSizingMainCaller.o \
+							${Sources}/SizingController/SizingMainCaller.o \
 							${Commons.Sources}/HashTable.o \
 							${Commons.Sources}/IOSpecification.o \
 							${Commons.Sources}/StringImplement.o \
@@ -146,10 +152,10 @@ ${Prdir}/${PjN}_Sizing: 	${Prdir}/${AppLoc}/SizingMain.o \
 							${PCAP.Sources}/LinuxPCAP.o
 
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${FMSG} -o ${Prdir}/${Bin}/${PjN}_Sizing ${Prdir}/${AppLoc}/SizingMain.o \
-	${Sources}/SizingMainCallerPrototype.o \
-	${Sources}/LinuxSizingMainCaller.o \
-	${Sources}/WindowsSizingMainCaller.o \
-	${Sources}/SizingMainCaller.o \
+	${Sources}/SizingController/SizingMainCallerPrototype.o \
+	${Sources}/SizingController/LinuxSizingMainCaller.o \
+	${Sources}/SizingController/WindowsSizingMainCaller.o \
+	${Sources}/SizingController/SizingMainCaller.o \
 	${Commons.Sources}/HashTable.o \
 	${Commons.Sources}/IOSpecification.o \
 	${Commons.Sources}/StringImplement.o \
@@ -165,20 +171,20 @@ ${Prdir}/${AppLoc}/SizingMain.o:	${Prdir}/${AppLoc}/SizingMain.cpp
 	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Prdir}/${AppLoc}/SizingMain.cpp -c ${FMSG} -o ${Prdir}/${AppLoc}/SizingMain.o
 
 # SizingMainCaller
-${Sources}/SizingMainCaller.o:	${Sources}/SizingMainCaller.cpp
-	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Sources}/SizingMainCaller.cpp -c ${FMSG} -o ${Sources}/SizingMainCaller.o
+${Sources}/SizingController/SizingMainCaller.o:	${Sources}/SizingController/SizingMainCaller.cpp
+	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Sources}/SizingController/SizingMainCaller.cpp -c ${FMSG} -o ${Sources}/SizingController/SizingMainCaller.o
 
 # SizingMainCallerPrototype
-${Sources}/SizingMainCallerPrototype.o:	${Sources}/SizingMainCallerPrototype.cpp
-	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Sources}/SizingMainCallerPrototype.cpp -c ${FMSG} -o ${Sources}/SizingMainCallerPrototype.o
+${Sources}/SizingController/SizingMainCallerPrototype.o:	${Sources}/SizingController/SizingMainCallerPrototype.cpp
+	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Sources}/SizingController/SizingMainCallerPrototype.cpp -c ${FMSG} -o ${Sources}/SizingController/SizingMainCallerPrototype.o
 
 # LinuxSizingMainCaller
-${Sources}/LinuxSizingMainCaller.o:	${Sources}/LinuxSizingMainCaller.cpp
-	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Sources}/LinuxSizingMainCaller.cpp -c ${FMSG} -o ${Sources}/LinuxSizingMainCaller.o
+${Sources}/SizingController/LinuxSizingMainCaller.o:	${Sources}/SizingController/LinuxSizingMainCaller.cpp
+	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Sources}/SizingController/LinuxSizingMainCaller.cpp -c ${FMSG} -o ${Sources}/SizingController/LinuxSizingMainCaller.o
 
 # WindowsSizingMainCaller
-${Sources}/WindowsSizingMainCaller.o:	${Sources}/WindowsSizingMainCaller.cpp
-	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Sources}/WindowsSizingMainCaller.cpp -c ${FMSG} -o ${Sources}/WindowsSizingMainCaller.o
+${Sources}/SizingController/WindowsSizingMainCaller.o:	${Sources}/SizingController/WindowsSizingMainCaller.cpp
+	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Sources}/SizingController/WindowsSizingMainCaller.cpp -c ${FMSG} -o ${Sources}/SizingController/WindowsSizingMainCaller.o
 
 
 
