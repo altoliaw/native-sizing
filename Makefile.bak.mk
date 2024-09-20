@@ -41,12 +41,15 @@ LDLIBS		:=$(shell source ${projectDir}/Shells/iniParser.sh && echo $$(getVariabl
 endif
 
 
-# ######## [Variable Definition]
+# ######## [Variable Definitions]
 # The folder for the exection
 Bin:= Bin
 # The foldeer for the third party software
 Vendors:= Vendors
 
+
+# ######## [Makefile Included]
+include common.mk
 
 # ######## [Implicit Rules]
 # The definition for the basic element in the Makefile
@@ -79,7 +82,7 @@ vendor: ${projectDir}/Folders
 # Displaying the project of the working directory
 .Phony: pwd
 pwd:
-	echo "${projectDir}"
+	@echo "${projectDir}"
 
 # Building all applications; depending on different platforms, the building approaches are different also
 .Phony: build
@@ -106,6 +109,10 @@ cmake: ${projectDir}/Folders
 	cmake --build build
 	cd build && ctest -V
 
+# For testing
+.Phony: test
+test:
+	@echo "$(shell echo '${arguments}' | sed 's/\t//g')"	# Ignoring the tab
 
 # ######## [Recipes]
 # For building the applications
