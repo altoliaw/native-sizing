@@ -80,13 +80,14 @@ vendor: ${projectDir}/Folders
 	@source ${projectDir}/Shells/installVendor.sh && dependenciesTraversal "${projectDir}/Settings/.Json/globalDependencies.json" "${projectDir}/${Vendors}/.${Vendors}.json"
 
 # Displaying the project of the working directory
-.Phony: pwd
-pwd:
-	@echo "${projectDir}"
+.Phony: information
+information:
+	@echo "The project path is ${projectDir}"
+	@echo "The common string modelled from all arguments is $(shell echo '${arguments}' | sed 's/\t//g')"	# Ignoring the tab
 
 # Building all applications; depending on different platforms, the building approaches are different also
 .Phony: build
-build: ${projectDir}/Folders ${projectDir}/build
+build: ${projectDir}/Folders
 # When the platform is equal to the Linux
 ifeq ($(OS), Linux)
 	@echo "[Linux Building]"
@@ -109,17 +110,9 @@ cmake: ${projectDir}/Folders
 	cmake --build build
 	cd build && ctest -V
 
-# For testing
-.Phony: test
-test:
-	@echo "$(shell echo '${arguments}' | sed 's/\t//g')"	# Ignoring the tab
-
 # ######## [Recipes]
-# For building the applications
-${projectDir}/build:
-
 # The location for creating folders & a maintained file in advance
 ${projectDir}/Folders:
 	@mkdir -p Outputs
 	@mkdir -p Logs
-	@mkdir -p ${Bin}		# Creating the folder for execution		
+	@mkdir -p ${Bin}		# Creating the folder for execution
