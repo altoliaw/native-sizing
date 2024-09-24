@@ -46,10 +46,15 @@ endif
 Bin:= Bin
 # The foldeer for the third party software
 Vendors:= Vendors
-
+# The file for record the variables and values
+TempMakefile:= ${projectDir}/tmp.mk
 
 # ######## [Makefile Included]
 include common.mk
+
+
+# ######## [Makefile Arguments for sub-Makefile]
+ARGUMENTS	:=	$(shell source ${projectDir}/Shells/codecUtilities.sh && echo $$(stringToAsciiHex '${arguments}'))
 
 # ######## [Implicit Rules]
 # The definition for the basic element in the Makefile
@@ -69,6 +74,7 @@ clean:
 	@echo "Removing all object files from the compiled files & all executions"
 	find . -name "*.o" -type f -delete
 	@${SUDO} rm -rf ${projectDir}/${Bin}
+	@rm -f ${projectDir}/tmp.mk
 
 
 # ######## [Custom Defined Phonies]
@@ -84,13 +90,21 @@ vendor: ${projectDir}/Folders
 information:
 	@echo "The project path is ${projectDir}"
 	@echo "The common string modelled from all arguments is $(shell echo '${arguments}' | sed 's/\t//g')"	# Ignoring the tab
+	@echo 'The hex values are ${ARGUMENTS}'
 
 # Building all applications; depending on different platforms, the building approaches are different also
 .Phony: build
 build: ${projectDir}/Folders
 # When the platform is equal to the Linux
 ifeq ($(OS), Linux)
+	@echo "" >${TempMakefile}
 	@echo "[Linux Building]"
+# @make -C Models/Commons all projectDir='${projectDir}' ARGUMENTS='${ARGUMENTS}' TempMakefile='${TempMakefile}'
+# @make -C Models/FileParsers all projectDir='${projectDir}' ARGUMENTS='${ARGUMENTS}' TempMakefile='${TempMakefile}'
+	@make -C Models/PCAP information projectDir='${projectDir}' ARGUMENTS='${ARGUMENTS}' TempMakefile='${TempMakefile}'
+# @make -C Sources/SizingController all projectDir='${projectDir}' ARGUMENTS='${ARGUMENTS}' TempMakefile='${TempMakefile}'
+# @make -C Apps all projectDir='${projectDir}' ARGUMENTS='${ARGUMENTS}' TempMakefile='${TempMakefile}'
+
 else
 	@echo "[Winndows Building]"
 	@eval ./windowsMake.sh

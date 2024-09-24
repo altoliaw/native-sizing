@@ -19,7 +19,6 @@ define arguments
 	\"LDFLAGS\":		\"${LDFLAGS}\",		\
 	\"LDLIBS\":			\"${LDLIBS}\",		\
 	\"OS\":				\"${OS}\",			\
-	\"SUDO\":			\"${SUDO}\",		\
-	\"projectDir\":		\"${projectDir}\"	\
+	\"SUDO\":			\"${SUDO}\"			\
 }
 endef
