@@ -37,7 +37,7 @@ configure_file(${CMAKE_SOURCE_DIR}/Settings/.Ini/globalCompiling.ini ${CMAKE_BIN
 endif()
 
 # Others involved in the testing process and compiling process
-configure_file(${CMAKE_SOURCE_DIR}/Settings/.Json/SysinMain.json ${CMAKE_BINARY_DIR}/Settings/.Json/SysinMain.json COPYONLY)
+configure_file(${CMAKE_SOURCE_DIR}/Settings/.Json/SizingMain.json ${CMAKE_BINARY_DIR}/Settings/.Json/SizingMain.json COPYONLY)
 
 ## Copying the third party software into the Vendors folder and the Outputs for testing
 file(COPY ${CMAKE_SOURCE_DIR}/Vendors DESTINATION ${CMAKE_BINARY_DIR})

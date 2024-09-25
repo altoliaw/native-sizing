@@ -23,3 +23,11 @@ echo "==========================="
 # Traversal of globalDependencies.json
 dependenciesTraversal $(pwd)/Settings/.Json/globalDependencies.json $(pwd)/$Vendors/.$Vendors.json
 
+echo "==========================="
+# Obtaining elements from another Json string
+
+dependencies='{ "CC":"g++", "STD":"-std=c++11", "CMPOPT":"-O0", "DETAILINFO":"-g0", "WALL":"-Wall", "FMSG":"-fmessage-length=0 -pthread", "CFLAGS":"-IVendors/nPcap/Includes", "LDFLAGS":"-LVendors/cJson/Libs -LVendors/nPcap/Libs", "LDLIBS":"-lpcap -lc -lcjson", "OS":"Linux", "SUDO":"sudo", "projectDir":"/home/dbsecure/native-sizing" }'
+searchElement "$dependencies" '.CC' '-r'
+searchElement "$dependencies" '.STD' '-r'
+searchElement "$dependencies" '.CMPOPT' '-r'
+searchElement "$dependencies" '.projectDir' '-r'

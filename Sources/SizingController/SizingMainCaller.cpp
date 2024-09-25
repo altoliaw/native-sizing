@@ -1,9 +1,9 @@
 /**
- * @see SysinMainCaller.hpp
+ * @see SizingMainCaller.hpp
  */
-#include "../Headers/SysinMainCaller.hpp"
+#include "../../Headers/SizingController/SizingMainCaller.hpp"
 
-namespace SysinMainCaller {
+namespace SizingMainCaller {
 
 /**
  * The starting process, the entry of the process
@@ -12,19 +12,19 @@ namespace SysinMainCaller {
  * @param argV [char**] The array of the argument
  * @return [Commons::POSIXErrors] The status defined in the class "POSIXErrors" The status defined in the class "POSIXErrors"
  */
-Commons::POSIXErrors SysinMainCaller::start(int argC, char** argV) {
+Commons::POSIXErrors SizingMainCaller::start(int argC, char** argV) {
     Commons::POSIXErrors result = Commons::POSIXErrors::OK;
-    SysinMainCallerPrototype* caller;
+    SizingMainCallerPrototype* caller;
 
 #ifdef __linux__
-    LinuxSysinMainCaller instance;
+    LinuxSizingMainCaller instance;
     caller = &instance;
 #elif defined(_WIN32)
-    WindowsSysinMainCaller instance;
+    WindowsSizingMainCaller instance;
     caller = &instance;
 #endif
     
     result = caller->start(argC, argV);
     return result;
 }
-}  // namespace SysinMainCaller
+}  // namespace SizingMainCaller

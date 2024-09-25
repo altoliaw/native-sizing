@@ -9,7 +9,7 @@ TEST(FileParsers, Test_InitializedJsonFileParser_getInitializedFileParserInitial
 }
 
 TEST(FileParsers, Test_InitializedJsonFileParser_parseInitializedFile) {
-    const unsigned char* path = (const unsigned char*)"../../../../Settings/.Json/SysinMain.json";
+    const unsigned char* path = (const unsigned char*)"../../../../Settings/.Json/SizingMain.json";
     Commons::POSIXErrors error = FileParsers::InitializedJsonFileParser::parseInitializedFile(path);
     ASSERT_EQ(Commons::POSIXErrors::OK, error);
 

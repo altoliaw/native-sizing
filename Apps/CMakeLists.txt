@@ -3,19 +3,19 @@ if (NOT BUILD_TEST)
 	# Creating an execution in each model
 	set(CMAKE_EXE_LINKER_FLAGS "-static")
 	add_executable(
-		SysinMain_Windows
-		SysinMain.cpp
+		SizingMain_Windows
+		SizingMain.cpp
 	)
 		
 	# Linking to the library
 	set(STATIC_LIB_PATH ${CMAKE_BINARY_DIR}/Vendors)
 
 	# Linking to the headers
-	target_include_directories(SysinMain_Windows PUBLIC ../Headers)
+	target_include_directories(SizingMain_Windows PUBLIC ../Headers/SizingController)
 
 	# Linking to the gtest library
 	target_link_libraries(
-		SysinMain_Windows -static
+		SizingMain_Windows -static
 		Main.Sources
 		Models.Commons
 		Models.FileParsers
