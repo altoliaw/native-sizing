@@ -53,7 +53,7 @@ TempMakefile:= ${projectDir}/tmp.mk
 include common.mk
 
 
-# ######## [Makefile Arguments for sub-Makefile]
+# ######## [Makefile Arguments for sub-Makefile]: ${arguments} is from the 
 ARGUMENTS	:=	$(shell source ${projectDir}/Shells/codecUtilities.sh && echo $$(stringToAsciiHex '${arguments}'))
 
 # ######## [Implicit Rules]
@@ -97,13 +97,15 @@ information:
 build: ${projectDir}/Folders
 # When the platform is equal to the Linux
 ifeq ($(OS), Linux)
-	@echo "" >${TempMakefile}
 	@echo "[Linux Building]"
-# @make -C Models/Commons all projectDir='${projectDir}' ARGUMENTS='${ARGUMENTS}' TempMakefile='${TempMakefile}'
-# @make -C Models/FileParsers all projectDir='${projectDir}' ARGUMENTS='${ARGUMENTS}' TempMakefile='${TempMakefile}'
-	@make -C Models/PCAP information projectDir='${projectDir}' ARGUMENTS='${ARGUMENTS}' TempMakefile='${TempMakefile}'
-# @make -C Sources/SizingController all projectDir='${projectDir}' ARGUMENTS='${ARGUMENTS}' TempMakefile='${TempMakefile}'
-# @make -C Apps all projectDir='${projectDir}' ARGUMENTS='${ARGUMENTS}' TempMakefile='${TempMakefile}'
+# Generating the file and preparing the variables
+	@$(shell > ${TempMakefile})
+	@make -C Models/Commons all projectDir='${projectDir}' ARGUMENTS='${ARGUMENTS}' TempMakefile='${TempMakefile}'
+	@make -C Models/FileParsers all projectDir='${projectDir}' ARGUMENTS='${ARGUMENTS}' TempMakefile='${TempMakefile}'
+	@make -C Models/PCAP all projectDir='${projectDir}' ARGUMENTS='${ARGUMENTS}' TempMakefile='${TempMakefile}'
+	@make -C Sources/SizingController all projectDir='${projectDir}' ARGUMENTS='${ARGUMENTS}' TempMakefile='${TempMakefile}'
+	@make -C Apps all projectDir='${projectDir}' ARGUMENTS='${ARGUMENTS}' TempMakefile='${TempMakefile}'
+	@make -C Apps/Executions all projectDir='${projectDir}' ARGUMENTS='${ARGUMENTS}' TempMakefile='${TempMakefile}'
 
 else
 	@echo "[Winndows Building]"

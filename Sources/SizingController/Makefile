@@ -14,9 +14,6 @@ CMPOPT		:=	$(shell source ${projectDir}/Shells/installVendor.sh && echo $$(searc
 DETAILINFO	:=	$(shell source ${projectDir}/Shells/installVendor.sh && echo $$(searchElement "${PLAIN_ARGUMENTS}" '.DETAILINFO' '-r'))
 WALL		:=	$(shell source ${projectDir}/Shells/installVendor.sh && echo $$(searchElement "${PLAIN_ARGUMENTS}" '.WALL' '-r'))
 FMSG		:=	$(shell source ${projectDir}/Shells/installVendor.sh && echo $$(searchElement "${PLAIN_ARGUMENTS}" '.FMSG' '-r'))
-CFLAGS		:=	$(shell source ${projectDir}/Shells/installVendor.sh && echo $$(searchElement "${PLAIN_ARGUMENTS}" '.CFLAGS' '-r'))
-LDFLAGS		:=	$(shell source ${projectDir}/Shells/installVendor.sh && echo $$(searchElement "${PLAIN_ARGUMENTS}" '.LDFLAGS' '-r'))
-LDLIBS		:=	$(shell source ${projectDir}/Shells/installVendor.sh && echo $$(searchElement "${PLAIN_ARGUMENTS}" '.LDLIBS' '-r'))
 
 # If someone feel like using the definitions that users define, please remove the comment and fill in the suitable terms.
 # CC			=
@@ -33,8 +30,17 @@ LDLIBS		:=	$(shell source ${projectDir}/Shells/installVendor.sh && echo $$(searc
 # ######## [Variable Definition]
 Models			:=	Sources.SizingController
 Duration		:=
-Headers=${projectDir}/Headers
-Sources=${projectDir}/Sources
+Sources			:=	${projectDir}/Sources
+Sources.SizingController	:=	${Sources}/SizingController
+
+
+# ######## [Passing the Variable Definition into the File]
+# Verifying the content the file, ${TempMakefile} (tmp.mk from the project);
+# the regular expression is e.g., grep -q "^PCAP\.Headers\s*\(:\)\?=" /home/dbsecure/native-sizing/tmp.mk && echo $?
+# when the returned value is 0, the string contains the pattern; when the returned values are other values except 0, 
+# the string does not contain the pattern
+IsExisted	:=
+
 
 # ######## [Implicit Rules]
 # The definition for the basic element in the Makefile
@@ -46,12 +52,27 @@ Sources=${projectDir}/Sources
 .Phony: all
 all: \
 	startTime \
-	${Sources}/SizingController/SizingMainCallerPrototype.o \
-	${Sources}/SizingController/SizingMainCaller.o \
-	${Sources}/SizingController/LinuxSizingMainCaller.o \
-	${Sources}/SizingController/WindowsSizingMainCaller.o \
+	${Sources.SizingController}/SizingMainCallerPrototype.o \
+	${Sources.SizingController}/SizingMainCaller.o \
+	${Sources.SizingController}/LinuxSizingMainCaller.o \
+	${Sources.SizingController}/WindowsSizingMainCaller.o \
 	endTime
+# Adding the Makefile's variables shall be added into the ${TempMakefile} file
+	@make information
 
+
+# This section is for determining if the Makefile's variables shall be added into the 
+# ${TempMakefile} file
+.Phony: information
+information:
+# Verifying the content the file, ${TempMakefile} (tmp.mk from the project) to
+# determine if the variable in the Makefile shall be added into the ${TempMakefile}
+# Using the "eval" to assign the Makefile's variable in the recipe
+	@$(eval IsExisted	:=	$(shell grep -q "^Sources\.SizingController\s*\(:\)\?=" "${TempMakefile}"  && echo "$$?"))
+# Adding the variable into the file when the variables do not in the file, the information shall put into the file
+	@if [ "${IsExisted}" != "0" ]; then \
+		echo "Sources.SizingController	:=	${Sources}/SizingController" >> "${TempMakefile}"; \
+	fi
 
 # ######## [Compiling Items]
 # Start time
@@ -62,17 +83,17 @@ endTime:
 	@echo $(shell source ${projectDir}/Shells/compiledStringMessage.sh && echo $$(endingString "${Models}" "${Duration}"))
 
 # SizingMainCaller
-${Sources}/SizingController/SizingMainCaller.o:	${Sources}/SizingController/SizingMainCaller.cpp
-	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Sources}/SizingController/SizingMainCaller.cpp -c ${FMSG} -o ${Sources}/SizingController/SizingMainCaller.o
+${Sources.SizingController}/SizingMainCaller.o:	${Sources.SizingController}/SizingMainCaller.cpp
+	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Sources.SizingController}/SizingMainCaller.cpp -c ${FMSG} -o ${Sources.SizingController}/SizingMainCaller.o
 
 # SizingMainCallerPrototype
-${Sources}/SizingController/SizingMainCallerPrototype.o:	${Sources}/SizingController/SizingMainCallerPrototype.cpp
-	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Sources}/SizingController/SizingMainCallerPrototype.cpp -c ${FMSG} -o ${Sources}/SizingController/SizingMainCallerPrototype.o
+${Sources.SizingController}/SizingMainCallerPrototype.o:	${Sources.SizingController}/SizingMainCallerPrototype.cpp
+	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Sources.SizingController}/SizingMainCallerPrototype.cpp -c ${FMSG} -o ${Sources.SizingController}/SizingMainCallerPrototype.o
 
 # LinuxSizingMainCaller
-${Sources}/SizingController/LinuxSizingMainCaller.o:	${Sources}/SizingController/LinuxSizingMainCaller.cpp
-	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Sources}/SizingController/LinuxSizingMainCaller.cpp -c ${FMSG} -o ${Sources}/SizingController/LinuxSizingMainCaller.o
+${Sources.SizingController}/LinuxSizingMainCaller.o:	${Sources.SizingController}/LinuxSizingMainCaller.cpp
+	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Sources.SizingController}/LinuxSizingMainCaller.cpp -c ${FMSG} -o ${Sources.SizingController}/LinuxSizingMainCaller.o
 
 # WindowsSizingMainCaller
-${Sources}/SizingController/WindowsSizingMainCaller.o:	${Sources}/SizingController/WindowsSizingMainCaller.cpp
-	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Sources}/SizingController/WindowsSizingMainCaller.cpp -c ${FMSG} -o ${Sources}/SizingController/WindowsSizingMainCaller.o
+${Sources.SizingController}/WindowsSizingMainCaller.o:	${Sources.SizingController}/WindowsSizingMainCaller.cpp
+	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Sources.SizingController}/WindowsSizingMainCaller.cpp -c ${FMSG} -o ${Sources.SizingController}/WindowsSizingMainCaller.o

@@ -15,7 +15,11 @@ DETAILINFO	:=	$(shell source ${projectDir}/Shells/installVendor.sh && echo $$(se
 WALL		:=	$(shell source ${projectDir}/Shells/installVendor.sh && echo $$(searchElement "${PLAIN_ARGUMENTS}" '.WALL' '-r'))
 FMSG		:=	$(shell source ${projectDir}/Shells/installVendor.sh && echo $$(searchElement "${PLAIN_ARGUMENTS}" '.FMSG' '-r'))
 CFLAGS		:=	$(shell source ${projectDir}/Shells/installVendor.sh && echo $$(searchElement "${PLAIN_ARGUMENTS}" '.CFLAGS' '-r'))
+# Replacing terms by using $(.) from Makefile function
+CFLAGS		:=	$(subst -I, -I${projectDir}/, ${CFLAGS})
 LDFLAGS		:=	$(shell source ${projectDir}/Shells/installVendor.sh && echo $$(searchElement "${PLAIN_ARGUMENTS}" '.LDFLAGS' '-r'))
+# Replacing terms by using $(.) from Makefile function
+LDFLAGS		:=	$(subst -L, -L${projectDir}/, ${LDFLAGS})
 LDLIBS		:=	$(shell source ${projectDir}/Shells/installVendor.sh && echo $$(searchElement "${PLAIN_ARGUMENTS}" '.LDLIBS' '-r'))
 
 # If someone feel like using the definitions that users define, please remove the comment and fill in the suitable terms.
@@ -31,11 +35,13 @@ LDLIBS		:=	$(shell source ${projectDir}/Shells/installVendor.sh && echo $$(searc
 
 
 # ######## [Variable Definition]
-Models			:=	Apps
+Models			:=	Apps.Executions
 Duration		:=
+### The folder for the exection
+Bin				:=	Bin
 
-Apps			:=${projectDir}/Apps
-
+# ######## [Necessary MakeFile Variables Included]
+include ${TempMakefile}
 
 # ######## [Implicit Rules]
 # The definition for the basic element in the Makefile
@@ -47,7 +53,7 @@ Apps			:=${projectDir}/Apps
 .Phony: all
 all: \
 	startTime \
-	${Apps}/SizingMain.o \
+	${Apps}/SizingMain.exe \
 	endTime
 
 
@@ -59,6 +65,19 @@ startTime:
 endTime:
 	@echo $(shell source ${projectDir}/Shells/compiledStringMessage.sh && echo $$(endingString "${Models}" "${Duration}"))
 
-# SizingMain
-${Apps}/SizingMain.o:	${Apps}/SizingMain.cpp
-	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${Apps}/SizingMain.cpp -c ${FMSG} -o ${Apps}/SizingMain.o
+# SizingMain.exe
+${Apps}/SizingMain.exe: 
+	${CC} ${STD} ${CMPOPT} ${DETAILINFO} ${WALL} ${CFLAGS} ${FMSG} -o ${projectDir}/${Bin}/SizingMain.exe ${Apps}/SizingMain.o \
+	${Sources.SizingController}/SizingMainCallerPrototype.o \
+	${Sources.SizingController}/LinuxSizingMainCaller.o \
+	${Sources.SizingController}/WindowsSizingMainCaller.o \
+	${Sources.SizingController}/SizingMainCaller.o \
+	${Commons.Sources}/HashTable.o \
+	${Commons.Sources}/IOSpecification.o \
+	${Commons.Sources}/StringImplement.o \
+	${Commons.Sources}/Time.o \
+	${FileParsers.Sources}/InitializedJsonFileParser.o \
+	${PCAP.Sources}/PCAPPrototype.o \
+	${PCAP.Sources}/LinuxPCAP.o \
+	${LDFLAGS} \
+	${LDLIBS}
