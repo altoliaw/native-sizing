@@ -16,10 +16,10 @@ WALL		:=	$(shell source ${projectDir}/Shells/installVendor.sh && echo $$(searchE
 FMSG		:=	$(shell source ${projectDir}/Shells/installVendor.sh && echo $$(searchElement "${PLAIN_ARGUMENTS}" '.FMSG' '-r'))
 CFLAGS		:=	$(shell source ${projectDir}/Shells/installVendor.sh && echo $$(searchElement "${PLAIN_ARGUMENTS}" '.CFLAGS' '-r'))
 # Replacing terms by using $(.) from Makefile function
-CFLAGS		:=	$(subst -I, -I${projectDir}/, ${CFLAGS})
+CFLAGS		:=	$(subst -I,-I${projectDir}/,${CFLAGS})
 LDFLAGS		:=	$(shell source ${projectDir}/Shells/installVendor.sh && echo $$(searchElement "${PLAIN_ARGUMENTS}" '.LDFLAGS' '-r'))
 # Replacing terms by using $(.) from Makefile function
-LDFLAGS		:=	$(subst -L, -L${projectDir}/, ${LDFLAGS})
+LDFLAGS		:=$(subst -L,-L${projectDir}/,${LDFLAGS})
 LDLIBS		:=	$(shell source ${projectDir}/Shells/installVendor.sh && echo $$(searchElement "${PLAIN_ARGUMENTS}" '.LDLIBS' '-r'))
 
 # If someone feel like using the definitions that users define, please remove the comment and fill in the suitable terms.
