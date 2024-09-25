@@ -1,9 +1,9 @@
 /**
- * @see SysinMainCallerPrototype.hpp
+ * @see SizingMainCallerPrototype.hpp
  */
-#include "../Headers/SysinMainCallerPrototype.hpp"
+#include "../../Headers/SizingController/SizingMainCallerPrototype.hpp"
 
-namespace SysinMainCaller {
+namespace SizingMainCaller {
 
 /**
  * Constructor
@@ -27,4 +27,4 @@ unitService::~unitService() {
     }
 }
 
-}  // namespace SysinMainCaller
+}  // namespace SizingMainCaller

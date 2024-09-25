@@ -10,14 +10,14 @@ TEST(Commons, HashTable_addNRemoveFirstElements) {
     // Adding an element
     table.addElementIntoHashTable((char*)(columnName.c_str()), (void*)(value.c_str()), sizeOfMemory, type);
 
-    // Adding 2nd element
+    // Adding the 2nd element
     columnName = "decoder";
     value = "./test/334.log";
     sizeOfMemory = strlen(value.c_str());
     type = Commons::HashTable::ElementType::charStarType;
     table.addElementIntoHashTable((char*)(columnName.c_str()), (void*)(value.c_str()), sizeOfMemory, type);
 
-    // Adding 3rd element
+    // Adding the 3rd element
     columnName = "eyes";
     value = "./test/3343.log";
     sizeOfMemory = strlen(value.c_str());
@@ -73,14 +73,14 @@ TEST(Commons, HashTable_addNRemoveSecondElements) {
     // Adding an element
     table.addElementIntoHashTable((char*)(columnName.c_str()), (void*)(value.c_str()), sizeOfMemory, type);
 
-    // Adding 2nd element
+    // Adding the 2nd element
     columnName = "decoder";
     value = "./test/334.log";
     sizeOfMemory = strlen(value.c_str());
     type = Commons::HashTable::ElementType::charStarType;
     table.addElementIntoHashTable((char*)(columnName.c_str()), (void*)(value.c_str()), sizeOfMemory, type);
 
-    // Adding 3rd element
+    // Adding the 3rd element
     columnName = "eyes";
     value = "./test/3343.log";
     sizeOfMemory = strlen(value.c_str());
@@ -141,14 +141,14 @@ TEST(Commons, HashTable_addNRemoveLastElements) {
     // Adding an element
     table.addElementIntoHashTable((char*)(columnName.c_str()), (void*)(value.c_str()), sizeOfMemory, type);
 
-    // Adding 2nd element
+    // Adding the 2nd element
     columnName = "decoder";
     value = "./test/334.log";
     sizeOfMemory = strlen(value.c_str());
     type = Commons::HashTable::ElementType::charStarType;
     table.addElementIntoHashTable((char*)(columnName.c_str()), (void*)(value.c_str()), sizeOfMemory, type);
 
-    // Adding 3rd element
+    // Adding the 3rd element
     columnName = "eyes";
     value = "./test/3343.log";
     sizeOfMemory = strlen(value.c_str());
@@ -204,14 +204,14 @@ TEST(Commons, HashTable_addNRemoveNonExistedElements) {
     // Adding an element
     table.addElementIntoHashTable((char*)(columnName.c_str()), (void*)(value.c_str()), sizeOfMemory, type);
 
-    // Adding 2nd element
+    // Adding the 2nd element
     columnName = "decoder";
     value = "./test/334.log";
     sizeOfMemory = strlen(value.c_str());
     type = Commons::HashTable::ElementType::charStarType;
     table.addElementIntoHashTable((char*)(columnName.c_str()), (void*)(value.c_str()), sizeOfMemory, type);
 
-    // Adding 3rd element
+    // Adding the 3rd element
     columnName = "eyes";
     value = "./test/3343.log";
     sizeOfMemory = strlen(value.c_str());

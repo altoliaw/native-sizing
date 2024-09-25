@@ -1,10 +1,9 @@
 /**
- * @see WindowsSysinMainCaller.hpp
+ * @see SizingMainCaller.hpp
  */
-#include "../Headers/WindowsSysinMainCaller.hpp"
-#ifdef _WIN32
-
-namespace SysinMainCaller {
+#include "../../Headers/SizingController/LinuxSizingMainCaller.hpp"
+#ifdef __linux__
+namespace SizingMainCaller {
 //===Global Declaration===
 // Variables in .ini file
 // Writing file path
@@ -16,10 +15,8 @@ unsigned int _WRITING_FILE_SECOND_ = 30;
 volatile char _IS_PCAP_WORKED_ = 0x1;
 // Determining if the alarm shall be still working, 0x0: halting, 0x1: working
 volatile char _IS_ALARM_WORKED_ = 0x1;
-// Mutual locker(Windows version), using by the critical section (only works on a process on Windows)
-CRITICAL_SECTION _CRITICAL_SECTION_;
-// For windows timer
-HANDLE _TIMER_ = nullptr;
+// Mutual locker
+std::mutex _MUTEX_;
 
 // Referring to the objects for stopping "pcap_loop"
 std::vector<PCAP::PCAPPrototype*> _PCAP_POINTER_;
@@ -33,14 +30,14 @@ FILE** _FILE_POINTER_ = nullptr;
  * @param argV [char**] The array of the argument
  * @return [Commons::POSIXErrors] The status defined in the class "POSIXErrors" The status defined in the class "POSIXErrors"
  */
-Commons::POSIXErrors WindowsSysinMainCaller::start(int argC, char** argV) {
+Commons::POSIXErrors LinuxSizingMainCaller::start(int argC, char** argV) {
     Commons::POSIXErrors result = Commons::POSIXErrors::OK;
 
     // TODO: This section shall be implemented by using "Bison" instead of the section defined in the following.
     // To determine if the argument is passed for the execution
-    if (argC == 2 && strcmp(argV[1], "-l") == 0) {
+    if(argC == 2 && strcmp(argV[1], "-l") == 0) {
         // Showing the information
-        PCAP::WindowsPCAP::show();
+        PCAP::LinuxPCAP::show();
         return result;
     }
 
@@ -67,17 +64,17 @@ Commons::POSIXErrors WindowsSysinMainCaller::start(int argC, char** argV) {
     sprintf(OuputFilePathWithTime, OutputFilePathRule, Commons::Time::getEpoch());
     _WRITING_FILE_LOCATION_ = OuputFilePathWithTime;
 
-    // // Installing a signal handler, interrupt
-    SetConsoleCtrlHandler(WindowsSysinMainCaller::signalInterruptedHandler, TRUE);
+    // Installing a signal handler, interrupt
+    signal(SIGINT, LinuxSizingMainCaller::signalInterruptedHandler);
 
-    {                                                           // Creating objects, opening the interfaces, executing the packet calculations
-                                                                // and closing the interfaces; the number of objects is equal to the number of
-                                                                // the interfaces
-        std::vector<PCAP::WindowsPCAP*> pcapObjectOfInterface;  // Here each element shall be a pointer because there exist a pointer which refers to a
-                                                                // resource in the class. When the vector reserve objects, the destructor will occur twice in the following loop.
-                                                                // The best approach is used the dynamic memory allocation with pointers.
+    {  // Creating objects, opening the interfaces, executing the packet calculations
+        // and closing the interfaces; the number of objects is equal to the number of
+        // the interfaces
+        std::vector<PCAP::LinuxPCAP*> pcapObjectOfInterface;  // Here each element shall be a pointer because there exist a pointer which refers to a
+                                                              // resource in the class. When the vector reserve objects, the destructor will occur twice in the following loop.
+                                                              // The best approach is used the dynamic memory allocation with pointers.
         for (unsigned int i = 0; i < interfaceNameArray.size(); i++) {
-            PCAP::WindowsPCAP* pcapObject = new PCAP::WindowsPCAP();
+            PCAP::LinuxPCAP* pcapObject = new PCAP::LinuxPCAP();
             pcapObject->open(interfaceNameArray[i].interfaceName, BUFSIZ, 1, 1000, &(interfaceNameArray[i].port));
 
             // Putting each pcap object into thread array
@@ -89,9 +86,6 @@ Commons::POSIXErrors WindowsSysinMainCaller::start(int argC, char** argV) {
             interfaceNameArray.clear();
             interfaceNameArray.shrink_to_fit();
         }
-
-        // Before the threads, the MUTEX locker on Windows shall be initialized.
-        InitializeCriticalSection(&_CRITICAL_SECTION_);
 
         FILE* fileDescriptor = nullptr;
         // n + 1  threads created; the n is equal to the number of interfaces;
@@ -117,11 +111,7 @@ Commons::POSIXErrors WindowsSysinMainCaller::start(int argC, char** argV) {
         for (unsigned int i = 0; i < pcapObjectOfInterface.size(); i++) {
             threads[i].join();
         }
-
         writePacketFileThread.join();
-
-        // After threads have joined, the mutex locker shall be released.
-        DeleteCriticalSection(&_CRITICAL_SECTION_);
 
         // All pcap objects shall call the close function
         for (unsigned int i = 0; i < pcapObjectOfInterface.size(); i++) {
@@ -149,12 +139,12 @@ Commons::POSIXErrors WindowsSysinMainCaller::start(int argC, char** argV) {
  * @return [Commons::POSIXErrors] The status defined in the class "POSIXErrors" The status
  * defined in the class "POSIXErrors"
  */
-Commons::POSIXErrors WindowsSysinMainCaller::config(std::vector<unitService>* services) {
+Commons::POSIXErrors LinuxSizingMainCaller::config(std::vector<unitService>* services) {
     Commons::POSIXErrors error = Commons::POSIXErrors::OK;
 
     // Loading information from the .json file for the application
     // The current working directory is the project root; as a result, the related path is shown as follows.
-    const unsigned char* path = (const unsigned char*)"Settings/.Json/SysinMain.json";
+    const unsigned char* path = (const unsigned char*)"Settings/.Json/SizingMain.json";
     FileParsers::InitializedJsonFileParser::parseInitializedFile(path);
 
     // Obtaining the number of interfaces
@@ -237,7 +227,7 @@ Commons::POSIXErrors WindowsSysinMainCaller::config(std::vector<unitService>* se
  * @param pcap [PCAP::LinuxPCAP*] The address of the PCAP::LinuxPCAP object
  * @param packetHandler [void (*)(u_char*, const pcap_pkthdr*, const u_char*)] The callback function for pcap_loop
  */
-void WindowsSysinMainCaller::packetTask(PCAP::WindowsPCAP* pcap, void (*packetHandler)(u_char*, const pcap_pkthdr*, const u_char*)) {
+void LinuxSizingMainCaller::packetTask(PCAP::LinuxPCAP* pcap, void (*packetHandler)(u_char*, const pcap_pkthdr*, const u_char*)) {
     // The only argument will be set; as a result, the pcap object will be passed in the function, packetHandler.
     // For more information, please refer to the function, execute(.).
     pcap->execute(packetHandler);
@@ -251,22 +241,20 @@ void WindowsSysinMainCaller::packetTask(PCAP::WindowsPCAP* pcap, void (*packetHa
  * which users defined in .json file.
  * @param filePath [const char*] The file path for recording the information
  */
-void WindowsSysinMainCaller::packetFileTask(FILE** fileDescriptor, const char* filePath) {
-    // Installing a signal handler, alarm, on Windows
-    _TIMER_ = CreateWaitableTimer(NULL, TRUE, NULL);
-    if (_TIMER_ == nullptr) {
-        std::cerr << "[Error] Failed to create a waitable timer.\n";
-        _IS_ALARM_WORKED_ = 0x0;  // Disabled alarm
-        return;
-    }
+void LinuxSizingMainCaller::packetFileTask(FILE** fileDescriptor, const char* filePath) {
+    // Installing a signal handler, alarm
+    signal(SIGALRM, LinuxSizingMainCaller::signalAlarmHandler);
     _FILE_POINTER_ = fileDescriptor;  // Passing to the global variable
+
+    // The first calling the function
+    alarm(_WRITING_FILE_SECOND_);
 
     // Opening the file with the file descriptor
     if (*_FILE_POINTER_ == nullptr) {
         *_FILE_POINTER_ = fopen(filePath, "a+");
         if (*_FILE_POINTER_ == nullptr) {
             std::cerr << "Error opening the file!\n";
-            WindowsSysinMainCaller::signalInterruptedHandler(CTRL_C_EVENT);  // Going to the end of the thread
+            LinuxSizingMainCaller::signalInterruptedHandler(0);  // Going to the end of the thread
 
         } else {  // Adding the header information in a line to the file
             char output[1024] = {'\0'};
@@ -281,28 +269,9 @@ void WindowsSysinMainCaller::packetFileTask(FILE** fileDescriptor, const char* f
         }
     }
 
-    // Setting the alarm information
-    LARGE_INTEGER dueTime;
-    dueTime.QuadPart = (LONGLONG)(-1) * (1000000LL) * (LONGLONG)_WRITING_FILE_SECOND_;  // Setting the first execution time when the timer executes
-
-    // Setting the alarm and the callback function, signalAlarmHandler, will awake every "(_WRITING_FILE_SECOND_ * 1000)" milliseconds;
-    // when the SetWaitableTimer(.) successes, the timer will executes periodically
-    if (!SetWaitableTimer(_TIMER_, &dueTime, (_WRITING_FILE_SECOND_ * 1000), signalAlarmHandler, NULL, TRUE)) {
-        std::cerr << "[Error] Failed to create a waitable timer.\n";
-        _IS_ALARM_WORKED_ = 0x0;  // Disabled alarm
-        return;
-    }
-
     // Using a global variable to verify if the interrupt occurs
     while (_IS_ALARM_WORKED_ == 0x1) {
-        Sleep(5000);  // A routine clock checker
-    }
-
-    // When the timer does not belong to nullptr, ...
-    if (_TIMER_ != nullptr) {
-        // Closing the timer
-        CloseHandle(_TIMER_);
-        _TIMER_ = nullptr;
+        sleep(5);  // A routine clock checker
     }
 
     // Closing the file
@@ -318,18 +287,18 @@ void WindowsSysinMainCaller::packetFileTask(FILE** fileDescriptor, const char* f
  * @param pkthdr [const struct pcap_pkthdr*] The address of the packet header
  * @param packet [const u_char*] The address of the packet
  */
-void WindowsSysinMainCaller::packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, const u_char* packet) {
+void LinuxSizingMainCaller::packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, const u_char* packet) {
     // Due to the setting of the function, execute(.), the data of userData is the object of children classes (LinuxPCAP, WindowsPCAP and so on ...)
     PCAP::PCAPPrototype* pcapInstance = (PCAP::PCAPPrototype*)userData;
     // Determining what the instance belong to
-    PCAP::WindowsPCAP* windowsPCAP = nullptr;
-    if (dynamic_cast<PCAP::WindowsPCAP*>(pcapInstance)) {
-        windowsPCAP = dynamic_cast<PCAP::WindowsPCAP*>(pcapInstance);
+    PCAP::LinuxPCAP* linuxPCAP = nullptr;
+    if (dynamic_cast<PCAP::LinuxPCAP*>(pcapInstance)) {
+        linuxPCAP = dynamic_cast<PCAP::LinuxPCAP*>(pcapInstance);
     }
 
     // When the pcap belongs to linux pcap, ...
-    if (windowsPCAP != nullptr) {
-        std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>* tmpMap = &(windowsPCAP->portRelatedInformation);
+    if (linuxPCAP != nullptr) {
+        std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>* tmpMap = &(linuxPCAP->portRelatedInformation);
 
         // The Ip collection, the variable will be static
         static std::unordered_map<uint32_t, char> ipMap;
@@ -376,8 +345,7 @@ void WindowsSysinMainCaller::packetHandler(u_char* userData, const struct pcap_p
         }
 
         // Critical section, accessing the data area
-        EnterCriticalSection(&_CRITICAL_SECTION_);
-
+        _MUTEX_.lock();
         // Comparing source and destination ports with the port to determine the direction
         char packetTypeDetermineSet = 0x0;  // A variable to determine the type of the packet
         // For readability, the author uses a variable, packetTypeDetermineSet, to determine the type of the packet. That implies that
@@ -394,12 +362,12 @@ void WindowsSysinMainCaller::packetHandler(u_char* userData, const struct pcap_p
                     (it->second)->maxTxSize = (long long)(pkthdr->len);
                 }
 
-                windowsPCAP->txPacketNumber++;                    // txPacketNumber shall plus 1.
-                windowsPCAP->txSize += (long long)(pkthdr->len);  // txSize shall plus the current one.
+                linuxPCAP->txPacketNumber++;                    // txPacketNumber shall plus 1.
+                linuxPCAP->txSize += (long long)(pkthdr->len);  // txSize shall plus the current one.
 
                 // Obtaining the maximum size
-                if (windowsPCAP->maxTxSize < (long long)(pkthdr->len)) {
-                    windowsPCAP->maxTxSize = (long long)(pkthdr->len);
+                if (linuxPCAP->maxTxSize < (long long)(pkthdr->len)) {
+                    linuxPCAP->maxTxSize = (long long)(pkthdr->len);
                 }
                 packetTypeDetermineSet = 0x1;
             }
@@ -423,12 +391,12 @@ void WindowsSysinMainCaller::packetHandler(u_char* userData, const struct pcap_p
                     (it->second)->sqlRequestSize += (long long)(pkthdr->len);
                 }
 
-                windowsPCAP->rxPacketNumber++;                    // rxPacketNumber shall plus 1.
-                windowsPCAP->rxSize += (long long)(pkthdr->len);  // rxSize shall plus the current one.
+                linuxPCAP->rxPacketNumber++;                    // rxPacketNumber shall plus 1.
+                linuxPCAP->rxSize += (long long)(pkthdr->len);  // rxSize shall plus the current one.
 
                 // Obtaining the maximum size
-                if (windowsPCAP->maxRxSize < (long long)(pkthdr->len)) {
-                    windowsPCAP->maxRxSize = (long long)(pkthdr->len);
+                if (linuxPCAP->maxRxSize < (long long)(pkthdr->len)) {
+                    linuxPCAP->maxRxSize = (long long)(pkthdr->len);
                 }
                 packetTypeDetermineSet = 0x1;
 
@@ -450,12 +418,12 @@ void WindowsSysinMainCaller::packetHandler(u_char* userData, const struct pcap_p
             if (packetTypeByIp == 0x0) {  // TX consideration
                 std::unordered_map<uint32_t, char>::iterator it = ipMap.find((int)packetSourceIp);
                 if (it != ipMap.end()) {  // Hitting
-                    windowsPCAP->txPacketNumber++;
-                    windowsPCAP->txSize += (long long)(pkthdr->len);
+                    linuxPCAP->txPacketNumber++;
+                    linuxPCAP->txSize += (long long)(pkthdr->len);
 
                     // Obtaining the maximum size
-                    if (windowsPCAP->maxTxSize < (long long)(pkthdr->len)) {
-                        windowsPCAP->maxTxSize = (long long)(pkthdr->len);
+                    if (linuxPCAP->maxTxSize < (long long)(pkthdr->len)) {
+                        linuxPCAP->maxTxSize = (long long)(pkthdr->len);
                     }
                     packetTypeByIp = 0x1;
                 }
@@ -464,54 +432,40 @@ void WindowsSysinMainCaller::packetHandler(u_char* userData, const struct pcap_p
             if (packetTypeByIp == 0x0) {  // RX consideration
                 std::unordered_map<uint32_t, char>::iterator it = ipMap.find((int)packetDestinationIp);
                 if (it != ipMap.end()) {  // Hitting
-                    windowsPCAP->rxPacketNumber++;
-                    windowsPCAP->rxSize += (long long)(pkthdr->len);
+                    linuxPCAP->rxPacketNumber++;
+                    linuxPCAP->rxSize += (long long)(pkthdr->len);
 
                     // Obtaining the maximum size
-                    if (windowsPCAP->maxRxSize < (long long)(pkthdr->len)) {
-                        windowsPCAP->maxRxSize = (long long)(pkthdr->len);
+                    if (linuxPCAP->maxRxSize < (long long)(pkthdr->len)) {
+                        linuxPCAP->maxRxSize = (long long)(pkthdr->len);
                     }
                     packetTypeByIp = 0x1;
                 }
             }
         }
-
         // Critical section end
-        LeaveCriticalSection(&_CRITICAL_SECTION_);
+        _MUTEX_.unlock();
     }
 
     // Verifying if the "pcap_loop" shall be stopped; "_IS_PCAP_WORKED_" is
     // a global variable and is controlled by the signal mechanism
     if (_IS_PCAP_WORKED_ == 0x0) {
-        pcap_breakloop((pcap_t*)windowsPCAP->descriptor);
+        pcap_breakloop((pcap_t*)linuxPCAP->descriptor);
     }
 }
 
 /**
  * A handler when receiving the SIGINT signal
  *
- * @param signal [DWORD] The signal type
- * @return [BOOL WINAPI] The successful result; the TRUE shows okay; otherwise false
+ * @param [int] The signal type (ignore)
  */
-BOOL WINAPI WindowsSysinMainCaller::signalInterruptedHandler(DWORD signal) {
-    if (signal == CTRL_C_EVENT) {  // When encountering the interrupted signal
-        std::cerr << "\n"
-                  << "Interrupted signal occurs, please wait.\n";
-        // Using these two global variables to break the loops in different threads
-        _IS_PCAP_WORKED_ = 0x0;
-        _IS_ALARM_WORKED_ = 0x0;
-
-        // Cancelling the timer
-        if (_TIMER_ != nullptr) {
-            CancelWaitableTimer(_TIMER_);
-            // Calling the signalAlarmHandler
-            signalAlarmHandler(nullptr, 0, 0);
-            // Closing the timer
-            CloseHandle(_TIMER_);
-            _TIMER_ = nullptr;
-        }
-    }
-    return TRUE;
+void LinuxSizingMainCaller::signalInterruptedHandler(int) {
+    std::cerr << "\n"
+              << "Interrupted signal occurs, please wait.\n";
+    // Using these two global variables to break the loops in different threads
+    _IS_PCAP_WORKED_ = 0x0;
+    _IS_ALARM_WORKED_ = 0x0;
+    alarm(0);
 }
 
 /**
@@ -520,7 +474,7 @@ BOOL WINAPI WindowsSysinMainCaller::signalInterruptedHandler(DWORD signal) {
  *
  * @param signalType [int] The signal type and the parameter is useless in this method
  */
-void CALLBACK WindowsSysinMainCaller::signalAlarmHandler(LPVOID, DWORD, DWORD) {
+void LinuxSizingMainCaller::signalAlarmHandler(int) {
     // File writing
     char output[1024] = {"\0"};
     if (*_FILE_POINTER_ == nullptr) {
@@ -529,12 +483,10 @@ void CALLBACK WindowsSysinMainCaller::signalAlarmHandler(LPVOID, DWORD, DWORD) {
 
         if (*_FILE_POINTER_ == nullptr) {
             std::cerr << "Error opening the file!\n";
-            WindowsSysinMainCaller::signalInterruptedHandler(CTRL_C_EVENT);  // Going to the end of the thread
+            LinuxSizingMainCaller::signalInterruptedHandler(0);  // Going to the end of the thread
 
         } else {
-            // Critical section, accessing the data area
-            EnterCriticalSection(&_CRITICAL_SECTION_);
-
+            _MUTEX_.lock();
             // "UTC\tType\tPort\tNumber(amount)\tSize(byte)\tMaxSize\tSQL number per time interval(eps)\tSQL size per time interval(eps)\n";
             time_t timeEpoch = Commons::Time::getEpoch();
 
@@ -542,9 +494,9 @@ void CALLBACK WindowsSysinMainCaller::signalAlarmHandler(LPVOID, DWORD, DWORD) {
             for (std::vector<PCAP::PCAPPrototype*>::iterator it = _PCAP_POINTER_.begin();
                  it != _PCAP_POINTER_.end();
                  it++) {
-                if (dynamic_cast<PCAP::WindowsPCAP*>(*it)) {
+                if (dynamic_cast<PCAP::LinuxPCAP*>(*it)) {
                     // Passing the object to the correct type
-                    PCAP::WindowsPCAP* tmp = dynamic_cast<PCAP::WindowsPCAP*>(*it);
+                    PCAP::LinuxPCAP* tmp = dynamic_cast<PCAP::LinuxPCAP*>(*it);
                     for (std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>::iterator it2 = (tmp->portRelatedInformation).begin();
                          it2 != (tmp->portRelatedInformation).end();
                          it2++) {
@@ -593,9 +545,8 @@ void CALLBACK WindowsSysinMainCaller::signalAlarmHandler(LPVOID, DWORD, DWORD) {
                     }
                 }
             }
-            // Critical section end
-            LeaveCriticalSection(&_CRITICAL_SECTION_);
-
+            _MUTEX_.unlock();
+            alarm(_WRITING_FILE_SECOND_);
             // Closing the file
             if (*_FILE_POINTER_ != nullptr) {
                 fclose(*_FILE_POINTER_);
@@ -608,5 +559,5 @@ void CALLBACK WindowsSysinMainCaller::signalAlarmHandler(LPVOID, DWORD, DWORD) {
     }
 }
 
-}  // namespace SysinMainCaller
+}  // namespace SizingMainCaller
 #endif
