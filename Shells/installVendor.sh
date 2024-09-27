@@ -88,7 +88,8 @@ function obtainArrayLength() {
 #  * Public Caller, traversal dependencies from the input json file; in each dependency, the shell script will
 #  * execute the command and register information in the file, .Vendors.json in the folder, Vendors;
 #  * to execute the function, please call the function from the root of the project (i.e., that implies
-#  * the current working directory is the root of the project)
+#  * the current working directory is the root of the project); please take attention to the two replaced variables,
+#  * namely, {{name}} and {{projectVendors}}
 #  *
 #  * @param $0 The function called by users
 #  * @param $1 The dependent file name of the .json file (defined in the "Setting/.Json" folder)
@@ -159,6 +160,10 @@ function dependenciesTraversal() {
             download=$(echo "$download" | sed "s/{{name}}/$folderName.tmp/")
             command=$(echo "$command" | sed "s/{{name}}/$folderName.tmp/")
             remove=$(echo "$remove" | sed "s/{{name}}/$folderName.tmp/")
+
+            # Verifying if commanded string contains {{projectVendors}}, the {{projectVendors}} shall be replaced
+            # to the path of the project's Vendors folder
+            command=$(echo "$command" | sed "s|{{projectVendors}}|$(pwd)/Vendors|")
 
             # Executing the download, command, installation and removing the download at last
             local vendorDir=$(dirname "$vendorJsonFile") # Displaying the path of the the folder, "Vendors"
