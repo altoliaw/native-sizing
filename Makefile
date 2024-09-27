@@ -34,6 +34,11 @@ FMSG		:= $(shell source ${projectDir}/Shells/iniParser.sh && echo $$(getVariable
 CFLAGS		:= $(shell source ${projectDir}/Shells/iniParser.sh && echo $$(getVariableValue "${keyValuePair}" "compiler.CFLAGS"))
 LDFLAGS		:= $(shell source ${projectDir}/Shells/iniParser.sh && echo $$(getVariableValue "${keyValuePair}" "compiler.LDFLAGS"))
 LDLIBS		:= $(shell source ${projectDir}/Shells/iniParser.sh && echo $$(getVariableValue "${keyValuePair}" "compiler.LDLIBS"))
+# Replacing terms by using $(.) from Makefile function
+CFLAGS		:=	$(subst -I,-I${projectDir}/,${CFLAGS})
+# Replacing terms by using $(.) from Makefile function
+LDFLAGS		:=$(subst -L,-L${projectDir}/,${LDFLAGS})
+
 
 # When the platform is not equal to the Linux
 ifneq ($(OS), Linux)
@@ -48,6 +53,22 @@ Bin:= Bin
 Vendors:= Vendors
 # The file for record the variables and values
 TempMakefile:= ${projectDir}/tmp.mk
+# The file for record the variables and values
+CommonTempMakefile:= ${projectDir}/commonTmp.mk
+
+# Generating all common variables for compilers into the Makefile
+$(shell >${projectDir}/commonTmp.mk)
+$(shell echo "CC 				:= ${CC}" >> ${CommonTempMakefile})
+$(shell echo "STD 				:= ${STD}" >> ${CommonTempMakefile})
+$(shell echo "CMPOPT 			:= ${CMPOPT}" >> ${CommonTempMakefile})
+$(shell echo "DETAILINFO 		:= ${DETAILINFO}" >> ${CommonTempMakefile})
+$(shell echo "WALL 				:= ${WALL}" >> ${CommonTempMakefile})
+$(shell echo "FMSG 				:= ${FMSG}" >> ${CommonTempMakefile})
+$(shell echo "CFLAGS 			:= ${CFLAGS}" >> ${CommonTempMakefile})
+$(shell echo "LDFLAGS 			:= ${LDFLAGS}" >> ${CommonTempMakefile})
+$(shell echo "LDLIBS 			:= ${LDLIBS}" >> ${CommonTempMakefile})
+
+
 
 # ######## [Makefile Included]
 include common.mk
@@ -74,7 +95,10 @@ clean:
 	@echo "Removing all object files from the compiled files & all executions"
 	find . -name "*.o" -type f -delete
 	@${SUDO} rm -rf ${projectDir}/${Bin}
+# This file is for restoring the Makefiles' variables in the compilied process
 	@rm -f ${projectDir}/tmp.mk
+# This file is for restoring the common variables for the compiler
+	@rm -f ${projectDir}/commonTmp.mk
 
 
 # ######## [Custom Defined Phonies]
@@ -100,12 +124,12 @@ ifeq ($(OS), Linux)
 	@echo "[Linux Building]"
 # Generating the file and preparing the variables
 	@$(shell > ${TempMakefile})
-	@make -C Models/Commons all projectDir='${projectDir}' ARGUMENTS='${ARGUMENTS}' TempMakefile='${TempMakefile}'
-	@make -C Models/FileParsers all projectDir='${projectDir}' ARGUMENTS='${ARGUMENTS}' TempMakefile='${TempMakefile}'
-	@make -C Models/PCAP all projectDir='${projectDir}' ARGUMENTS='${ARGUMENTS}' TempMakefile='${TempMakefile}'
-	@make -C Sources/SizingController all projectDir='${projectDir}' ARGUMENTS='${ARGUMENTS}' TempMakefile='${TempMakefile}'
-	@make -C Apps all projectDir='${projectDir}' ARGUMENTS='${ARGUMENTS}' TempMakefile='${TempMakefile}'
-	@make -C Apps/Executions all projectDir='${projectDir}' ARGUMENTS='${ARGUMENTS}' TempMakefile='${TempMakefile}'
+	@make -C Models/Commons all projectDir='${projectDir}' ARGUMENTS='${ARGUMENTS}' TempMakefile='${TempMakefile}' CommonTempMakefile='${CommonTempMakefile}'
+	@make -C Models/FileParsers all projectDir='${projectDir}' ARGUMENTS='${ARGUMENTS}' TempMakefile='${TempMakefile}' CommonTempMakefile='${CommonTempMakefile}'
+	@make -C Models/PCAP all projectDir='${projectDir}' ARGUMENTS='${ARGUMENTS}' TempMakefile='${TempMakefile}' CommonTempMakefile='${CommonTempMakefile}'
+	@make -C Sources/SizingController all projectDir='${projectDir}' ARGUMENTS='${ARGUMENTS}' TempMakefile='${TempMakefile}' CommonTempMakefile='${CommonTempMakefile}'
+	@make -C Apps all projectDir='${projectDir}' ARGUMENTS='${ARGUMENTS}' TempMakefile='${TempMakefile}' CommonTempMakefile='${CommonTempMakefile}'
+	@make -C Apps/Executions all projectDir='${projectDir}' ARGUMENTS='${ARGUMENTS}' TempMakefile='${TempMakefile}' CommonTempMakefile='${CommonTempMakefile}'
 
 else
 	@echo "[Winndows Building]"
