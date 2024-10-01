@@ -10,6 +10,8 @@
 			"libs": [
 				"libcjson.a"
 			],
+			"others": [
+			],
 			"reference": "https://github.com/DaveGamble/cJSON",
 			"remove": "rm -rf {{name}}",
 			"windows": true,
@@ -24,6 +26,8 @@
 			],
 			"libs": [
 				"Lib/*"
+			],
+			"others": [
 			],
 			"reference": "https://npcap.com/#download",
 			"remove": "rm -rf {{name}}",
