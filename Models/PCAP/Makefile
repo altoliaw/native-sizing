@@ -3,9 +3,8 @@
 # @author Nick
 # @date 2024/09/24
 
-# ######## [Environment Setting]
-# Necessary MakeFile Variables Included
-include ${TempMakefile}
+# ######## [Necessary Common MakeFile Variables Included]
+include ${CommonTempMakefile}
 
 # If someone feel like using the definitions that users define, please remove the comment and fill in the suitable terms.
 # CC			=
@@ -18,6 +17,10 @@ include ${TempMakefile}
 # LDFLAGS		=
 # LDLIBS		=
 
+
+# ######## [Environment Setting]
+# Necessary MakeFile Variables Included
+include ${TempMakefile}
 
 
 # ######## [Variable Definition]
