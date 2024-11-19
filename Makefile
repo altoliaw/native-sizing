@@ -95,7 +95,7 @@ clean:
 	@echo "Removing all object files from the compiled files & all executions"
 	find . -name "*.o" -type f -delete
 	@${SUDO} rm -rf ${projectDir}/${Bin}
-# This file is for restoring the Makefiles' variables in the compilied process
+# This file is for restoring the Makefiles' variables in the compiled process
 	@rm -f ${projectDir}/tmp.mk
 # This file is for restoring the common variables for the compiler
 	@rm -f ${projectDir}/commonTmp.mk
@@ -132,7 +132,7 @@ ifeq ($(OS), Linux)
 	@make -C Apps/Executions all projectDir='${projectDir}' ARGUMENTS='${ARGUMENTS}' TempMakefile='${TempMakefile}' CommonTempMakefile='${CommonTempMakefile}'
 
 else
-	@echo "[Winndows Building]"
+	@echo "[Windows Building]"
 	@eval ./windowsMake.sh
 endif
 	
