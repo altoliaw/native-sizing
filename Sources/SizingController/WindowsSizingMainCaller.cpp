@@ -562,9 +562,6 @@ void CALLBACK WindowsSizingMainCaller::signalAlarmHandler(LPVOID, DWORD, DWORD) 
                                              (long long)0,
                                              (long long)0);
                         fwrite(output, sizeof(char), length, *_FILE_POINTER_);
-                        tmp->txPacketNumber = 0;
-                        tmp->txSize = 0;
-                        tmp->maxTxSize = 0;
                         ((it2)->second)->txPacketNumber = 0;
                         ((it2)->second)->txSize = 0;
                         ((it2)->second)->maxTxSize = 0;
@@ -582,15 +579,20 @@ void CALLBACK WindowsSizingMainCaller::signalAlarmHandler(LPVOID, DWORD, DWORD) 
                                          (it2->second)->sqlRequestSize,
                                          (it2->second)->sqlRequestNumber / (long long)_WRITING_FILE_SECOND_);
                         fwrite(output, sizeof(char), length, *_FILE_POINTER_);
-                        tmp->rxPacketNumber = 0;
-                        tmp->rxSize = 0;
-                        tmp->maxRxSize = 0;
                         ((it2)->second)->rxPacketNumber = 0;
                         ((it2)->second)->rxSize = 0;
                         ((it2)->second)->maxRxSize = 0;
                         ((it2)->second)->sqlRequestNumber = 0;
                         ((it2)->second)->sqlRequestSize = 0;
                     }
+
+                    // Clearing the rx and tx number, size and max size information when all ports' information is written
+                    tmp->txPacketNumber = 0;
+                    tmp->txSize = 0;
+                    tmp->maxTxSize = 0;
+                    tmp->rxPacketNumber = 0;
+                    tmp->rxSize = 0;
+                    tmp->maxRxSize = 0;
                 }
             }
             // Critical section end
