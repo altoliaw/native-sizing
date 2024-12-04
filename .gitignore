@@ -6,3 +6,6 @@ build
 # Files
 *.o
 *.gz
+
+# Specified files
+commonTmp.mk
