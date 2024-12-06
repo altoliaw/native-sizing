@@ -137,7 +137,7 @@ Commons::POSIXErrors WindowsSizingMainCaller::start(int argC, char** argV) {
             fileDescriptor = nullptr;
         }
     }
-
+    std::cerr << "end2\n";
     return result;
 }
 
@@ -253,7 +253,7 @@ void WindowsSizingMainCaller::packetTask(PCAP::WindowsPCAP* pcap, void (*packetH
  */
 void WindowsSizingMainCaller::packetFileTask(FILE** fileDescriptor, const char* filePath) {
     // Installing a signal handler, alarm, on Windows
-    _TIMER_ = CreateWaitableTimer(NULL, TRUE, NULL);
+    _TIMER_ = CreateWaitableTimer(NULL, FALSE, NULL);
     if (_TIMER_ == nullptr) {
         std::cerr << "[Error] Failed to create a waitable timer.\n";
         _IS_ALARM_WORKED_ = 0x0;  // Disabled alarm
@@ -283,20 +283,34 @@ void WindowsSizingMainCaller::packetFileTask(FILE** fileDescriptor, const char* 
 
     // Setting the alarm information
     LARGE_INTEGER dueTime;
-    dueTime.QuadPart = (LONGLONG)(-1) * (1000000LL) * (LONGLONG)_WRITING_FILE_SECOND_;  // Setting the first execution time when the timer executes
+    // dueTime.QuadPart = (LONGLONG)(-1) * (1000000LL) * (LONGLONG)_WRITING_FILE_SECOND_;  // Setting the first execution time when the timer executes
+    dueTime.QuadPart = -50000000LL;  // Setting the first execution time when the timer executes
 
     // Setting the alarm and the callback function, signalAlarmHandler, will awake every "(_WRITING_FILE_SECOND_ * 1000)" milliseconds;
     // when the SetWaitableTimer(.) successes, the timer will executes periodically
-    if (!SetWaitableTimer(_TIMER_, &dueTime, (_WRITING_FILE_SECOND_ * 1000), signalAlarmHandler, NULL, TRUE)) {
+    // if (!SetWaitableTimer(_TIMER_, &dueTime, (_WRITING_FILE_SECOND_ * 1000), NULL, NULL, TRUE)) {
+    if (!SetWaitableTimer(_TIMER_, &dueTime, 5000, NULL, NULL, FALSE)) {
         std::cerr << "[Error] Failed to create a waitable timer.\n";
         _IS_ALARM_WORKED_ = 0x0;  // Disabled alarm
         return;
     }
 
-    // Using a global variable to verify if the interrupt occurs
-    while (_IS_ALARM_WORKED_ == 0x1) {
-        Sleep(5000);  // A routine clock checker
+    while(_IS_ALARM_WORKED_ == 0x1 && true && _TIMER_ != NULL) {
+        std::cerr << (_IS_ALARM_WORKED_ == 0x1 ? "Flag opened" : "Flag closed") << "\n";
+        DWORD dwWaitResult = WaitForSingleObject(_TIMER_, INFINITE);
+        if (dwWaitResult == WAIT_OBJECT_0){
+            signalAlarmHandler();
+        } else {
+            std::cerr << "[Error] Failed to wait for the waitable timer.\n";
+            break;
+        }
     }
+
+
+    // Using a global variable to verify if the interrupt occurs
+    // while (_IS_ALARM_WORKED_ == 0x1) {
+    //     Sleep(5000);  // A routine clock checker
+    // }
 
     // When the timer does not belong to nullptr, ...
     if (_TIMER_ != nullptr) {
@@ -309,6 +323,7 @@ void WindowsSizingMainCaller::packetFileTask(FILE** fileDescriptor, const char* 
     if (*_FILE_POINTER_ != nullptr) {
         fclose(*_FILE_POINTER_);
     }
+    std::cerr << "[end\n";
 }
 
 /**
@@ -503,9 +518,10 @@ BOOL WINAPI WindowsSizingMainCaller::signalInterruptedHandler(DWORD signal) {
 
         // Cancelling the timer
         if (_TIMER_ != nullptr) {
+            std::cerr << "Cancelling the time handle.\n";
             CancelWaitableTimer(_TIMER_);
             // Calling the signalAlarmHandler
-            signalAlarmHandler(nullptr, 0, 0);
+            signalAlarmHandler();
             // Closing the timer
             CloseHandle(_TIMER_);
             _TIMER_ = nullptr;
@@ -520,94 +536,95 @@ BOOL WINAPI WindowsSizingMainCaller::signalInterruptedHandler(DWORD signal) {
  *
  * @param signalType [int] The signal type and the parameter is useless in this method
  */
-void CALLBACK WindowsSizingMainCaller::signalAlarmHandler(LPVOID, DWORD, DWORD) {
-    // File writing
-    char output[1024] = {"\0"};
-    if (*_FILE_POINTER_ == nullptr) {
-        // Opening the file
-        *_FILE_POINTER_ = fopen(_WRITING_FILE_LOCATION_, "a+");
+void WindowsSizingMainCaller::signalAlarmHandler() {
+    std::cerr << "Time arrived\n";
+    // // File writing
+    // char output[1024] = {"\0"};
+    // if (*_FILE_POINTER_ == nullptr) {
+    //     // Opening the file
+    //     *_FILE_POINTER_ = fopen(_WRITING_FILE_LOCATION_, "a+");
 
-        if (*_FILE_POINTER_ == nullptr) {
-            std::cerr << "Error opening the file!\n";
-            WindowsSizingMainCaller::signalInterruptedHandler(CTRL_C_EVENT);  // Going to the end of the thread
+    //     if (*_FILE_POINTER_ == nullptr) {
+    //         std::cerr << "Error opening the file!\n";
+    //         WindowsSizingMainCaller::signalInterruptedHandler(CTRL_C_EVENT);  // Going to the end of the thread
 
-        } else {
-            // Critical section, accessing the data area
-            EnterCriticalSection(&_CRITICAL_SECTION_);
+    //     } else {
+    //         // Critical section, accessing the data area
+    //         EnterCriticalSection(&_CRITICAL_SECTION_);
 
-            // "UTC\tType\tPort\tNumber(amount)\tSize(byte)\tMaxSize\tSQL number per time interval(eps)\tSQL size per time interval(eps)\n";
-            time_t timeEpoch = Commons::Time::getEpoch();
+    //         // "UTC\tType\tPort\tNumber(amount)\tSize(byte)\tMaxSize\tSQL number per time interval(eps)\tSQL size per time interval(eps)\n";
+    //         time_t timeEpoch = Commons::Time::getEpoch();
 
-            // Looping all pcap object for printing the results
-            for (std::vector<PCAP::PCAPPrototype*>::iterator it = _PCAP_POINTER_.begin();
-                 it != _PCAP_POINTER_.end();
-                 it++) {
-                if (dynamic_cast<PCAP::WindowsPCAP*>(*it)) {
-                    // Passing the object to the correct type
-                    PCAP::WindowsPCAP* tmp = dynamic_cast<PCAP::WindowsPCAP*>(*it);
-                    for (std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>::iterator it2 = (tmp->portRelatedInformation).begin();
-                         it2 != (tmp->portRelatedInformation).end();
-                         it2++) {
-                        // TX part; in the section, the last two result will be to zero because the packets
-                        // from the record set from the SQL server shall be ignored
-                        int length = sprintf(output,
-                                             "%lu\tTX\t%s\t%d\t%lu\t%llu\t%lu\t%lu\t%llu\t%llu\n",
-                                             timeEpoch,
-                                             (tmp->deviceInterface).c_str(),
-                                             (it2)->first,  // port number
-                                             tmp->txPacketNumber,
-                                             tmp->txSize,
-                                             tmp->maxTxSize,
-                                             (long)0,
-                                             (long long)0,
-                                             (long long)0);
-                        fwrite(output, sizeof(char), length, *_FILE_POINTER_);
-                        ((it2)->second)->txPacketNumber = 0;
-                        ((it2)->second)->txSize = 0;
-                        ((it2)->second)->maxTxSize = 0;
+    //         // Looping all pcap object for printing the results
+    //         for (std::vector<PCAP::PCAPPrototype*>::iterator it = _PCAP_POINTER_.begin();
+    //              it != _PCAP_POINTER_.end();
+    //              it++) {
+    //             if (dynamic_cast<PCAP::WindowsPCAP*>(*it)) {
+    //                 // Passing the object to the correct type
+    //                 PCAP::WindowsPCAP* tmp = dynamic_cast<PCAP::WindowsPCAP*>(*it);
+    //                 for (std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>::iterator it2 = (tmp->portRelatedInformation).begin();
+    //                      it2 != (tmp->portRelatedInformation).end();
+    //                      it2++) {
+    //                     // TX part; in the section, the last two result will be to zero because the packets
+    //                     // from the record set from the SQL server shall be ignored
+    //                     int length = sprintf(output,
+    //                                          "%lu\tTX\t%s\t%d\t%lu\t%llu\t%lu\t%lu\t%llu\t%llu\n",
+    //                                          timeEpoch,
+    //                                          (tmp->deviceInterface).c_str(),
+    //                                          (it2)->first,  // port number
+    //                                          tmp->txPacketNumber,
+    //                                          tmp->txSize,
+    //                                          tmp->maxTxSize,
+    //                                          (long)0,
+    //                                          (long long)0,
+    //                                          (long long)0);
+    //                     fwrite(output, sizeof(char), length, *_FILE_POINTER_);
+    //                     ((it2)->second)->txPacketNumber = 0;
+    //                     ((it2)->second)->txSize = 0;
+    //                     ((it2)->second)->maxTxSize = 0;
 
-                        // RX part
-                        length = sprintf(output,
-                                         "%lu\tRX\t%s\t%d\t%lu\t%llu\t%lu\t%lu\t%llu\t%llu\n",
-                                         timeEpoch,
-                                         (tmp->deviceInterface).c_str(),
-                                         (it2)->first,  // port number
-                                         tmp->rxPacketNumber,
-                                         tmp->rxSize,
-                                         tmp->maxRxSize,
-                                         (it2->second)->sqlRequestNumber,
-                                         (it2->second)->sqlRequestSize,
-                                         (it2->second)->sqlRequestNumber / (long long)_WRITING_FILE_SECOND_);
-                        fwrite(output, sizeof(char), length, *_FILE_POINTER_);
-                        ((it2)->second)->rxPacketNumber = 0;
-                        ((it2)->second)->rxSize = 0;
-                        ((it2)->second)->maxRxSize = 0;
-                        ((it2)->second)->sqlRequestNumber = 0;
-                        ((it2)->second)->sqlRequestSize = 0;
-                    }
+    //                     // RX part
+    //                     length = sprintf(output,
+    //                                      "%lu\tRX\t%s\t%d\t%lu\t%llu\t%lu\t%lu\t%llu\t%llu\n",
+    //                                      timeEpoch,
+    //                                      (tmp->deviceInterface).c_str(),
+    //                                      (it2)->first,  // port number
+    //                                      tmp->rxPacketNumber,
+    //                                      tmp->rxSize,
+    //                                      tmp->maxRxSize,
+    //                                      (it2->second)->sqlRequestNumber,
+    //                                      (it2->second)->sqlRequestSize,
+    //                                      (it2->second)->sqlRequestNumber / (long long)_WRITING_FILE_SECOND_);
+    //                     fwrite(output, sizeof(char), length, *_FILE_POINTER_);
+    //                     ((it2)->second)->rxPacketNumber = 0;
+    //                     ((it2)->second)->rxSize = 0;
+    //                     ((it2)->second)->maxRxSize = 0;
+    //                     ((it2)->second)->sqlRequestNumber = 0;
+    //                     ((it2)->second)->sqlRequestSize = 0;
+    //                 }
 
-                    // Clearing the rx and tx number, size and max size information when all ports' information is written
-                    tmp->txPacketNumber = 0;
-                    tmp->txSize = 0;
-                    tmp->maxTxSize = 0;
-                    tmp->rxPacketNumber = 0;
-                    tmp->rxSize = 0;
-                    tmp->maxRxSize = 0;
-                }
-            }
-            // Critical section end
-            LeaveCriticalSection(&_CRITICAL_SECTION_);
+    //                 // Clearing the rx and tx number, size and max size information when all ports' information is written
+    //                 tmp->txPacketNumber = 0;
+    //                 tmp->txSize = 0;
+    //                 tmp->maxTxSize = 0;
+    //                 tmp->rxPacketNumber = 0;
+    //                 tmp->rxSize = 0;
+    //                 tmp->maxRxSize = 0;
+    //             }
+    //         }
+    //         // Critical section end
+    //         LeaveCriticalSection(&_CRITICAL_SECTION_);
 
-            // Closing the file
-            if (*_FILE_POINTER_ != nullptr) {
-                fclose(*_FILE_POINTER_);
-                *_FILE_POINTER_ = nullptr;
-            }
-        }
-    } else {  // Closing the descriptor and skipping the handling in the ith loop
-        fclose(*_FILE_POINTER_);
-        *_FILE_POINTER_ = nullptr;
-    }
+    //         // Closing the file
+    //         if (*_FILE_POINTER_ != nullptr) {
+    //             fclose(*_FILE_POINTER_);
+    //             *_FILE_POINTER_ = nullptr;
+    //         }
+    //     }
+    // } else {  // Closing the descriptor and skipping the handling in the ith loop
+    //     fclose(*_FILE_POINTER_);
+    //     *_FILE_POINTER_ = nullptr;
+    // }
 }
 
 }  // namespace SizingMainCaller
