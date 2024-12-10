@@ -282,13 +282,11 @@ void WindowsSizingMainCaller::packetFileTask(FILE** fileDescriptor, const char* 
 
     // Setting the alarm information
     LARGE_INTEGER dueTime;
-    // dueTime.QuadPart = (LONGLONG)(-1) * (1000000LL) * (LONGLONG)_WRITING_FILE_SECOND_;  // Setting the first execution time when the timer executes
-    dueTime.QuadPart = -50000000LL;  // Setting the first execution time when the timer executes
+    dueTime.QuadPart = (LONGLONG)(-1) * (1000000LL) * (LONGLONG)_WRITING_FILE_SECOND_;  // Setting the first execution time when the timer executes
 
     // Setting the alarm and the callback function, signalAlarmHandler, will awake every "(_WRITING_FILE_SECOND_ * 1000)" milliseconds;
     // when the SetWaitableTimer(.) successes, the timer will executes periodically
-    // if (!SetWaitableTimer(_TIMER_, &dueTime, (_WRITING_FILE_SECOND_ * 1000), NULL, NULL, TRUE)) {
-    if (!SetWaitableTimer(_TIMER_, &dueTime, 5000, NULL, NULL, FALSE)) {
+    if (!SetWaitableTimer(_TIMER_, &dueTime, (_WRITING_FILE_SECOND_ * 1000), NULL, NULL, FALSE)) {
         std::cerr << "[Error] Failed to create a waitable timer.\n";
         _IS_ALARM_WORKED_ = 0x0;  // Disabled alarm
         return;
