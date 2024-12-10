@@ -117,7 +117,6 @@ Commons::POSIXErrors WindowsSizingMainCaller::start(int argC, char** argV) {
         for (unsigned int i = 0; i < pcapObjectOfInterface.size(); i++) {
             threads[i].join();
         }
-
         writePacketFileThread.join();
 
         // After threads have joined, the mutex locker shall be released.
@@ -253,7 +252,7 @@ void WindowsSizingMainCaller::packetTask(PCAP::WindowsPCAP* pcap, void (*packetH
  */
 void WindowsSizingMainCaller::packetFileTask(FILE** fileDescriptor, const char* filePath) {
     // Installing a signal handler, alarm, on Windows
-    _TIMER_ = CreateWaitableTimer(NULL, TRUE, NULL);
+    _TIMER_ = CreateWaitableTimer(NULL, FALSE, NULL);
     if (_TIMER_ == nullptr) {
         std::cerr << "[Error] Failed to create a waitable timer.\n";
         _IS_ALARM_WORKED_ = 0x0;  // Disabled alarm
@@ -283,19 +282,25 @@ void WindowsSizingMainCaller::packetFileTask(FILE** fileDescriptor, const char* 
 
     // Setting the alarm information
     LARGE_INTEGER dueTime;
-    dueTime.QuadPart = (LONGLONG)(-1) * (1000000LL) * (LONGLONG)_WRITING_FILE_SECOND_;  // Setting the first execution time when the timer executes
+    // dueTime.QuadPart = (LONGLONG)(-1) * (1000000LL) * (LONGLONG)_WRITING_FILE_SECOND_;  // Setting the first execution time when the timer executes
+    dueTime.QuadPart = -50000000LL;  // Setting the first execution time when the timer executes
 
     // Setting the alarm and the callback function, signalAlarmHandler, will awake every "(_WRITING_FILE_SECOND_ * 1000)" milliseconds;
     // when the SetWaitableTimer(.) successes, the timer will executes periodically
-    if (!SetWaitableTimer(_TIMER_, &dueTime, (_WRITING_FILE_SECOND_ * 1000), signalAlarmHandler, NULL, TRUE)) {
+    // if (!SetWaitableTimer(_TIMER_, &dueTime, (_WRITING_FILE_SECOND_ * 1000), NULL, NULL, TRUE)) {
+    if (!SetWaitableTimer(_TIMER_, &dueTime, 5000, NULL, NULL, FALSE)) {
         std::cerr << "[Error] Failed to create a waitable timer.\n";
         _IS_ALARM_WORKED_ = 0x0;  // Disabled alarm
         return;
     }
 
-    // Using a global variable to verify if the interrupt occurs
-    while (_IS_ALARM_WORKED_ == 0x1) {
-        Sleep(5000);  // A routine clock checker
+    while(_IS_ALARM_WORKED_ == 0x1 && _TIMER_ != NULL) {
+        // Verifying if the interrupt occurs every 5 seconds
+        DWORD dwWaitResult = WaitForSingleObject(_TIMER_, 5000); // A routine clock checker
+        // When the interrupt occurs
+        if (dwWaitResult == WAIT_OBJECT_0){
+            signalAlarmHandler();
+        }
     }
 
     // When the timer does not belong to nullptr, ...
@@ -505,10 +510,7 @@ BOOL WINAPI WindowsSizingMainCaller::signalInterruptedHandler(DWORD signal) {
         if (_TIMER_ != nullptr) {
             CancelWaitableTimer(_TIMER_);
             // Calling the signalAlarmHandler
-            signalAlarmHandler(nullptr, 0, 0);
-            // Closing the timer
-            CloseHandle(_TIMER_);
-            _TIMER_ = nullptr;
+            signalAlarmHandler();
         }
     }
     return TRUE;
@@ -520,7 +522,7 @@ BOOL WINAPI WindowsSizingMainCaller::signalInterruptedHandler(DWORD signal) {
  *
  * @param signalType [int] The signal type and the parameter is useless in this method
  */
-void CALLBACK WindowsSizingMainCaller::signalAlarmHandler(LPVOID, DWORD, DWORD) {
+void WindowsSizingMainCaller::signalAlarmHandler() {
     // File writing
     char output[1024] = {"\0"};
     if (*_FILE_POINTER_ == nullptr) {

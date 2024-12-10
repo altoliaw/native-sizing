@@ -99,7 +99,7 @@ class WindowsSizingMainCaller : public SizingMainCallerPrototype {
     Commons::POSIXErrors start(int, char**);
 
     static BOOL WINAPI signalInterruptedHandler(DWORD);
-    static void CALLBACK signalAlarmHandler(LPVOID , DWORD, DWORD);
+    static void signalAlarmHandler();
     static Commons::POSIXErrors config(std::vector<unitService>*);
     static void packetHandler(u_char*, const struct pcap_pkthdr*, const u_char*);
     static void packetTask(PCAP::WindowsPCAP*, void (*)(u_char*, const pcap_pkthdr*, const u_char*));
