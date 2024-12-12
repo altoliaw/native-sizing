@@ -292,7 +292,7 @@ void WindowsSizingMainCaller::packetFileTask(FILE** fileDescriptor, const char* 
 
     // Setting the alarm information
     LARGE_INTEGER dueTime;
-    dueTime.QuadPart = (LONGLONG)(-1) * (1000000LL) * (LONGLONG)_WRITING_FILE_SECOND_;  // Setting the first execution time when the timer executes
+    dueTime.QuadPart = (LONGLONG)(-1) * (10000000LL) * (LONGLONG)_WRITING_FILE_SECOND_;  // Setting the first execution time when the timer executes
 
     // Setting the alarm and the callback function, signalAlarmHandler, will awake every "(_WRITING_FILE_SECOND_ * 1000)" milliseconds;
     // when the SetWaitableTimer(.) successes, the timer will executes periodically
@@ -538,8 +538,6 @@ BOOL WINAPI WindowsSizingMainCaller::signalInterruptedHandler(DWORD signal) {
         // Cancelling the timer
         if (_TIMER_ != nullptr) {
             CancelWaitableTimer(_TIMER_);
-            // Calling the signalAlarmHandler
-            signalAlarmHandler();
         }
     }
     return TRUE;
