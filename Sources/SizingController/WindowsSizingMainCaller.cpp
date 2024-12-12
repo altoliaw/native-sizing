@@ -18,8 +18,10 @@ volatile char _IS_PCAP_WORKED_ = 0x1;
 volatile char _IS_ALARM_WORKED_ = 0x1;
 // Mutual locker(Windows version), using by the critical section (only works on a process on Windows)
 CRITICAL_SECTION _CRITICAL_SECTION_;
-// For windows timer
+// For the windows timer
 HANDLE _TIMER_ = nullptr;
+// For the windows exit signal
+HANDLE _EXITED_EVENT_ = nullptr;
 
 // Referring to the objects for stopping "pcap_loop"
 std::vector<PCAP::PCAPPrototype*> _PCAP_POINTER_;
@@ -67,7 +69,7 @@ Commons::POSIXErrors WindowsSizingMainCaller::start(int argC, char** argV) {
     sprintf(OuputFilePathWithTime, OutputFilePathRule, Commons::Time::getEpoch());
     _WRITING_FILE_LOCATION_ = OuputFilePathWithTime;
 
-    // // Installing a signal handler, interrupt
+    // Installing a signal handler, interrupt
     SetConsoleCtrlHandler(WindowsSizingMainCaller::signalInterruptedHandler, TRUE);
 
     {                                                           // Creating objects, opening the interfaces, executing the packet calculations
@@ -251,15 +253,23 @@ void WindowsSizingMainCaller::packetTask(PCAP::WindowsPCAP* pcap, void (*packetH
  * @param filePath [const char*] The file path for recording the information
  */
 void WindowsSizingMainCaller::packetFileTask(FILE** fileDescriptor, const char* filePath) {
+    // Registering the handler, "exit event"; this variable is used in the WindowsSizingMainCaller::signalInterruptedHandler
+    _EXITED_EVENT_ = CreateEvent(NULL, TRUE, FALSE, NULL);
+    if (_EXITED_EVENT_ == nullptr) {
+        _IS_ALARM_WORKED_ = 0x0;  // Disabled alarm
+        std::cerr << "[Error] CreateEvent failed.\n";
+        return;
+    }
+
     // Installing a signal handler, alarm, on Windows
-    _TIMER_ = CreateWaitableTimer(NULL, FALSE, NULL);
+    _TIMER_ = CreateWaitableTimer(nullptr, FALSE, nullptr);
     if (_TIMER_ == nullptr) {
         std::cerr << "[Error] Failed to create a waitable timer.\n";
         _IS_ALARM_WORKED_ = 0x0;  // Disabled alarm
         return;
     }
-    _FILE_POINTER_ = fileDescriptor;  // Passing to the global variable
 
+    _FILE_POINTER_ = fileDescriptor;  // Passing as the global variable
     // Opening the file with the file descriptor
     if (*_FILE_POINTER_ == nullptr) {
         *_FILE_POINTER_ = fopen(filePath, "a+");
@@ -286,31 +296,47 @@ void WindowsSizingMainCaller::packetFileTask(FILE** fileDescriptor, const char* 
 
     // Setting the alarm and the callback function, signalAlarmHandler, will awake every "(_WRITING_FILE_SECOND_ * 1000)" milliseconds;
     // when the SetWaitableTimer(.) successes, the timer will executes periodically
-    if (!SetWaitableTimer(_TIMER_, &dueTime, (_WRITING_FILE_SECOND_ * 1000), NULL, NULL, FALSE)) {
+    if (!SetWaitableTimer(_TIMER_, &dueTime, (_WRITING_FILE_SECOND_ * 1000), nullptr, nullptr, FALSE)) {
         std::cerr << "[Error] Failed to create a waitable timer.\n";
         _IS_ALARM_WORKED_ = 0x0;  // Disabled alarm
         return;
     }
 
-    while(_IS_ALARM_WORKED_ == 0x1 && _TIMER_ != NULL) {
-        // Verifying if the interrupt occurs every 5 seconds
-        DWORD dwWaitResult = WaitForSingleObject(_TIMER_, 5000); // A routine clock checker
-        // When the interrupt occurs
-        if (dwWaitResult == WAIT_OBJECT_0){
-            signalAlarmHandler();
+    // Registering the handlers
+    HANDLE handles[] = {_TIMER_, _EXITED_EVENT_};
+
+    while (_IS_ALARM_WORKED_ == 0x1) {
+        // Waiting the handlers, _TIMER_ and _EXITED_EVENT_, asynchronously
+        DWORD waitedResult = WaitForMultipleObjects(2, handles, FALSE, INFINITE);
+        switch (waitedResult) {
+            case WAIT_OBJECT_0:  // "_TIMER_" case
+                signalAlarmHandler();
+
+            case (WAIT_OBJECT_0 + 1):  // "_EXITED_EVENT_" case
+                break;
         }
     }
 
-    // When the timer does not belong to nullptr, ...
-    if (_TIMER_ != nullptr) {
-        // Closing the timer
-        CloseHandle(_TIMER_);
-        _TIMER_ = nullptr;
-    }
+    {  // Cleaning process
+        // When the exited event does not belong to nullptr, ...
+        if (_EXITED_EVENT_ != nullptr) {
+            // Closing the timer
+            CloseHandle(_EXITED_EVENT_);
+            _EXITED_EVENT_ = nullptr;
+        }
 
-    // Closing the file
-    if (*_FILE_POINTER_ != nullptr) {
-        fclose(*_FILE_POINTER_);
+        // When the timer does not belong to nullptr, ...
+        if (_TIMER_ != nullptr) {
+            // Closing the timer
+            CloseHandle(_TIMER_);
+            _TIMER_ = nullptr;
+        }
+
+        // Closing the file if the descriptor does not belong to nullptr
+        if (*_FILE_POINTER_ != nullptr) {
+            fclose(*_FILE_POINTER_);
+            *_FILE_POINTER_ = nullptr;
+        }
     }
 }
 
@@ -503,6 +529,11 @@ BOOL WINAPI WindowsSizingMainCaller::signalInterruptedHandler(DWORD signal) {
         // Using these two global variables to break the loops in different threads
         _IS_PCAP_WORKED_ = 0x0;
         _IS_ALARM_WORKED_ = 0x0;
+
+        // Setting the event handler and signaling WaitForMultipleObjects to leaving the loop
+        if (_EXITED_EVENT_ != nullptr) {
+            SetEvent(_EXITED_EVENT_);
+        }
 
         // Cancelling the timer
         if (_TIMER_ != nullptr) {
