@@ -47,13 +47,13 @@ endif
 
 
 # ######## [Variable Definitions]
-# The folder for the exection
+# The folder for the execution
 Bin:= Bin
-# The foldeer for the third party software
+# The folder for the third party software
 Vendors:= Vendors
-# The file for record the variables and values
+# The file for recording the variables and values
 TempMakefile:= ${projectDir}/tmp.mk
-# The file for record the variables and values
+# The file for recording the variables and values
 CommonTempMakefile:= ${projectDir}/commonTmp.mk
 
 # Generating all common variables for compilers into the Makefile
@@ -71,10 +71,11 @@ $(shell echo "LDLIBS 			:= ${LDLIBS}" >> ${CommonTempMakefile})
 
 
 # ######## [Makefile Included]
+# Including the multi-line variable definition which packs the compiling arguments defined above
 include common.mk
 
 
-# ######## [Makefile Arguments for sub-Makefile]: ${arguments} is from the 
+# ######## [Makefile Arguments for sub-Makefile]: ${arguments} is from the makefile, namely "common.mk"
 ARGUMENTS	:=	$(shell source ${projectDir}/Shells/codecUtilities.sh && echo $$(stringToAsciiHex '${arguments}'))
 
 # ######## [Implicit Rules]
