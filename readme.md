@@ -1,6 +1,6 @@
-# Traffic Monitor, Sizing
-The issue was raised on May 15th, 2024, edited by Nick.
-
+# Traffic Monitor, Sizing <p align ="left" style="font-size: 14px;">The issue was raised on May 15th, 2024, edited by Nick.</p>
+<!--Introduction-->
+To facilitate a rapid assessment of packet sizes across heterogeneous operating systems, we contribute a C++-based tool that identifies the classes of devices supported by the DBAEGIS decoders. The tool has been validated on both RHEL 8.7 and Windows 10 platforms. Details regarding the development environment and configuration settings are provided in the following sections.
 
 ## Development Environment
 Here are the necessary tools for developing and compiling the project on RHEL8.7:
