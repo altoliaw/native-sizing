@@ -11,7 +11,7 @@ PLAIN_ARGUMENTS	:=  $(shell source ${projectDir}/Shells/codecUtilities.sh && ech
 # ######## [Necessary COmmon MakeFile Variables Included]
 include ${CommonTempMakefile}
 
-# If someone feel like using the definitions that users define, please remove the comment and fill in the suitable terms.
+# If someone feels like using the definitions that users define, please remove the comment and fill in the suitable terms.
 # CC			=
 # STD			=
 # CMPOPT		=
