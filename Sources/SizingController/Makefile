@@ -3,10 +3,10 @@
 # @author Nick
 # @date 2024/09/24
 
-# ######## [Necessary Common MakeFile Variables Included]
+# ######## [Necessary Cmmon MakeFile Variables Included]
 include ${CommonTempMakefile}
 
-# If someone feels like using the definitions that users define, please remove the comment and fill in the suitable terms.
+# If someone feels like using the definitions that users define, please use target-specific for reassign variables as below:
 # CC			=
 # STD			=
 # CMPOPT		=
