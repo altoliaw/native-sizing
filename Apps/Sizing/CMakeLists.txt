@@ -1,10 +1,17 @@
 # When the type does not belong to the unit test
 if (NOT BUILD_TEST)
 
-add_executable(
-	SizingMain
-	SizingMain.cpp
+	add_executable(
+		SizingMain
+		SizingMain.cpp
 	)
+
+	add_custom_command(TARGET SizingMain POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        "$<TARGET_FILE:SizingMain>"
+        "${CMAKE_SOURCE_DIR}/Bin/"
+	)
+	
 	
 	# Linking to the headers
 	target_include_directories(SizingMain PUBLIC ../Headers/SizingController)
@@ -38,11 +45,11 @@ add_executable(
 			Models.FileParsers
 			Models.PCAP
 			# Windows built-in libraries
+			iphlpapi
 			ws2_32
 			# Vendor-specific libraries
 			${STATIC_LIB_PATH}/cJson/Libs/libcjson.a
-			${STATIC_LIB_PATH}/nPcap/Libs/x64/Packet.lib
-			${STATIC_LIB_PATH}/nPcap/Libs/x64/wpcap.lib
+			${STATIC_LIB_PATH}/winDivert/Libs/WinDivert.lib
 		)
 	endif()
 endif()

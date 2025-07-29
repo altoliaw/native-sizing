@@ -281,7 +281,7 @@ void LinuxSizingMainCaller::packetFileTask(FILE** fileDescriptor, const char* fi
 }
 
 /**
- * Calculating the amount of the packets
+ * Calculating the amount of the packets, a callback function to throw into the PCAP module (user defined)
  *
  * @param userData [u_char*]
  * @param pkthdr [const struct pcap_pkthdr*] The address of the packet header

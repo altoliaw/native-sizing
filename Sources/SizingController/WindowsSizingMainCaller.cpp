@@ -241,7 +241,7 @@ Commons::POSIXErrors WindowsSizingMainCaller::config(std::vector<unitService>* s
 void WindowsSizingMainCaller::packetTask(PCAP::WindowsPCAP* pcap, void (*packetHandler)(u_char*, const pcap_pkthdr*, const u_char*)) {
     // The only argument will be set; as a result, the pcap object will be passed in the function, packetHandler.
     // For more information, please refer to the function, execute(.).
-    pcap->execute(packetHandler);
+    // pcap->execute(packetHandler);
 }
 
 /**
@@ -341,178 +341,178 @@ void WindowsSizingMainCaller::packetFileTask(FILE** fileDescriptor, const char* 
 }
 
 /**
- * Calculating the amount of the packets
+ * Calculating the amount of the packets, a callback function to throw into the PCAP module (user defined)
  *
  * @param userData [u_char*]
  * @param pkthdr [const struct pcap_pkthdr*] The address of the packet header
  * @param packet [const u_char*] The address of the packet
  */
-void WindowsSizingMainCaller::packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, const u_char* packet) {
+void WindowsSizingMainCaller::packetHandler(u_char* userData, const pcap_pkthdr* pkthdr, const u_char* packet) {
     // Due to the setting of the function, execute(.), the data of userData is the object of children classes (LinuxPCAP, WindowsPCAP and so on ...)
-    PCAP::PCAPPrototype* pcapInstance = (PCAP::PCAPPrototype*)userData;
-    // Determining what the instance belong to
-    PCAP::WindowsPCAP* windowsPCAP = nullptr;
-    if (dynamic_cast<PCAP::WindowsPCAP*>(pcapInstance)) {
-        windowsPCAP = dynamic_cast<PCAP::WindowsPCAP*>(pcapInstance);
-    }
+    // PCAP::PCAPPrototype* pcapInstance = (PCAP::PCAPPrototype*)userData;
+    // // Determining what the instance belong to
+    // PCAP::WindowsPCAP* windowsPCAP = nullptr;
+    // if (dynamic_cast<PCAP::WindowsPCAP*>(pcapInstance)) {
+    //     windowsPCAP = dynamic_cast<PCAP::WindowsPCAP*>(pcapInstance);
+    // }
 
-    // When the pcap belongs to linux pcap, ...
-    if (windowsPCAP != nullptr) {
-        std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>* tmpMap = &(windowsPCAP->portRelatedInformation);
+    // // When the pcap belongs to linux pcap, ...
+    // if (windowsPCAP != nullptr) {
+    //     std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>* tmpMap = &(windowsPCAP->portRelatedInformation);
 
-        // The Ip collection, the variable will be static
-        static std::unordered_map<uint32_t, char> ipMap;
+    //     // The Ip collection, the variable will be static
+    //     static std::unordered_map<uint32_t, char> ipMap;
 
-        // Obtaining the IP header; the ip_p column implies the protocol;
-        // the number of the TCP is 6, and the UDP is 17
-        ip* ip_header = (ip*)(packet + sizeof(ether_header));
+    //     // Obtaining the IP header; the ip_p column implies the protocol;
+    //     // the number of the TCP is 6, and the UDP is 17
+    //     ip* ip_header = (ip*)(packet + sizeof(ether_header));
 
-        // Preparing the headers and the packet source/destination port variables
-        tcphdr* tcpHeader = nullptr;
-        udphdr* udpHeader = nullptr;
-        uint16_t packetSourcePort = 0;
-        uint16_t packetDestinationPort = 0;
-        uint32_t packetSourceIp = 0;
-        uint32_t packetDestinationIp = 0;
-        // Preparing the flag information of the tcp;
-        // when the flag of the tcp is equal to 0x18, the packet belongs to SQL packets
-        uint8_t tcpFlag = 0;
+    //     // Preparing the headers and the packet source/destination port variables
+    //     tcphdr* tcpHeader = nullptr;
+    //     udphdr* udpHeader = nullptr;
+    //     uint16_t packetSourcePort = 0;
+    //     uint16_t packetDestinationPort = 0;
+    //     uint32_t packetSourceIp = 0;
+    //     uint32_t packetDestinationIp = 0;
+    //     // Preparing the flag information of the tcp;
+    //     // when the flag of the tcp is equal to 0x18, the packet belongs to SQL packets
+    //     uint8_t tcpFlag = 0;
 
-        // Determining the protocol (TCP or UDP)
-        switch (ip_header->ip_p) {
-            case IPPROTO_TCP:  // TCP
-                tcpHeader = (tcphdr*)(packet + sizeof(ether_header) + sizeof(ip));
-                packetSourcePort = ntohs(tcpHeader->th_sport);
-                packetDestinationPort = ntohs(tcpHeader->th_dport);
-                tcpFlag = tcpHeader->th_flags;
-                packetSourceIp = ip_header->ip_src.s_addr;
-                packetDestinationIp = ip_header->ip_dst.s_addr;
-                break;
-            case IPPROTO_UDP:  // UDP
-                udpHeader = (udphdr*)(packet + sizeof(ether_header) + sizeof(ip));
-                packetSourcePort = ntohs(udpHeader->uh_sport);
-                packetDestinationPort = ntohs(udpHeader->uh_dport);
-                packetSourceIp = ip_header->ip_src.s_addr;
-                packetDestinationIp = ip_header->ip_dst.s_addr;
-                break;
-            default:
-                tcpHeader = (tcphdr*)(packet + sizeof(ether_header) + sizeof(ip));
-                packetSourcePort = ntohs(tcpHeader->th_sport);
-                packetDestinationPort = ntohs(tcpHeader->th_dport);
-                tcpFlag = tcpHeader->th_flags;
-                packetSourceIp = ip_header->ip_src.s_addr;
-                packetDestinationIp = ip_header->ip_dst.s_addr;
-        }
+    //     // Determining the protocol (TCP or UDP)
+    //     switch (ip_header->ip_p) {
+    //         case IPPROTO_TCP:  // TCP
+    //             tcpHeader = (tcphdr*)(packet + sizeof(ether_header) + sizeof(ip));
+    //             packetSourcePort = ntohs(tcpHeader->th_sport);
+    //             packetDestinationPort = ntohs(tcpHeader->th_dport);
+    //             tcpFlag = tcpHeader->th_flags;
+    //             packetSourceIp = ip_header->ip_src.s_addr;
+    //             packetDestinationIp = ip_header->ip_dst.s_addr;
+    //             break;
+    //         case IPPROTO_UDP:  // UDP
+    //             udpHeader = (udphdr*)(packet + sizeof(ether_header) + sizeof(ip));
+    //             packetSourcePort = ntohs(udpHeader->uh_sport);
+    //             packetDestinationPort = ntohs(udpHeader->uh_dport);
+    //             packetSourceIp = ip_header->ip_src.s_addr;
+    //             packetDestinationIp = ip_header->ip_dst.s_addr;
+    //             break;
+    //         default:
+    //             tcpHeader = (tcphdr*)(packet + sizeof(ether_header) + sizeof(ip));
+    //             packetSourcePort = ntohs(tcpHeader->th_sport);
+    //             packetDestinationPort = ntohs(tcpHeader->th_dport);
+    //             tcpFlag = tcpHeader->th_flags;
+    //             packetSourceIp = ip_header->ip_src.s_addr;
+    //             packetDestinationIp = ip_header->ip_dst.s_addr;
+    //     }
 
-        // Critical section, accessing the data area
-        EnterCriticalSection(&_CRITICAL_SECTION_);
+    //     // Critical section, accessing the data area
+    //     EnterCriticalSection(&_CRITICAL_SECTION_);
 
-        // Comparing source and destination ports with the port to determine the direction
-        char packetTypeDetermineSet = 0x0;  // A variable to determine the type of the packet
-        // For readability, the author uses a variable, packetTypeDetermineSet, to determine the type of the packet. That implies that
-        // a packet only belongs a type to demonstrate the phenomenons of mutual exclusion.
-        if (packetTypeDetermineSet == 0x0) {  // TX packet
-            std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>::iterator it = tmpMap->find((int)packetSourcePort);
-            if (it != tmpMap->end()) {  // Hitting
-                // previousPacketType[it->first] = 0x0;
-                (it->second)->txPacketNumber++;                    // txPacketNumber in the port shall plus 1.
-                (it->second)->txSize += (long long)(pkthdr->len);  // txSize in the port shall plus the current one.
+    //     // Comparing source and destination ports with the port to determine the direction
+    //     char packetTypeDetermineSet = 0x0;  // A variable to determine the type of the packet
+    //     // For readability, the author uses a variable, packetTypeDetermineSet, to determine the type of the packet. That implies that
+    //     // a packet only belongs a type to demonstrate the phenomenons of mutual exclusion.
+    //     if (packetTypeDetermineSet == 0x0) {  // TX packet
+    //         std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>::iterator it = tmpMap->find((int)packetSourcePort);
+    //         if (it != tmpMap->end()) {  // Hitting
+    //             // previousPacketType[it->first] = 0x0;
+    //             (it->second)->txPacketNumber++;                    // txPacketNumber in the port shall plus 1.
+    //             (it->second)->txSize += (long long)(pkthdr->len);  // txSize in the port shall plus the current one.
 
-                // Obtaining the maximum size in the port
-                if ((it->second)->maxTxSize < (long long)(pkthdr->len)) {
-                    (it->second)->maxTxSize = (long long)(pkthdr->len);
-                }
+    //             // Obtaining the maximum size in the port
+    //             if ((it->second)->maxTxSize < (long long)(pkthdr->len)) {
+    //                 (it->second)->maxTxSize = (long long)(pkthdr->len);
+    //             }
 
-                windowsPCAP->txPacketNumber++;                    // txPacketNumber shall plus 1.
-                windowsPCAP->txSize += (long long)(pkthdr->len);  // txSize shall plus the current one.
+    //             windowsPCAP->txPacketNumber++;                    // txPacketNumber shall plus 1.
+    //             windowsPCAP->txSize += (long long)(pkthdr->len);  // txSize shall plus the current one.
 
-                // Obtaining the maximum size
-                if (windowsPCAP->maxTxSize < (long long)(pkthdr->len)) {
-                    windowsPCAP->maxTxSize = (long long)(pkthdr->len);
-                }
-                packetTypeDetermineSet = 0x1;
-            }
-        }
+    //             // Obtaining the maximum size
+    //             if (windowsPCAP->maxTxSize < (long long)(pkthdr->len)) {
+    //                 windowsPCAP->maxTxSize = (long long)(pkthdr->len);
+    //             }
+    //             packetTypeDetermineSet = 0x1;
+    //         }
+    //     }
 
-        if (packetTypeDetermineSet == 0x0) {  // RX packet
-            std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>::iterator it = tmpMap->find((int)packetDestinationPort);
-            if (it != tmpMap->end()) {  // Hitting
-                // previousPacketType[it->first] = 0x1;
-                (it->second)->rxPacketNumber++;                    // rxPacketNumber in the port shall plus 1.
-                (it->second)->rxSize += (long long)(pkthdr->len);  // rxSize in the port shall plus the current one.
+    //     if (packetTypeDetermineSet == 0x0) {  // RX packet
+    //         std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>::iterator it = tmpMap->find((int)packetDestinationPort);
+    //         if (it != tmpMap->end()) {  // Hitting
+    //             // previousPacketType[it->first] = 0x1;
+    //             (it->second)->rxPacketNumber++;                    // rxPacketNumber in the port shall plus 1.
+    //             (it->second)->rxSize += (long long)(pkthdr->len);  // rxSize in the port shall plus the current one.
 
-                // Obtaining the maximum size in the port
-                if ((it->second)->maxRxSize < (long long)(pkthdr->len)) {
-                    (it->second)->maxRxSize = (long long)(pkthdr->len);
-                }
+    //             // Obtaining the maximum size in the port
+    //             if ((it->second)->maxRxSize < (long long)(pkthdr->len)) {
+    //                 (it->second)->maxRxSize = (long long)(pkthdr->len);
+    //             }
 
-                // In this if section, the meaning implies that the packet from the client to server contain a SQL statement
-                if (tcpFlag == 0x18) {
-                    (it->second)->sqlRequestNumber++;
-                    (it->second)->sqlRequestSize += (long long)(pkthdr->len);
-                }
+    //             // In this if section, the meaning implies that the packet from the client to server contain a SQL statement
+    //             if (tcpFlag == 0x18) {
+    //                 (it->second)->sqlRequestNumber++;
+    //                 (it->second)->sqlRequestSize += (long long)(pkthdr->len);
+    //             }
 
-                windowsPCAP->rxPacketNumber++;                    // rxPacketNumber shall plus 1.
-                windowsPCAP->rxSize += (long long)(pkthdr->len);  // rxSize shall plus the current one.
+    //             windowsPCAP->rxPacketNumber++;                    // rxPacketNumber shall plus 1.
+    //             windowsPCAP->rxSize += (long long)(pkthdr->len);  // rxSize shall plus the current one.
 
-                // Obtaining the maximum size
-                if (windowsPCAP->maxRxSize < (long long)(pkthdr->len)) {
-                    windowsPCAP->maxRxSize = (long long)(pkthdr->len);
-                }
-                packetTypeDetermineSet = 0x1;
+    //             // Obtaining the maximum size
+    //             if (windowsPCAP->maxRxSize < (long long)(pkthdr->len)) {
+    //                 windowsPCAP->maxRxSize = (long long)(pkthdr->len);
+    //             }
+    //             packetTypeDetermineSet = 0x1;
 
-                // Recording the IP when first meeting the rx from the port; this IP will be reserved in the container for
-                // the case when the later packets' port are not in the defined array; this Ip can determine the type of the packet
-                std::unordered_map<uint32_t, char>::iterator itIp = ipMap.find(packetDestinationIp);
-                if (itIp == ipMap.end()) {  // No one hitting
-                    ipMap.emplace(packetDestinationIp, 0x0);
-                }
-            }
-        }
+    //             // Recording the IP when first meeting the rx from the port; this IP will be reserved in the container for
+    //             // the case when the later packets' port are not in the defined array; this Ip can determine the type of the packet
+    //             std::unordered_map<uint32_t, char>::iterator itIp = ipMap.find(packetDestinationIp);
+    //             if (itIp == ipMap.end()) {  // No one hitting
+    //                 ipMap.emplace(packetDestinationIp, 0x0);
+    //             }
+    //         }
+    //     }
 
-        if (packetTypeDetermineSet == 0x0) {  // The port is not defined in the .json file
+    //     if (packetTypeDetermineSet == 0x0) {  // The port is not defined in the .json file
 
-            // Obtaining no type; because there are no ports match in the array that users defined
-            char packetTypeByIp = 0x0;
-            // For readability, the author uses a variable, packetTypeByIp, to determine the type of the packet. That implies that
-            // a packet only belongs a type to demonstrate the phenomenons of mutual exclusion.
-            if (packetTypeByIp == 0x0) {  // TX consideration
-                std::unordered_map<uint32_t, char>::iterator it = ipMap.find((int)packetSourceIp);
-                if (it != ipMap.end()) {  // Hitting
-                    windowsPCAP->txPacketNumber++;
-                    windowsPCAP->txSize += (long long)(pkthdr->len);
+    //         // Obtaining no type; because there are no ports match in the array that users defined
+    //         char packetTypeByIp = 0x0;
+    //         // For readability, the author uses a variable, packetTypeByIp, to determine the type of the packet. That implies that
+    //         // a packet only belongs a type to demonstrate the phenomenons of mutual exclusion.
+    //         if (packetTypeByIp == 0x0) {  // TX consideration
+    //             std::unordered_map<uint32_t, char>::iterator it = ipMap.find((int)packetSourceIp);
+    //             if (it != ipMap.end()) {  // Hitting
+    //                 windowsPCAP->txPacketNumber++;
+    //                 windowsPCAP->txSize += (long long)(pkthdr->len);
 
-                    // Obtaining the maximum size
-                    if (windowsPCAP->maxTxSize < (long long)(pkthdr->len)) {
-                        windowsPCAP->maxTxSize = (long long)(pkthdr->len);
-                    }
-                    packetTypeByIp = 0x1;
-                }
-            }
+    //                 // Obtaining the maximum size
+    //                 if (windowsPCAP->maxTxSize < (long long)(pkthdr->len)) {
+    //                     windowsPCAP->maxTxSize = (long long)(pkthdr->len);
+    //                 }
+    //                 packetTypeByIp = 0x1;
+    //             }
+    //         }
 
-            if (packetTypeByIp == 0x0) {  // RX consideration
-                std::unordered_map<uint32_t, char>::iterator it = ipMap.find((int)packetDestinationIp);
-                if (it != ipMap.end()) {  // Hitting
-                    windowsPCAP->rxPacketNumber++;
-                    windowsPCAP->rxSize += (long long)(pkthdr->len);
+    //         if (packetTypeByIp == 0x0) {  // RX consideration
+    //             std::unordered_map<uint32_t, char>::iterator it = ipMap.find((int)packetDestinationIp);
+    //             if (it != ipMap.end()) {  // Hitting
+    //                 windowsPCAP->rxPacketNumber++;
+    //                 windowsPCAP->rxSize += (long long)(pkthdr->len);
 
-                    // Obtaining the maximum size
-                    if (windowsPCAP->maxRxSize < (long long)(pkthdr->len)) {
-                        windowsPCAP->maxRxSize = (long long)(pkthdr->len);
-                    }
-                    packetTypeByIp = 0x1;
-                }
-            }
-        }
+    //                 // Obtaining the maximum size
+    //                 if (windowsPCAP->maxRxSize < (long long)(pkthdr->len)) {
+    //                     windowsPCAP->maxRxSize = (long long)(pkthdr->len);
+    //                 }
+    //                 packetTypeByIp = 0x1;
+    //             }
+    //         }
+    //     }
 
-        // Critical section end
-        LeaveCriticalSection(&_CRITICAL_SECTION_);
-    }
+    //     // Critical section end
+    //     LeaveCriticalSection(&_CRITICAL_SECTION_);
+    // }
 
     // Verifying if the "pcap_loop" shall be stopped; "_IS_PCAP_WORKED_" is
     // a global variable and is controlled by the signal mechanism
     if (_IS_PCAP_WORKED_ == 0x0) {
-        pcap_breakloop((pcap_t*)windowsPCAP->descriptor);
+        //pcap_breakloop((pcap_t*)windowsPCAP->descriptor);
     }
 }
 

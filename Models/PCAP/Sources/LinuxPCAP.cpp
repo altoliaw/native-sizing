@@ -114,11 +114,12 @@ void LinuxPCAP::close() {
 }
 
 /**
- * Calculating the amount of the packets
+ * Calculating the amount of the packets, a callback function to throw into the PCAP module (default)
+ * When the outer does not throw the user defined callback function, the function below will execute automatically.
  *
  * @param userData [u_char*] The additional information for the function, packetHandler; the additional information will be binding with
  * the forth argument in the pcap_loop
- * @param pkthdr [const struct pcap_pkthdr*] The header of the packet
+ * @param pkthdr [const struct pcap_pkthdr*] The header of the packet (metadata)
  * @param packet [const u_char*] The data from the last position of the header of the packet
  */
 void LinuxPCAP::packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, const u_char* packet) {

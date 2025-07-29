@@ -24,5 +24,5 @@ else()
 
 	target_include_directories(Main.Sources PUBLIC 
 		../../Headers/SizingController
-		${STATIC_LIB_PATH}/nPcap/Includes)
+		${STATIC_LIB_PATH}/WinDivert/Includes)
 endif()

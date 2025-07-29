@@ -14,5 +14,5 @@ else()
 		WindowsPCAP.cpp
 	)
 
-	target_include_directories(Models.PCAP PUBLIC ../Headers ${STATIC_LIB_PATH}/nPcap/Includes)
+	target_include_directories(Models.PCAP PUBLIC ../Headers ${STATIC_LIB_PATH}/winDivert/Includes)
 endif()

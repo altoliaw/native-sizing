@@ -35,18 +35,20 @@
 			"linux": true
 		},
 		{
-			"name": "nPcap",
-			"download": "wget -O {{name}}/tmp.zip https://npcap.com/dist/npcap-sdk-1.13.zip",
+			"name": "winDivert",
+			"download": "wget -O {{name}}/tmp.zip https://github.com/basil00/WinDivert/releases/download/v2.2.2/WinDivert-2.2.2-A.zip",
 			"command": "unzip tmp.zip",
 			"includes": [
-				"Include/*"
+				"WinDivert-2.2.2-A/include/windivert.h"
 			],
 			"libs": [
-				"Lib/*"
+				"WinDivert-2.2.2-A/x64/WinDivert.lib",
+				"WinDivert-2.2.2-A/x64/WinDivert64.sys",
+				"WinDivert-2.2.2-A/x64/WinDivert.dll"
 			],
 			"others": [
 			],
-			"reference": "https://npcap.com/#download",
+			"reference": "https://github.com/basil00/WinDivert",
 			"remove": "rm -rf {{name}}",
 			"windows": true,
 			"linux": false
