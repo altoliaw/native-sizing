@@ -7,14 +7,20 @@ if (NOT BUILD_TEST)
 	)
 
 	add_custom_command(TARGET SizingMain POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "$<TARGET_FILE:SizingMain>"
-        "${CMAKE_SOURCE_DIR}/Bin/"
+		# Copying the original .exe to the Bin directory
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different
+			"$<TARGET_FILE:SizingMain>"
+			"${CMAKE_SOURCE_DIR}/Bin/"
+
+		# Changing the root permission
+		# COMMAND chown root:root "${CMAKE_SOURCE_DIR}/Bin/$<TARGET_FILE_NAME:SizingMain>"
+
+		# Changing SUID（4755）
+		# COMMAND chmod 4755 "${CMAKE_SOURCE_DIR}/Bin/$<TARGET_FILE_NAME:SizingMain>"
 	)
 	
-	
 	# Linking to the headers
-	target_include_directories(SizingMain PUBLIC ../Headers/SizingController)
+	target_include_directories(SizingMain PUBLIC ${CMAKE_SOURCE_DIR}/Headers/SizingController)
 
 	# Linking to the library
 	set(STATIC_LIB_PATH ${CMAKE_BINARY_DIR}/Vendors)

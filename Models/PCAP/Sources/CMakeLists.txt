@@ -7,12 +7,19 @@ if(OPERATING_SYSTEM STREQUAL "0")
 		LinuxPCAP.cpp
 	)
 
-	target_include_directories(Models.PCAP PUBLIC ../Headers ${STATIC_LIB_PATH}/libpcap/Includes)
+	target_include_directories(Models.PCAP 
+		PUBLIC 
+		${CMAKE_SOURCE_DIR}/Models/PCAP/Headers 
+		${STATIC_LIB_PATH}/libpcap/Includes
+	)
 else()
 	add_library(Models.PCAP
 		PCAPPrototype.cpp
 		WindowsPCAP.cpp
 	)
 
-	target_include_directories(Models.PCAP PUBLIC ../Headers ${STATIC_LIB_PATH}/winDivert/Includes)
+	target_include_directories(Models.PCAP PUBLIC 
+	${CMAKE_SOURCE_DIR}/Models/PCAP/Headers 
+		${STATIC_LIB_PATH}/winDivert/Includes
+	)
 endif()

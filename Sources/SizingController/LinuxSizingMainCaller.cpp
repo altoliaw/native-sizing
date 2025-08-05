@@ -350,7 +350,7 @@ void LinuxSizingMainCaller::packetHandler(u_char* userData, const struct pcap_pk
         char packetTypeDetermineSet = 0x0;  // A variable to determine the type of the packet
         // For readability, the author uses a variable, packetTypeDetermineSet, to determine the type of the packet. That implies that
         // a packet only belongs a type to demonstrate the phenomenons of mutual exclusion.
-        if (packetTypeDetermineSet == 0x0) {  // TX packet
+        if (packetTypeDetermineSet == 0x0) {  // TX packet; when the packet does not hit the prot map
             std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>::iterator it = tmpMap->find((int)packetSourcePort);
             if (it != tmpMap->end()) {  // Hitting
                 // previousPacketType[it->first] = 0x0;
@@ -373,7 +373,7 @@ void LinuxSizingMainCaller::packetHandler(u_char* userData, const struct pcap_pk
             }
         }
 
-        if (packetTypeDetermineSet == 0x0) {  // RX packet
+        if (packetTypeDetermineSet == 0x0) {  // RX packet; when the packet does not hit the prot map
             std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>::iterator it = tmpMap->find((int)packetDestinationPort);
             if (it != tmpMap->end()) {  // Hitting
                 // previousPacketType[it->first] = 0x1;

@@ -98,8 +98,9 @@ void LinuxPCAP::execute(void (*callback)(u_char*, const pcap_pkthdr*, const u_ch
                   0,
                   ((callback == nullptr) ? LinuxPCAP::packetHandler : callback),                                          // if callback is nullptr,
                                                                                                                           // the function will be the default function in the class
-                  (callback == nullptr) ? reinterpret_cast<u_char*>(&rxPacketNumber) : reinterpret_cast<u_char*>(this));  // if callback is nullptr,
+                  (callback == nullptr) ? reinterpret_cast<u_char*>(&rxPacketNumber) : reinterpret_cast<u_char*>(this)    // if callback is nullptr,
                                                                                                                           // the function will be the default function in the class
+        );
     }
 }
 

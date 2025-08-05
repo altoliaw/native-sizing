@@ -51,8 +51,8 @@
 			"type": "cppdbg",
 			"request": "launch",
 			"program": "${workspaceFolder}/Bin/SizingMain.exe",
-			"args": ["-l"],
-			"stopAtEntry": true,
+			"args": [""],
+			"stopAtEntry": false,
 			"cwd": "${workspaceFolder}",
 			"environment": [
 				
