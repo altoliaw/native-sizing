@@ -4,4 +4,4 @@ add_library(Models.Commons
 	Time.cpp
 )
 
-target_include_directories(Models.Commons PUBLIC ../Headers)
+target_include_directories(Models.Commons PUBLIC ${CMAKE_SOURCE_DIR}/Models/Commons/Headers)

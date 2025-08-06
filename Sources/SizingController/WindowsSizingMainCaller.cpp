@@ -341,13 +341,13 @@ void WindowsSizingMainCaller::packetFileTask(FILE** fileDescriptor, const char* 
 }
 
 /**
- * Calculating the amount of the packets
+ * Calculating the amount of the packets, a callback function to throw into the PCAP module (user defined)
  *
  * @param userData [u_char*]
  * @param pkthdr [const struct pcap_pkthdr*] The address of the packet header
  * @param packet [const u_char*] The address of the packet
  */
-void WindowsSizingMainCaller::packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, const u_char* packet) {
+void WindowsSizingMainCaller::packetHandler(u_char* userData, const pcap_pkthdr* pkthdr, const u_char* packet) {
     // Due to the setting of the function, execute(.), the data of userData is the object of children classes (LinuxPCAP, WindowsPCAP and so on ...)
     PCAP::PCAPPrototype* pcapInstance = (PCAP::PCAPPrototype*)userData;
     // Determining what the instance belong to
@@ -411,55 +411,75 @@ void WindowsSizingMainCaller::packetHandler(u_char* userData, const struct pcap_
         char packetTypeDetermineSet = 0x0;  // A variable to determine the type of the packet
         // For readability, the author uses a variable, packetTypeDetermineSet, to determine the type of the packet. That implies that
         // a packet only belongs a type to demonstrate the phenomenons of mutual exclusion.
-        if (packetTypeDetermineSet == 0x0) {  // TX packet
+        if (packetTypeDetermineSet == 0x0) {  // TX packet; when the packet does not hit the prot map
             std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>::iterator it = tmpMap->find((int)packetSourcePort);
             if (it != tmpMap->end()) {  // Hitting
                 // previousPacketType[it->first] = 0x0;
-                (it->second)->txPacketNumber++;                    // txPacketNumber in the port shall plus 1.
-                (it->second)->txSize += (long long)(pkthdr->len);  // txSize in the port shall plus the current one.
+                if ((it->second)->previousPacketType == 0x0) {          // When the previous packet belongs to undefined, ...
+                    (it->second)->previousPacketType = 0x1;             // Setting the previous packet type to TX
+                } 
+                else if ((it->second)->previousPacketType == 0x2) {
+                    (it->second)->flowChangeCount++;                    // Flow change occurs, the previous packet is RX
+                    (it->second)->rxGroupCount++;                       // rxGroupCount in the port shall plus 1.
+                    (it->second)->previousPacketType = 0x1;             // Setting the previous packet type to TX
+                    windowsPCAP->rxGroupCount++;                        // rxGroupCount shall plus 1.
+                }
+
+                (it->second)->txPacketNumber++;                       // txPacketNumber in the port shall plus 1.
+                (it->second)->txSize += (long long)(pkthdr->Length);  // txSize in the port shall plus the current one.
 
                 // Obtaining the maximum size in the port
-                if ((it->second)->maxTxSize < (long long)(pkthdr->len)) {
-                    (it->second)->maxTxSize = (long long)(pkthdr->len);
+                if ((it->second)->maxTxSize < (long long)(pkthdr->Length)) {
+                    (it->second)->maxTxSize = (long long)(pkthdr->Length);
                 }
 
-                windowsPCAP->txPacketNumber++;                    // txPacketNumber shall plus 1.
-                windowsPCAP->txSize += (long long)(pkthdr->len);  // txSize shall plus the current one.
+                windowsPCAP->txPacketNumber++;                       // txPacketNumber shall plus 1.
+                windowsPCAP->txSize += (long long)(pkthdr->Length);  // txSize shall plus the current one.
 
                 // Obtaining the maximum size
-                if (windowsPCAP->maxTxSize < (long long)(pkthdr->len)) {
-                    windowsPCAP->maxTxSize = (long long)(pkthdr->len);
+                if (windowsPCAP->maxTxSize < (long long)(pkthdr->Length)) {
+                    windowsPCAP->maxTxSize = (long long)(pkthdr->Length);
                 }
-                packetTypeDetermineSet = 0x1;
+                packetTypeDetermineSet = 0x1; // The port has been hit.
             }
         }
 
-        if (packetTypeDetermineSet == 0x0) {  // RX packet
+        if (packetTypeDetermineSet == 0x0) {  // RX packet; when the packet does not hit the prot map
             std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>::iterator it = tmpMap->find((int)packetDestinationPort);
             if (it != tmpMap->end()) {  // Hitting
                 // previousPacketType[it->first] = 0x1;
-                (it->second)->rxPacketNumber++;                    // rxPacketNumber in the port shall plus 1.
-                (it->second)->rxSize += (long long)(pkthdr->len);  // rxSize in the port shall plus the current one.
+                if ((it->second)->previousPacketType == 0x0) {          // When the previous packet belongs to undefined, ...
+                    (it->second)->previousPacketType = 0x2;             // Setting the previous packet type to RX
+                } 
+                else if ((it->second)->previousPacketType == 0x1) {
+                    (it->second)->flowChangeCount++;                    // Flow change occurs, the previous packet is RX
+                    (it->second)->txGroupCount++;                       // txGroupCount in the port shall plus 1.
+                    (it->second)->previousPacketType = 0x2;
+                    windowsPCAP->txGroupCount++;                        // txGroupCount shall plus 1.
+                }
+
+                (it->second)->rxPacketNumber++;                         // rxPacketNumber in the port shall plus 1.
+                (it->second)->rxSize += (long long)(pkthdr->Length);    // rxSize in the port shall plus the current one.
 
                 // Obtaining the maximum size in the port
-                if ((it->second)->maxRxSize < (long long)(pkthdr->len)) {
-                    (it->second)->maxRxSize = (long long)(pkthdr->len);
+                if ((it->second)->maxRxSize < (long long)(pkthdr->Length)) {
+                    (it->second)->maxRxSize = (long long)(pkthdr->Length);
                 }
 
                 // In this if section, the meaning implies that the packet from the client to server contain a SQL statement
                 if (tcpFlag == 0x18) {
                     (it->second)->sqlRequestNumber++;
-                    (it->second)->sqlRequestSize += (long long)(pkthdr->len);
+                    (it->second)->sqlRequestSize += (long long)(pkthdr->Length);
                 }
 
-                windowsPCAP->rxPacketNumber++;                    // rxPacketNumber shall plus 1.
-                windowsPCAP->rxSize += (long long)(pkthdr->len);  // rxSize shall plus the current one.
+                windowsPCAP->rxPacketNumber++;                         // rxPacketNumber shall plus 1.
+                windowsPCAP->rxSize += (long long)(pkthdr->Length);    // rxSize shall plus the current one.
 
                 // Obtaining the maximum size
-                if (windowsPCAP->maxRxSize < (long long)(pkthdr->len)) {
-                    windowsPCAP->maxRxSize = (long long)(pkthdr->len);
+                if (windowsPCAP->maxRxSize < (long long)(pkthdr->Length)) {
+                    windowsPCAP->maxRxSize = (long long)(pkthdr->Length);
                 }
-                packetTypeDetermineSet = 0x1;
+                packetTypeDetermineSet = 0x1; // The port has been hit.
 
                 // Recording the IP when first meeting the rx from the port; this IP will be reserved in the container for
                 // the case when the later packets' port are not in the defined array; this Ip can determine the type of the packet
@@ -480,11 +500,11 @@ void WindowsSizingMainCaller::packetHandler(u_char* userData, const struct pcap_
                 std::unordered_map<uint32_t, char>::iterator it = ipMap.find((int)packetSourceIp);
                 if (it != ipMap.end()) {  // Hitting
                     windowsPCAP->txPacketNumber++;
-                    windowsPCAP->txSize += (long long)(pkthdr->len);
+                    windowsPCAP->txSize += (long long)(pkthdr->Length);
 
                     // Obtaining the maximum size
-                    if (windowsPCAP->maxTxSize < (long long)(pkthdr->len)) {
-                        windowsPCAP->maxTxSize = (long long)(pkthdr->len);
+                    if (windowsPCAP->maxTxSize < (long long)(pkthdr->Length)) {
+                        windowsPCAP->maxTxSize = (long long)(pkthdr->Length);
                     }
                     packetTypeByIp = 0x1;
                 }
@@ -494,11 +514,11 @@ void WindowsSizingMainCaller::packetHandler(u_char* userData, const struct pcap_
                 std::unordered_map<uint32_t, char>::iterator it = ipMap.find((int)packetDestinationIp);
                 if (it != ipMap.end()) {  // Hitting
                     windowsPCAP->rxPacketNumber++;
-                    windowsPCAP->rxSize += (long long)(pkthdr->len);
+                    windowsPCAP->rxSize += (long long)(pkthdr->Length);
 
                     // Obtaining the maximum size
-                    if (windowsPCAP->maxRxSize < (long long)(pkthdr->len)) {
-                        windowsPCAP->maxRxSize = (long long)(pkthdr->len);
+                    if (windowsPCAP->maxRxSize < (long long)(pkthdr->Length)) {
+                        windowsPCAP->maxRxSize = (long long)(pkthdr->Length);
                     }
                     packetTypeByIp = 0x1;
                 }
@@ -507,12 +527,6 @@ void WindowsSizingMainCaller::packetHandler(u_char* userData, const struct pcap_
 
         // Critical section end
         LeaveCriticalSection(&_CRITICAL_SECTION_);
-    }
-
-    // Verifying if the "pcap_loop" shall be stopped; "_IS_PCAP_WORKED_" is
-    // a global variable and is controlled by the signal mechanism
-    if (_IS_PCAP_WORKED_ == 0x0) {
-        pcap_breakloop((pcap_t*)windowsPCAP->descriptor);
     }
 }
 
@@ -529,6 +543,26 @@ BOOL WINAPI WindowsSizingMainCaller::signalInterruptedHandler(DWORD signal) {
         // Using these two global variables to break the loops in different threads
         _IS_PCAP_WORKED_ = 0x0;
         _IS_ALARM_WORKED_ = 0x0;
+
+        // Verifying if the "pcap_loop" shall be stopped; "_IS_PCAP_WORKED_" is
+        // a global variable and is controlled by the signal mechanism; when the
+        // value is equal to 0x0, all WinDriverRecv (a blocking function) shall be 
+        // released
+        if (_IS_PCAP_WORKED_ == 0x0) {
+            // Canceling I/O for all WinDivert handles
+            for (std::vector<PCAP::PCAPPrototype*>::iterator it = _PCAP_POINTER_.begin(); 
+                it != _PCAP_POINTER_.end(); 
+                ++it) {
+                if (PCAP::WindowsPCAP* winPCAPPointer = dynamic_cast<PCAP::WindowsPCAP*>(*it)) {
+                    if (winPCAPPointer->descriptor != INVALID_HANDLE_VALUE) {
+                        CancelIoEx((HANDLE)winPCAPPointer->descriptor, nullptr); // Unblock all "WinDivertRecv" blocking functions
+                    }
+                    // Calling to the pcap_breakloop
+                    winPCAPPointer->pcap_breakloop();
+                }
+            }
+        }
+
 
         // Setting the event handler and signaling WaitForMultipleObjects to leaving the loop
         if (_EXITED_EVENT_ != nullptr) {
@@ -584,14 +618,14 @@ void WindowsSizingMainCaller::signalAlarmHandler() {
                                              timeEpoch,
                                              (tmp->deviceInterface).c_str(),
                                              (it2)->first,  // port number
-                                             tmp->txPacketNumber,
+                                             tmp->txGroupCount,
                                              tmp->txSize,
                                              tmp->maxTxSize,
                                              (long)0,
                                              (long long)0,
                                              (long long)0);
                         fwrite(output, sizeof(char), length, *_FILE_POINTER_);
-                        ((it2)->second)->txPacketNumber = 0;
+                        ((it2)->second)->txGroupCount = 0;
                         ((it2)->second)->txSize = 0;
                         ((it2)->second)->maxTxSize = 0;
 
@@ -601,14 +635,14 @@ void WindowsSizingMainCaller::signalAlarmHandler() {
                                          timeEpoch,
                                          (tmp->deviceInterface).c_str(),
                                          (it2)->first,  // port number
-                                         tmp->rxPacketNumber,
+                                         tmp->rxGroupCount,
                                          tmp->rxSize,
                                          tmp->maxRxSize,
                                          (it2->second)->sqlRequestNumber,
                                          (it2->second)->sqlRequestSize,
                                          (it2->second)->sqlRequestNumber / (long long)_WRITING_FILE_SECOND_);
                         fwrite(output, sizeof(char), length, *_FILE_POINTER_);
-                        ((it2)->second)->rxPacketNumber = 0;
+                        ((it2)->second)->rxGroupCount = 0;
                         ((it2)->second)->rxSize = 0;
                         ((it2)->second)->maxRxSize = 0;
                         ((it2)->second)->sqlRequestNumber = 0;
@@ -617,9 +651,11 @@ void WindowsSizingMainCaller::signalAlarmHandler() {
 
                     // Clearing the rx and tx number, size and max size information when all ports' information is written
                     tmp->txPacketNumber = 0;
+                    tmp->txGroupCount = 0;
                     tmp->txSize = 0;
                     tmp->maxTxSize = 0;
                     tmp->rxPacketNumber = 0;
+                    tmp->rxGroupCount = 0;
                     tmp->rxSize = 0;
                     tmp->maxRxSize = 0;
                 }
