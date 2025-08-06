@@ -411,7 +411,7 @@ void WindowsSizingMainCaller::packetHandler(u_char* userData, const pcap_pkthdr*
         char packetTypeDetermineSet = 0x0;  // A variable to determine the type of the packet
         // For readability, the author uses a variable, packetTypeDetermineSet, to determine the type of the packet. That implies that
         // a packet only belongs a type to demonstrate the phenomenons of mutual exclusion.
-        if (packetTypeDetermineSet == 0x0) {  // TX packet; when the packet does not hit the prot map
+        if (packetTypeDetermineSet == 0x0) {  // TX packet; when the packet does not hit the port map
             std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>::iterator it = tmpMap->find((int)packetSourcePort);
             if (it != tmpMap->end()) {  // Hitting
                 // previousPacketType[it->first] = 0x0;
@@ -444,7 +444,7 @@ void WindowsSizingMainCaller::packetHandler(u_char* userData, const pcap_pkthdr*
             }
         }
 
-        if (packetTypeDetermineSet == 0x0) {  // RX packet; when the packet does not hit the prot map
+        if (packetTypeDetermineSet == 0x0) {  // RX packet; when the packet does not hit the port map
             std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>::iterator it = tmpMap->find((int)packetDestinationPort);
             if (it != tmpMap->end()) {  // Hitting
                 // previousPacketType[it->first] = 0x1;
