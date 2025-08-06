@@ -19,6 +19,11 @@ for i in "${!ParameterArray[@]}"; do  # ${#ParameterArray[@]} implies the number
 	esac
 done
 
+# Folders' generations
+mkdir -p Outputs
+mkdir -p Logs
+mkdir -p Bin		# Creating the folder for execution
+
 # Cmake process
 mkdir -p build
 cmake -S . -B build -DBUILD_TEST=OFF -DCMAKE_BUILD_TYPE=Debug
@@ -28,7 +33,7 @@ OsType="$(uname -s | tr '[:upper:]' '[:lower:]')" # Obtaining the kernel type st
 # After the parameter process above, the pre-processing will come.
 if [[ "$OsType" = "linux" ]]; then
 	# Do nothing
-	@echo "No any pre-processes are necessary."
+	echo "No any pre-processes are necessary."
 elif [[ "$OsType" = *"mingw"* ]]; then
 	# Removing WinDivert service for avoiding that the service may exist already
 	# By using the window service command, sc, the execution will stop and delete the WinDivert .
