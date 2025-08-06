@@ -11,12 +11,15 @@ namespace PCAP {
 WindowsPCAP::WindowsPCAP() {
     errBuff[0] = '\0';
     descriptor = nullptr;
-    pcapDescriptor = (pcap_t*)descriptor;
+    pcapDescriptor = (HANDLE)descriptor; // HANDLE is the macro, thr original definition is equal to the pointer type.
     deviceInterface = "";
     rxSize = 0;
     txSize = 0;
     rxPacketNumber = 0;
     txPacketNumber = 0;
+    rxGroupCount = 0;
+    txGroupCount = 0;
+    flowChangeCount = 0;
     maxRxSize = 0;
     maxTxSize = 0;
 }
@@ -26,8 +29,7 @@ WindowsPCAP::WindowsPCAP() {
  */
 WindowsPCAP::~WindowsPCAP() {
     // PCAP handle shall be closed and NULL.
-    if (pcapDescriptor != nullptr) {
-        std::cerr << "[Error] pcapDescriptor shall has been deallocated.\n";
+    if (pcapDescriptor != nullptr && pcapDescriptor != INVALID_HANDLE_VALUE) {
         this->close();
     } else {
         pcapDescriptor = nullptr;
@@ -39,6 +41,9 @@ WindowsPCAP::~WindowsPCAP() {
     txSize = 0;
     rxPacketNumber = 0;
     txPacketNumber = 0;
+    rxGroupCount = 0;
+    txGroupCount = 0;
+    flowChangeCount = 0;
     maxRxSize = 0;
     maxTxSize = 0;
 
@@ -56,6 +61,31 @@ WindowsPCAP::~WindowsPCAP() {
     }
 }
 
+
+/**
+ * Subclass constructor 
+ */
+WindowsPCAP::PcapSignal::PcapSignal() {
+    isExecuted = true; // Initializing the value is true for the simulated function, pcap_loop, working
+    checkPCAPSignal = [this](bool input) { // Capturing by value; here the flag, input, 
+                                           // determines whether the simulated pcap_loop continues or stops
+        isExecuted &= input; // Calculating with & operator
+        return isExecuted;
+    };
+
+    // Calling checkPCAPSignal with a true value
+    checkPCAPSignal(true);
+}
+
+/**
+ * Subclass destructor 
+ */
+WindowsPCAP::PcapSignal::~PcapSignal() { 
+    isExecuted = false;
+    checkPCAPSignal = nullptr;
+}
+
+
 /**
  * Opening the PCAP object according to an interface with different ports
  *
@@ -67,15 +97,24 @@ WindowsPCAP::~WindowsPCAP() {
  * @param port [std::vector<int>*] The port of the server for distinguishing with the packets from rx and tx
  */
 void WindowsPCAP::open(const char* device, const int snaplen, const int promisc, const int timeout, std::vector<int>* port) {
-    pcapDescriptor = pcap_open_live(device, snaplen, promisc, timeout, errBuff);
-    if (pcapDescriptor == nullptr) {
-        std::cerr << "[Error] PCAP open failed; please verifying if the permission is root\n";
-    }
-    descriptor = (void*)pcapDescriptor;  // Passing the descriptor to the general type
 
+    /* Setting the variable of receiving packet filter; when the value is equal to "" or "true",
+       that implies that the winDivert will receive all packets; when the value equals to "tcp or udp",
+       that indicates that the winDivert will receive tcp or udp packets; for more information, 
+       please refer to the URL as below: https://github.com/basil00/WinDivert/wiki/WinDivert-Documentation#filter_language.
+     */
     // Copying the NIC information into the object
     std::string deviceInterface(device);
     this->deviceInterface = deviceInterface;
+    std::string filter = "ifIdx == " + deviceInterface;
+
+    // Opening the WinDivert handle
+    pcapDescriptor = WinDivertOpen((const char*)filter.c_str(), WINDIVERT_LAYER_NETWORK, 0, 0);
+    if (pcapDescriptor == INVALID_HANDLE_VALUE) {
+        std::cerr << "[Error] PCAP open failed; please verifying if the permission is root" << GetLastError() << "\n";
+    }
+    descriptor = (void*)pcapDescriptor;  // Passing the descriptor to the general type
+    
     // Copying the ports information into each portRelatedInformation (set)
     for (unsigned int i = 0; i < port->size(); i++) {
         PCAPPortInformation* PCAPPortInstance = new PCAPPortInformation();
@@ -92,15 +131,13 @@ void WindowsPCAP::open(const char* device, const int snaplen, const int promisc,
  * the default value of the function is "nullptr" (has been initialized in the declaration)
  */
 void WindowsPCAP::execute(void (*callback)(u_char*, const pcap_pkthdr*, const u_char*)) {
-    if (pcapDescriptor != nullptr) {
-        // The forth argument in the pcap_loop will be associated to the first one parameter in the function, callback.
-        // If the callback is not nullptr, the forth argument is the object.
-        pcap_loop(pcapDescriptor,
-                  0,
-                  ((callback == nullptr) ? WindowsPCAP::packetHandler : callback),                                        // if callback is nullptr,
-                                                                                                                          // the function will be the default function in the class
-                  (callback == nullptr) ? reinterpret_cast<u_char*>(&rxPacketNumber) : reinterpret_cast<u_char*>(this));  // if callback is nullptr,
-                                                                                                                          // the function will be the default function in the class
+    // When pcapDescriptor belongs to INVALID_HANDLE_VALUE, ...
+    if (pcapDescriptor != INVALID_HANDLE_VALUE) {
+        pcap_loop(&pcapDescriptor, 
+                   0, 
+                   ((callback == nullptr) ? WindowsPCAP::packetHandler : callback), // if callback is nullptr,
+                    reinterpret_cast<u_char*>(this)
+        );
     }
 }
 
@@ -108,30 +145,100 @@ void WindowsPCAP::execute(void (*callback)(u_char*, const pcap_pkthdr*, const u_
  * Closing the PCAP
  */
 void WindowsPCAP::close() {
-    if (pcapDescriptor != nullptr) {
-        pcap_close(pcapDescriptor);
-        pcapDescriptor = nullptr;
+    if (pcapDescriptor != nullptr && pcapDescriptor != INVALID_HANDLE_VALUE) {
+        WinDivertClose(pcapDescriptor);
+        pcapDescriptor = INVALID_HANDLE_VALUE;  // Setting the handle to invalid value
     }
 }
 
 /**
- * Calculating the amount of the packets
+ * Calculating the amount of the packets, a callback function to throw into the PCAP module (default)
+ * When the outer does not throw the user defined callback function, the function below will execute automatically.
  *
  * @param userData [u_char*] The additional information for the function, packetHandler; the additional information will be binding with
  * the forth argument in the pcap_loop
- * @param pkthdr [const struct pcap_pkthdr*] The header of the packet
+ * @param pkthdr [const struct pcap_pkthdr*] The header of the packet (metadata)
  * @param packet [const u_char*] The data from the last position of the header of the packet
  */
-void WindowsPCAP::packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, const u_char* packet) {
-    int* packetCount = (int*)userData;
-    (*packetCount)++;
-    std::cout << *packetCount << "  packets\t";
-
-    long* totalSize = (long*)(userData + sizeof(int));
-    *totalSize += pkthdr->len;
-    std::cout << pkthdr->len << "  total size\n";
+void WindowsPCAP::packetHandler(u_char* userData, const pcap_pkthdr* pkthdr, const u_char* packet) {
+    // Due to the setting of the function, execute(.), the data of userData is the object of children classes (LinuxPCAP, WindowsPCAP and so on ...)
+    PCAP::PCAPPrototype* pcapInstance = (PCAP::PCAPPrototype*)userData;
+    // Determining what the instance belong to
+    PCAP::WindowsPCAP* windowsPCAP = nullptr;
+    if (dynamic_cast<PCAP::WindowsPCAP*>(pcapInstance)) {
+        windowsPCAP = dynamic_cast<PCAP::WindowsPCAP*>(pcapInstance);
+        (windowsPCAP->rxGroupCount) ++;
+        std::cout << windowsPCAP->rxGroupCount<< "  packets\t";
+        long* totalSize = (long*)(userData + sizeof(int));
+    }
     // Unit: milliseconds; 2000 milliseconds = 2 seconds
     Sleep(2000);
+}
+
+/**
+ * The simulation of the pcap_loop; in winDirvert, there is no pcap_loop function in winDivert; as a result, the function shall be defined manually
+ * 
+ * @param pcapDescriptorPointer [HANDLE*] The pointer to the pcapDescriptorPointer
+ * @param count [int] The number of packets to capture before the function returns; when the value is equal to 0 or -1, this implies that
+ * the process will capture packets indefinitely until an error occurs or the loop is manually stopped; when the value is larger than 0, 
+ * this implies that the process will capture exactly count packets
+ * @param callback [void (*)(u_char*, const pcap_pkthdr*, const u_char*)] The callback function  
+ */
+void WindowsPCAP::pcap_loop(HANDLE* pcapDescriptorPointer, int count, void (*callback)(u_char*, const pcap_pkthdr*, const u_char*), u_char* userDefinedData) {
+    WindowsPCAP* object = reinterpret_cast<WindowsPCAP*>(userDefinedData); // Re-referring to the object with different pointers
+    
+    // The callback execution (implemented by the lambda as below:)
+    std::function<bool()> receiveAndHandlePacket = [=]() -> bool {
+         // Buffer for packet data information
+        unsigned char packet[65535] = {'\0'};
+        WINDIVERT_ADDRESS address;
+        UINT packetLength = 0;
+        if (!WinDivertRecv(*pcapDescriptorPointer, packet, sizeof(packet), &packetLength, &address)) { // When receiving nothing, ...
+            DWORD error = GetLastError();
+            if (error == ERROR_OPERATION_ABORTED) { // Checking for cancellation
+                return false; // Exiting the loop
+            }
+            std::cerr << "[Error] Failed to receive packet.\n";
+            return true;
+        }
+
+        WINDIVERT_IPHDR* ipHeader = (WINDIVERT_IPHDR*)(packet);
+        callback(userDefinedData, ipHeader, packet);
+
+        // When receiving packets, sending the packet without any changes
+        if (!WinDivertSend(*pcapDescriptorPointer, packet, packetLength, nullptr, &address)) {
+            std::cerr << "[Error] Failed to send packet back. Code: " << GetLastError() << "\n";
+        }
+        return true;
+    };
+
+    // Loop case determination
+    if (count == 0 || count == -1) { // Case infinity
+        while (true && (object->pcapSignalInfo).checkPCAPSignal(true)) { // Verifying if the signal in the pcap had received a suspend/interrupt
+            // When the lambda returns false, the process shall break out the loop. 
+            bool isSuccess = receiveAndHandlePacket();
+            if (isSuccess == false) {
+                break;
+            }
+        }
+    } else if (count > 0) { // Case finiteness
+        while (count > 0 &&  (object->pcapSignalInfo).checkPCAPSignal(true)) {
+            // When the lambda returns false, the process shall break out the loop. 
+            bool isSuccess = receiveAndHandlePacket();
+            if (isSuccess == false) {
+                break;
+            }
+            count--;
+        }
+    }
+}
+
+/**
+ * The simulation of the pcap_breakloop; in winDirvert, there is no pcap_breakloop function in winDivert; as a result, the function shall be defined manually
+ * 
+ */
+void WindowsPCAP::pcap_breakloop() {
+    (this->pcapSignalInfo).checkPCAPSignal(false); 
 }
 
 /**
@@ -141,34 +248,87 @@ void WindowsPCAP::packetHandler(u_char* userData, const struct pcap_pkthdr* pkth
  * json definition
  */
 void WindowsPCAP::show() {
-    pcap_if_t* allDevices;  // All devices (linked list)
-    pcap_if_t* device;      // Each device pointer
+    WSADATA wsaData; // An object for reserving the "window sockets application" (wsa) information for winsock 
+                     // and the winsock introduction is list as below:
+                     // https://learn.microsoft.com/en-us/windows/win32/winsock/windows-sockets-start-page-2
+    WSAStartup(MAKEWORD(2, 2), &wsaData); // Initializing the Winsock with the major and the minor versions are 2 and 2, respectively
 
-    char errBuff[PCAP_ERRBUF_SIZE];  // For error message
-    // Obtaining all devices into the device list; when there are no devices here, -1 will be obtained
-    if (pcap_findalldevs(&allDevices, errBuff) == -1) {
-        std::cerr << "Error in pcap_findalldevs: " << errBuff << "\n";
+    IP_ADAPTER_ADDRESSES* adapterAddresses = nullptr; // A window network interface pointer
+    ULONG outBuffLength = (ULONG)OUT_BUFF_lENGTH; // The default size of the buffer
+    DWORD dwReturnVal = 0; // double word size's return value
+
+    // Using for loop to extend the memory buffer automatically; the for loop implies a retry mechanism; only 5 tries are in the case
+    for (int attempts = 0; attempts < 5; attempts++) {
+        adapterAddresses = (IP_ADAPTER_ADDRESSES*)malloc(outBuffLength); // Allocating the memory size dynamically
+        if (!adapterAddresses) {
+            std::cerr << "Memory allocation failed\n";
+            return;
+        }
+
+        /* Obtaining all network interfaces' information from the NIC, for more details, please refer to th following URL:
+         * https://learn.microsoft.com/en-us/windows/win32/api/iphlpapi/nf-iphlpapi-getadaptersaddresses?utm_source=chatgpt.com */
+        dwReturnVal = GetAdaptersAddresses( AF_UNSPEC, // Obtaining the IPV4 and IPV6 information
+                                            GAA_FLAG_INCLUDE_PREFIX, // The address length
+                                            NULL,
+                                            adapterAddresses, // The related contents
+                                            &outBuffLength // The size of the related contents
+                      );
+
+        if (dwReturnVal == ERROR_BUFFER_OVERFLOW) { // When the error code belongs to "buffer too small", 
+            free(adapterAddresses);
+            adapterAddresses = nullptr; 
+            continue; // Trying again
+        }
+        // When accepted, ...
+        break;
+    }
+
+    if (dwReturnVal != NO_ERROR) { // When error occurs, ...
+        std::cerr << "GetAdaptersAddresses failed with error: " << dwReturnVal << "\n";
+        if (adapterAddresses) {
+            free(adapterAddresses);
+            adapterAddresses = nullptr;
+        }
+        WSACleanup(); // Closing and cleaning the winsock
         return;
     }
 
-    int index = 0;  // The index for device traversal
-    std::cout << "The devices on Windows platform are listed with the format \"$1: $2 ($3)\" in the following "
-              << "where the {{$#}}s are denoted as the serial number, device name, and device description in sequence. "
-              << "Please copy the device name into the .json file in the \"Settings\" directory.\n\n";
-    for (device = allDevices; device != nullptr; device = device->next) {
-        std::cout << ++index << ": " << device->name << "\t";
-        if (device->description) {
-            std::cout << " (" << device->description << ")" << "\n";
-        } else {
-            std::cout << " (No description available)" << "\n";
+    // Displaying the device information (i.e., the codes are simulated as the function, pcap_findalldevs, in NPCAP)
+    int index = 0;
+    for (IP_ADAPTER_ADDRESSES* adapter = adapterAddresses;
+         adapter != nullptr; adapter = adapter->Next) {
+
+        ULONG ifIndex = adapter->IfIndex; // Windows' Ifindex (this number is for the setting when using winDivert)
+        std::string adapterName = "\\\\Device\\\\NPF_"; // On windows platforms, the prefix will display the prefix "\Device\NPF_" and the uuid. 
+        adapterName = (adapter->AdapterName) ? (adapterName + adapter->AdapterName ) : "Unknown";
+        std::cout << (++index) << ".\t" << adapterName << "  IfIndex: " << ifIndex  <<"\t";
+
+        // Traversal of network adapters and their own unicast IP; (i.e., unicast implies a transformation from a node to a node)
+        for ( IP_ADAPTER_UNICAST_ADDRESS* unicast = adapter->FirstUnicastAddress;
+              unicast != nullptr; 
+              unicast = unicast->Next ) {
+            
+            char ipStringBuffer[INET6_ADDRSTRLEN] = {'\0'};
+            int family = unicast->Address.lpSockaddr->sa_family; // Obtaining the sa_family field indicates which protocol family this address belongs to
+
+            if (family == AF_INET) { // Displaying the individual IP
+                getnameinfo(
+                    unicast->Address.lpSockaddr, // The pointer to the IP address (as sockaddr)
+                    (family == AF_INET) ? sizeof(sockaddr_in) : sizeof(sockaddr_in6), // The address structure length based on protocol family
+                    ipStringBuffer, // The output buffer for the resulting IP string
+                    sizeof(ipStringBuffer), // The size of the output buffer
+                    nullptr,
+                    0,
+                    NI_NUMERICHOST // Forcing numeric IP output (no DNS lookup)
+                );
+                std::cerr << "IP Address: " << ipStringBuffer << "\n";
+            }
         }
     }
 
-    // Releasing the memory which was allocated for the devices
-    if (allDevices != nullptr) {
-        pcap_freealldevs(allDevices);
-        allDevices = nullptr;
-    }
+    free(adapterAddresses); // Releasing the dynamic memory
+    WSACleanup(); // Closing and cleaning the winsock
+    return;
 }
 
 }  // namespace PCAP

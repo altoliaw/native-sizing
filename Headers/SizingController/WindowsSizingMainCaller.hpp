@@ -33,6 +33,13 @@
 #include "../../Models/PCAP/Headers/WindowsPCAP.hpp"
 #include "./SizingMainCallerPrototype.hpp"
 
+/* In some windows platforms, u_char type is not defined; for ensuring that u_char can be used 
+ * on all windows, here the process will verify whether u_char exists (TODO, delete)*/
+#ifndef u_char
+    // Alias to the type unsigned char to the one, u_char
+    typedef unsigned char u_char;
+#endif
+
 namespace SizingMainCaller {
 class WindowsSizingMainCaller : public SizingMainCallerPrototype {
    public:
@@ -101,7 +108,7 @@ class WindowsSizingMainCaller : public SizingMainCallerPrototype {
     static BOOL WINAPI signalInterruptedHandler(DWORD);
     static void signalAlarmHandler();
     static Commons::POSIXErrors config(std::vector<unitService>*);
-    static void packetHandler(u_char*, const struct pcap_pkthdr*, const u_char*);
+    static void packetHandler(u_char*, const pcap_pkthdr*, const u_char*);
     static void packetTask(PCAP::WindowsPCAP*, void (*)(u_char*, const pcap_pkthdr*, const u_char*));
     static void packetFileTask(FILE**, const char*);
 };

@@ -24,6 +24,7 @@
         "${workspaceFolder}/**",
         "${workspaceFolder}/googletest/googletest/include",
         "${workspaceFolder}/Vendors/nPcap/Includes",
+        "${workspaceFolder}/Vendors/winDivert/Includes",
       ],
       "compilerPath": "C:\\msys64\\mingw64\\bin\\g++.exe",
       "cStandard": "${default}",
