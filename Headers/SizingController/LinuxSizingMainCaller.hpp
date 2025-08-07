@@ -25,6 +25,7 @@
 #include <vector>
 #include <tuple>
 #include <map>
+#include <chrono>
 
 
 #include "../../Models/Commons/Headers/IOSpecification.hpp"
@@ -40,7 +41,11 @@ class LinuxSizingMainCaller : public SizingMainCallerPrototype {
     // For reserving the session's previous, the key is a tuple which combines sorted ip and port information;
     // the second one is the session's previous packet type;   
     // The value is defined as follows: 0: undefined; 1: TX, and 2: RX
-    static std::map<std::tuple <uint32_t, uint32_t, uint16_t, uint16_t>, char> sessionMap; 
+    static std::map<std::tuple <uint32_t, uint32_t, uint16_t, uint16_t>, char> sessionMap;
+    // For recording the maximum number of packets per second
+    static long currentSqlMaxRequestNumberPerSec;
+    // For reserving the starting time in the beginning or the updating time when the SQL statements receive
+    static std::chrono::steady_clock::time_point startingTime;
 
     Commons::POSIXErrors start(int, char**);
     static void signalInterruptedHandler(int);

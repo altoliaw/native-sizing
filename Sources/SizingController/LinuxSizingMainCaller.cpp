@@ -23,12 +23,14 @@ std::vector<PCAP::PCAPPrototype*> _PCAP_POINTER_;
 // The address of the global pointer referring to the file descriptor object
 FILE** _FILE_POINTER_ = nullptr;
 
-/**
- * The definition of the static variable in the class; the definition linked to the declaration defined in the proper class;
- * for reserving the session's previous, the key is a tuple which combines sorted ip and port information;
- * the second one is the session's previous packet type; the value is defined as follows: 0: undefined; 1: TX, and 2: RX
- */
-std::map<std::tuple <uint32_t, uint32_t, uint16_t, uint16_t>, char> LinuxSizingMainCaller::sessionMap; 
+//===Static fields Declaration===
+// For reserving the session's previous, the key is a tuple which combines sorted ip and port information;
+// the second one is the session's previous packet type; the value is defined as follows: 0: undefined; 1: TX, and 2: RX
+std::map<std::tuple <uint32_t, uint32_t, uint16_t, uint16_t>, char> LinuxSizingMainCaller::sessionMap;
+// For recording the maximum number of packets per second
+long LinuxSizingMainCaller::currentSqlMaxRequestNumberPerSec = 0;
+// For reserving the starting time in the beginning or the updating time when the SQL statements receive
+std::chrono::steady_clock::time_point LinuxSizingMainCaller::startingTime =  std::chrono::steady_clock::time_point::min();;
 
 /**
  * The starting process, the entry of the process
@@ -267,7 +269,7 @@ void LinuxSizingMainCaller::packetFileTask(FILE** fileDescriptor, const char* fi
             char output[1024] = {'\0'};
             int length = sprintf(output,
                                  "UTC\tType\tInterface\tPort\tNumber(amount)\tSize(bytes)\tMaxSize(bytes)\t"
-                                 "SQL number in the time interval\tSQL size(bytes) in the time interval\tSQL number per time interval(eps)\n");
+                                 "SQL number in the time interval\tSQL size(bytes) in the time interval\tAverage SQL number per sec(eps)\tPeak SQL number per sec(eps)\n");
             fwrite(output, sizeof(char), length, *_FILE_POINTER_);
             if (*_FILE_POINTER_ != nullptr) {
                 fclose(*_FILE_POINTER_);
@@ -295,6 +297,10 @@ void LinuxSizingMainCaller::packetFileTask(FILE** fileDescriptor, const char* fi
  * @param packet [const u_char*] The address of the packet
  */
 void LinuxSizingMainCaller::packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, const u_char* packet) {
+    // Opening the clock when the value equals to "std::chrono::steady_clock::time_point::min()"
+    if (startingTime == std::chrono::steady_clock::time_point::min()) {
+        startingTime = std::chrono::steady_clock::now(); // Assign now to the startingTime variable
+    }
     // Due to the setting of the function, execute(.), the data of userData is the object of children classes (LinuxPCAP, WindowsPCAP and so on ...)
     PCAP::PCAPPrototype* pcapInstance = (PCAP::PCAPPrototype*)userData;
     // Determining what the instance belong to
@@ -433,6 +439,18 @@ void LinuxSizingMainCaller::packetHandler(u_char* userData, const struct pcap_pk
                     if (tcpFlag == 0x18) { // PSH + ACK flag
                         (it->second)->sqlRequestNumber++;
                         (it->second)->sqlRequestSize += (long long)(pkthdr->len);
+                        currentSqlMaxRequestNumberPerSec++; // Adding the number
+                        // Determining if the time has been equal to and larger than 1 sec
+                        std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+                        std::chrono::duration<double> elapsedSeconds = now - startingTime;
+                        if ( elapsedSeconds.count() >= 1.0) {
+                            // Determining if the kept data are lager than current reserved data in the same session 
+                            (it->second)->sqlMaxRequestNumberPerSec = ((it->second)->sqlMaxRequestNumberPerSec) > currentSqlMaxRequestNumberPerSec ?
+                                                                    ((it->second)->sqlMaxRequestNumberPerSec):
+                                                                    currentSqlMaxRequestNumberPerSec;
+                            startingTime = now;
+                            currentSqlMaxRequestNumberPerSec = 0;
+                        }
                     }
                 }
             }
@@ -538,7 +556,7 @@ void LinuxSizingMainCaller::signalAlarmHandler(int) {
                         // TX part; in the section, the last two result will be to zero because the packets
                         // from the record set from the SQL server shall be ignored
                         int length = sprintf(output,
-                                             "%lu\tTX\t%s\t%d\t%lu\t%llu\t%lu\t%lu\t%llu\t%llu\n",
+                                             "%lu\tTX\t%s\t%d\t%lu\t%llu\t%lu\t%lu\t%llu\t%llu\t%llu\n",
                                              timeEpoch,
                                              (tmp->deviceInterface).c_str(),
                                              (it2)->first,  // port number
@@ -546,6 +564,7 @@ void LinuxSizingMainCaller::signalAlarmHandler(int) {
                                              tmp->txSize,
                                              tmp->maxTxSize,
                                              (long)0,
+                                             (long long)0,
                                              (long long)0,
                                              (long long)0);
                         fwrite(output, sizeof(char), length, *_FILE_POINTER_);
@@ -556,7 +575,7 @@ void LinuxSizingMainCaller::signalAlarmHandler(int) {
 
                         // RX part
                         length = sprintf(output,
-                                         "%lu\tRX\t%s\t%d\t%lu\t%llu\t%lu\t%lu\t%llu\t%llu\n",
+                                         "%lu\tRX\t%s\t%d\t%lu\t%llu\t%lu\t%lu\t%llu\t%llu\t%llu\n",
                                          timeEpoch,
                                          (tmp->deviceInterface).c_str(),
                                          (it2)->first,  // port number
@@ -565,7 +584,8 @@ void LinuxSizingMainCaller::signalAlarmHandler(int) {
                                          tmp->maxRxSize,
                                          (it2->second)->sqlRequestNumber,
                                          (it2->second)->sqlRequestSize,
-                                         (it2->second)->sqlRequestNumber / (long long)_WRITING_FILE_SECOND_);
+                                         (it2->second)->sqlRequestNumber / (long long)_WRITING_FILE_SECOND_,
+                                         (it2->second)->sqlMaxRequestNumberPerSec);
                         fwrite(output, sizeof(char), length, *_FILE_POINTER_);
                         ((it2)->second)->rxGroupNumber = 0;
                         ((it2)->second)->rxPacketNumber = 0;
@@ -573,6 +593,7 @@ void LinuxSizingMainCaller::signalAlarmHandler(int) {
                         ((it2)->second)->maxRxSize = 0;
                         ((it2)->second)->sqlRequestNumber = 0;
                         ((it2)->second)->sqlRequestSize = 0;
+                        ((it2)->second)->sqlMaxRequestNumberPerSec = 0;
                     }
 
                     // Clearing the rx and tx number, size and max size information when all ports' information is written
@@ -583,7 +604,7 @@ void LinuxSizingMainCaller::signalAlarmHandler(int) {
                     tmp->rxPacketNumber = 0;
                     tmp->rxGroupNumber = 0;
                     tmp->rxSize = 0;
-                    tmp->maxRxSize = 0;
+                    tmp->maxRxSize = 0;                   
                 }
             }
             _MUTEX_.unlock();

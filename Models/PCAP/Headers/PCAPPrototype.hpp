@@ -72,8 +72,9 @@ class PCAPPrototype {
         // The number of the flow change during the time interval within the port; 
         // the change indicates a packet direction reversal followed by a return to the original direction (i.e., tx → rx → tx)
         long flowChangeNumber;
-        long sqlRequestNumber;     // The number if the packets containing SQL statement in rx with the port
-        long long sqlRequestSize;  // The size if the packets containing SQL statement in rx with the port
+        long sqlRequestNumber;           // The number if the packets containing SQL statement in rx with the port
+        long long sqlRequestSize;        // The size if the packets containing SQL statement in rx with the port
+        long sqlMaxRequestNumberPerSec;  // The number if the packets containing SQL statement in rx with the port
         PCAPPortInformation();
         ~PCAPPortInformation();
         long sqlRequestNumberPerTime(int);
