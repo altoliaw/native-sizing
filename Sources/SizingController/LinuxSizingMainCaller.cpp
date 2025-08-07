@@ -28,7 +28,7 @@ FILE** _FILE_POINTER_ = nullptr;
  * for reserving the session's previous, the key is a tuple which combines sorted ip and port information;
  * the second one is the session's previous packet type; the value is defined as follows: 0: undefined; 1: TX, and 2: RX
  */
-std::map<std::tuple <uint32_t, uint32_t, uint16_t, uint16_t>, char> LinuxSizingMainCaller::sessionMap; 
+std::map<std::tuple <uint32_t, uint32_t, uint16_t, uint16_t>, char> LinuxSizingMainCaller::sessionMap;
 
 /**
  * The starting process, the entry of the process
