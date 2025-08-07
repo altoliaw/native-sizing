@@ -107,7 +107,6 @@ void WindowsPCAP::open(const char* device, const int snaplen, const int promisc,
     std::string deviceInterface(device);
     this->deviceInterface = deviceInterface;
     std::string filter = "ifIdx == " + deviceInterface;
-
     // Opening the WinDivert handle
     pcapDescriptor = WinDivertOpen((const char*)filter.c_str(), WINDIVERT_LAYER_NETWORK, 0, 0);
     if (pcapDescriptor == INVALID_HANDLE_VALUE) {
@@ -186,30 +185,55 @@ void WindowsPCAP::packetHandler(u_char* userData, const pcap_pkthdr* pkthdr, con
  */
 void WindowsPCAP::pcap_loop(HANDLE* pcapDescriptorPointer, int count, void (*callback)(u_char*, const pcap_pkthdr*, const u_char*), u_char* userDefinedData) {
     WindowsPCAP* object = reinterpret_cast<WindowsPCAP*>(userDefinedData); // Re-referring to the object with different pointers
-    
     // The callback execution (implemented by the lambda as below:)
     std::function<bool()> receiveAndHandlePacket = [=]() -> bool {
          // Buffer for packet data information
-        unsigned char packet[65535] = {'\0'};
+        unsigned char packet[65535 + 64] = {'\0'}; // The size here is allocated 65535 + 64 bytes, which is larger than the maximum size announced by the WinDivert
         WINDIVERT_ADDRESS address;
         UINT packetLength = 0;
         if (!WinDivertRecv(*pcapDescriptorPointer, packet, sizeof(packet), &packetLength, &address)) { // When receiving nothing, ...
             DWORD error = GetLastError();
             if (error == ERROR_OPERATION_ABORTED) { // Checking for cancellation
+                // Obtaining the signal "ctrl+c"
+                // Doing nothing and returning false
                 return false; // Exiting the loop
+            } else {
+                std::cerr << "[Error] Failed to receive packet.\n";
+                return true;
             }
-            std::cerr << "[Error] Failed to receive packet.\n";
+        } else {
+            PWINDIVERT_IPHDR ipHeader = nullptr;
+            PWINDIVERT_TCPHDR tcpHeader = nullptr;
+            PWINDIVERT_UDPHDR udpHeader = nullptr;
+            PVOID payload = nullptr;
+            UINT payload_len = 0;
+            if (packetLength >= sizeof(WINDIVERT_IPHDR)) {
+                bool isSuccess = WinDivertHelperParsePacket( packet, packetLength, &ipHeader, nullptr, nullptr,
+                    nullptr, nullptr, &tcpHeader, &udpHeader, &payload, 
+                    &payload_len, nullptr, nullptr);
+                
+                // Assembling the ip header, TCP and UDP packet information;
+                // in the winDivert, TCP and UDP headers cannot be obtained from ip header directly
+                WINDIVERT_GROUP_TYPE packetGroupType = {ipHeader, tcpHeader, udpHeader, packetLength};
+
+                if (isSuccess == true) {
+                    //  Calling the callback function
+                    WINDIVERT_GROUP_TYPE* ipHeader = &packetGroupType;
+                    // WINDIVERT_IPHDR* ipHeader = (WINDIVERT_IPHDR*)(packet);
+                    if (callback == nullptr) {
+                        WindowsPCAP::packetHandler((u_char*)&rxPacketNumber, ipHeader, packet);
+                    } else {
+                        callback(userDefinedData, ipHeader, packet);
+                    }
+                }
+            }
+
+            // When receiving packets, sending the packet without any changes
+            if (!WinDivertSend(*pcapDescriptorPointer, packet, packetLength, nullptr, &address)) {
+                std::cerr << "[Error] Failed to send packet back. Code: " << GetLastError() << "\n";
+            }
             return true;
         }
-
-        WINDIVERT_IPHDR* ipHeader = (WINDIVERT_IPHDR*)(packet);
-        callback(userDefinedData, ipHeader, packet);
-
-        // When receiving packets, sending the packet without any changes
-        if (!WinDivertSend(*pcapDescriptorPointer, packet, packetLength, nullptr, &address)) {
-            std::cerr << "[Error] Failed to send packet back. Code: " << GetLastError() << "\n";
-        }
-        return true;
     };
 
     // Loop case determination
@@ -301,7 +325,7 @@ void WindowsPCAP::show() {
         ULONG ifIndex = adapter->IfIndex; // Windows' Ifindex (this number is for the setting when using winDivert)
         std::string adapterName = "\\\\Device\\\\NPF_"; // On windows platforms, the prefix will display the prefix "\Device\NPF_" and the uuid. 
         adapterName = (adapter->AdapterName) ? (adapterName + adapter->AdapterName ) : "Unknown";
-        std::cout << (++index) << ".\t" << adapterName << "  IfIndex: " << ifIndex  <<"\t";
+        std::cerr << (++index) << ".\t" << adapterName << "  IfIndex: " << ifIndex  <<"\t";
 
         // Traversal of network adapters and their own unicast IP; (i.e., unicast implies a transformation from a node to a node)
         for ( IP_ADAPTER_UNICAST_ADDRESS* unicast = adapter->FirstUnicastAddress;
@@ -321,7 +345,7 @@ void WindowsPCAP::show() {
                     0,
                     NI_NUMERICHOST // Forcing numeric IP output (no DNS lookup)
                 );
-                std::cerr << "IP Address: " << ipStringBuffer << "\n";
+                std::cout << "IP Address: " << ipStringBuffer << "\n";
             }
         }
     }

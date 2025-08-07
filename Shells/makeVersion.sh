@@ -68,7 +68,9 @@ function makeVersion() {
 
 	# Making a folder in the project
 	mkdir -p "$projectName"
-	cp -ar Settings ./"$projectName"
+	rsync -a --exclude='.Cmake' Settings/ "./$projectName/Settings"
+
+	# cp -ar Settings ./"$projectName"
 	cp -ar Bin ./"$projectName"
 	cp -ar Outputs ./"$projectName"
 	tar zcvf "$fileName.tar.gz" "$projectName"

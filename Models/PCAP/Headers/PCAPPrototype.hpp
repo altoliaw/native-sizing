@@ -30,9 +30,25 @@
     typedef unsigned char u_char;
 #endif
 
+/**
+ * This part is for the winDivert's header, because the winDivert's header is not compatible with the pcap's header (pcap_pkthdr).
+ */
+namespace PCAP {
+/**
+ * This part is for the winDivert's header, because the winDivert's header is not compatible with the pcap's header (pcap_pkthdr).
+ */
+struct WINDIVERT_GROUP_TYPE {
+    PWINDIVERT_IPHDR ipHeader; // IP header
+    PWINDIVERT_TCPHDR tcpHeader; // TCP header
+    PWINDIVERT_UDPHDR udpHeader; // UDP header
+    UINT packetLength; // The length of the packet
+};
+}
+
+typedef PCAP::WINDIVERT_GROUP_TYPE pcap_pkthdr;
 /* In winDivert, 'WINDIVERT_IPHDR' type is substituted for the 'pcap_pkthdr' type in Linux.
  * To co-compile on different platforms, 'WINDIVERT_IPHDR' shall be alias to 'pcap_pkthdr'. */
-typedef WINDIVERT_IPHDR pcap_pkthdr;
+// typedef WINDIVERT_IPHDR pcap_pkthdr;
 
 /* In addition to the pcap_pkthdr, in windDivert, PCAP_ERRBUF_SIZE is not defined. Hence, here
  * the macro shall be set as 256 manually */

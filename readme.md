@@ -14,6 +14,7 @@ cmake version 3.20.2 \
 jq-1.6 \
 unzip \
 GNU Awk 4.2.1 \
+rsync \
 git
 
 ## Version
