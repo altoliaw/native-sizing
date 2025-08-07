@@ -56,16 +56,22 @@ class PCAPPrototype {
     struct PCAPPortInformation {
        public:
         int port;                  // The port number for distinguishing to the packets of rx an tx
-        char previousPacketType;   // The previous packet type; 0: undefined; 1: TX, and 2: RX
+        // char previousPacketType;   // The previous packet type; 0: undefined; 1: TX, and 2: RX
         long long rxSize;          // The size of the rx channel with the port
         long long txSize;          // The size of the rx channel with the port
         long rxPacketNumber;       // The number of the packets in the rx channel with the port
         long txPacketNumber;       // The number of the packets in the tx channel with the port
-        long maxRxSize;            // The max size of the rx packets during the time interval with the port
-        long maxTxSize;            // The max size of the tx packets during the time interval with the port
-        long rxGroupCount;         // The number of the packet groups in the rx channel within the port
-        long txGroupCount;         // The number of the packet groups in the tx channel within the port
-        long flowChangeCount;      // The number of the flow change during the time interval within the port
+        long long maxRxSize;       // The max size of the rx packets during the time interval with the port
+        long long maxTxSize;       // The max size of the tx packets during the time interval with the port
+        // The number of the packet groups in the rx channel within the port; 
+        // the group indicates a packet direction reversal followed by a return to the original direction (i.e., rx → tx → rx)
+        long rxGroupNumber;
+        // The number of the packet groups in the tx channel within the port; 
+        // the group indicates a packet direction reversal followed by a return to the original direction (i.e., tx → rx → tx)
+        long txGroupNumber;
+        // The number of the flow change during the time interval within the port; 
+        // the change indicates a packet direction reversal followed by a return to the original direction (i.e., tx → rx → tx)
+        long flowChangeNumber;
         long sqlRequestNumber;     // The number if the packets containing SQL statement in rx with the port
         long long sqlRequestSize;  // The size if the packets containing SQL statement in rx with the port
         PCAPPortInformation();
@@ -78,15 +84,21 @@ class PCAPPrototype {
     void* descriptor;                                                      // PCAP descriptor
     std::string deviceInterface;                                           // The interface name
     // All information of the interface
-    long long rxSize;     // The size of the rx channel
-    long long txSize;     // The size of the rx channel
-    long rxPacketNumber;  // The number of the packets in the rx channel
-    long txPacketNumber;  // The number of the packets in the tx channel
-    long rxGroupCount;    // The number of the packet groups in the rx channel
-    long txGroupCount;    // The number of the packet groups in the tx channel
-    long flowChangeCount; // The number of the flow change during the time interval
-    long maxRxSize;       // The max size of the rx packets during the time interval
-    long maxTxSize;       // The max size of the tx packets during the time interval
+    long long rxSize;       // The size of the rx channel
+    long long txSize;       // The size of the rx channel
+    long rxPacketNumber;    // The number of the packets in the rx channel
+    long txPacketNumber;    // The number of the packets in the tx channel
+    // The number of the packet groups in the rx channel within the port; 
+    // the group indicates a packet direction reversal followed by a return to the original direction (i.e., rx → tx → rx)
+    long rxGroupNumber;
+    // The number of the packet groups in the tx channel within the port; 
+    // the group indicates a packet direction reversal followed by a return to the original direction (i.e., tx → rx → tx)
+    long txGroupNumber;
+    // The number of the flow change during the time interval within the port; 
+    // the change indicates a packet direction reversal followed by a return to the original direction (i.e., tx → rx → tx)
+    long flowChangeNumber;
+    long long maxRxSize;         // The max size of the rx packets during the time interval
+    long long maxTxSize;         // The max size of the tx packets during the time interval
     virtual void open(const char*, const int,
                       const int, const int, std::vector<int>*) = 0;  // "open(.)" approach
     virtual void execute(void (*)(u_char*, const pcap_pkthdr*,

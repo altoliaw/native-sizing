@@ -16,9 +16,9 @@ LinuxPCAP::LinuxPCAP() {
     txSize = 0;
     rxPacketNumber = 0;
     txPacketNumber = 0;
-    rxGroupCount = 0;
-    txGroupCount = 0;
-    flowChangeCount = 0;
+    rxGroupNumber = 0;
+    txGroupNumber = 0;
+    flowChangeNumber = 0;
     maxRxSize = 0;
     maxTxSize = 0;
 }
@@ -41,9 +41,9 @@ LinuxPCAP::~LinuxPCAP() {
     txSize = 0;
     rxPacketNumber = 0;
     txPacketNumber = 0;
-    rxGroupCount = 0;
-    txGroupCount = 0;
-    flowChangeCount = 0;
+    rxGroupNumber = 0;
+    txGroupNumber = 0;
+    flowChangeNumber = 0;
     maxRxSize = 0;
     maxTxSize = 0;
 

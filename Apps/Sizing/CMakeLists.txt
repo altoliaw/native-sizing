@@ -11,12 +11,6 @@ if (NOT BUILD_TEST)
 		COMMAND ${CMAKE_COMMAND} -E copy_if_different
 			"$<TARGET_FILE:SizingMain>"
 			"${CMAKE_SOURCE_DIR}/Bin/"
-
-		# Changing the root permission
-		# COMMAND chown root:root "${CMAKE_SOURCE_DIR}/Bin/$<TARGET_FILE_NAME:SizingMain>"
-
-		# Changing SUID（4755）
-		# COMMAND chmod 4755 "${CMAKE_SOURCE_DIR}/Bin/$<TARGET_FILE_NAME:SizingMain>"
 	)
 	
 	# Linking to the headers
@@ -39,6 +33,12 @@ if (NOT BUILD_TEST)
 			${STATIC_LIB_PATH}/cJson/Libs/libcjson.a
 			${STATIC_LIB_PATH}/libpcap/Libs/libpcap.a
 		)
+
+		# Changing the permission of the SizingMain
+		add_custom_command(TARGET SizingMain POST_BUILD
+        	COMMAND sudo chown root:root "${CMAKE_SOURCE_DIR}/Bin/SizingMain"
+        	COMMAND sudo chmod 4755 "${CMAKE_SOURCE_DIR}/Bin/SizingMain"
+    	)
 	else()
 		# Creating an execution in each model
 		set(CMAKE_EXE_LINKER_FLAGS "-static")

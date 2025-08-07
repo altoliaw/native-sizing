@@ -2,9 +2,9 @@
 	"base": {
 		"service":[
 			{
-				"interface": "3",
+				"interface": "ens224",
 				"port": [
-					"8080"
+					"1433"
 				]
 			}
 		],

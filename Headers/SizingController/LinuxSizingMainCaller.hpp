@@ -23,6 +23,9 @@
 #include <thread>
 #include <unordered_map>
 #include <vector>
+#include <tuple>
+#include <map>
+
 
 #include "../../Models/Commons/Headers/IOSpecification.hpp"
 #include "../../Models/Commons/Headers/POSIXErrors.hpp"
@@ -34,14 +37,20 @@
 namespace SizingMainCaller {
 class LinuxSizingMainCaller : public SizingMainCallerPrototype {
    public:
+    // For reserving the session's previous, the key is a tuple which combines sorted ip and port information;
+    // the second one is the session's previous packet type;   
+    // The value is defined as follows: 0: undefined; 1: TX, and 2: RX
+    static std::map<std::tuple <uint32_t, uint32_t, uint16_t, uint16_t>, char> sessionMap; 
+
     Commons::POSIXErrors start(int, char**);
-    
     static void signalInterruptedHandler(int);
     static void signalAlarmHandler(int);
     static Commons::POSIXErrors config(std::vector<unitService>*);
     static void packetHandler(u_char*, const struct pcap_pkthdr*, const u_char*);
     static void packetTask(PCAP::LinuxPCAP*, void (*)(u_char*, const pcap_pkthdr*, const u_char*));
     static void packetFileTask(FILE**, const char*);
+    static void executePacketInformationUpdate(long long, long*, long long*, long long*, long*, long long*, long long*, char*);
+
 };
 }  // namespace SizingMainCaller
 #endif

@@ -32,7 +32,6 @@ cmake --build build
 OsType="$(uname -s | tr '[:upper:]' '[:lower:]')" # Obtaining the kernel type string and then translating the string with the lower case
 # After the parameter process above, the pre-processing will come.
 if [[ "$OsType" = "linux" ]]; then
-	# Do nothing
 	echo "No any pre-processes are necessary."
 elif [[ "$OsType" = *"mingw"* ]]; then
 	# Removing WinDivert service for avoiding that the service may exist already

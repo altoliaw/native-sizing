@@ -17,9 +17,9 @@ WindowsPCAP::WindowsPCAP() {
     txSize = 0;
     rxPacketNumber = 0;
     txPacketNumber = 0;
-    rxGroupCount = 0;
-    txGroupCount = 0;
-    flowChangeCount = 0;
+    rxGroupNumber = 0;
+    txGroupNumber = 0;
+    flowChangeNumber = 0;
     maxRxSize = 0;
     maxTxSize = 0;
 }
@@ -41,9 +41,9 @@ WindowsPCAP::~WindowsPCAP() {
     txSize = 0;
     rxPacketNumber = 0;
     txPacketNumber = 0;
-    rxGroupCount = 0;
-    txGroupCount = 0;
-    flowChangeCount = 0;
+    rxGroupNumber = 0;
+    txGroupNumber = 0;
+    flowChangeNumber = 0;
     maxRxSize = 0;
     maxTxSize = 0;
 
@@ -167,8 +167,8 @@ void WindowsPCAP::packetHandler(u_char* userData, const pcap_pkthdr* pkthdr, con
     PCAP::WindowsPCAP* windowsPCAP = nullptr;
     if (dynamic_cast<PCAP::WindowsPCAP*>(pcapInstance)) {
         windowsPCAP = dynamic_cast<PCAP::WindowsPCAP*>(pcapInstance);
-        (windowsPCAP->rxGroupCount) ++;
-        std::cout << windowsPCAP->rxGroupCount<< "  packets\t";
+        (windowsPCAP->rxGroupNumber) ++;
+        std::cout << windowsPCAP->rxGroupNumber<< "  packets\t";
         long* totalSize = (long*)(userData + sizeof(int));
     }
     // Unit: milliseconds; 2000 milliseconds = 2 seconds

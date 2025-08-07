@@ -24,6 +24,13 @@ std::vector<PCAP::PCAPPrototype*> _PCAP_POINTER_;
 FILE** _FILE_POINTER_ = nullptr;
 
 /**
+ * The definition of the static variable in the class; the definition linked to the declaration defined in the proper class;
+ * for reserving the session's previous, the key is a tuple which combines sorted ip and port information;
+ * the second one is the session's previous packet type; the value is defined as follows: 0: undefined; 1: TX, and 2: RX
+ */
+std::map<std::tuple <uint32_t, uint32_t, uint16_t, uint16_t>, char> LinuxSizingMainCaller::sessionMap; 
+
+/**
  * The starting process, the entry of the process
  *
  * @param argC [int] The number of the argument
@@ -298,11 +305,8 @@ void LinuxSizingMainCaller::packetHandler(u_char* userData, const struct pcap_pk
 
     // When the pcap belongs to linux pcap, ...
     if (linuxPCAP != nullptr) {
-        std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>* tmpMap = &(linuxPCAP->portRelatedInformation);
-
-        // The Ip collection, the variable will be static
-        static std::unordered_map<uint32_t, char> ipMap;
-
+        std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>* tmpMap = &(linuxPCAP->portRelatedInformation); // Due to less ports in the setting
+        
         // Obtaining the IP header; the ip_p column implies the protocol;
         // the number of the TCP is 6, and the UDP is 17
         ip* ip_header = (ip*)(packet + sizeof(ether_header));
@@ -318,6 +322,7 @@ void LinuxSizingMainCaller::packetHandler(u_char* userData, const struct pcap_pk
         // when the flag of the tcp is equal to 0x18, the packet belongs to SQL packets
         uint8_t tcpFlag = 0;
 
+        bool isKnownProtocol = true;
         // Determining the protocol (TCP or UDP)
         switch (ip_header->ip_p) {
             case IPPROTO_TCP:  // TCP
@@ -336,133 +341,103 @@ void LinuxSizingMainCaller::packetHandler(u_char* userData, const struct pcap_pk
                 packetDestinationIp = ip_header->ip_dst.s_addr;
                 break;
             default:
-                tcpHeader = (tcphdr*)(packet + sizeof(ether_header) + sizeof(ip));
-                packetSourcePort = ntohs(tcpHeader->th_sport);
-                packetDestinationPort = ntohs(tcpHeader->th_dport);
-                tcpFlag = tcpHeader->th_flags;
-                packetSourceIp = ip_header->ip_src.s_addr;
-                packetDestinationIp = ip_header->ip_dst.s_addr;
+                // Skipping (unknown)
+                isKnownProtocol = false;
         }
 
+        // If the protocol is unkown, the process shall be returned.
+        if (isKnownProtocol == false) {
+            return;
+        }
+
+        // Making a tuple with a sorted packet Ip; this will be the key in the session map
+        std::tuple<uint32_t, uint32_t, uint16_t, uint16_t> sortedSessionTuple;
+        if (packetSourceIp < packetDestinationIp) {
+            sortedSessionTuple = std::make_tuple(packetSourceIp, packetDestinationIp, packetSourcePort, packetDestinationPort);
+        } else {
+            sortedSessionTuple = std::make_tuple(packetDestinationIp, packetSourceIp, packetDestinationPort, packetSourcePort);
+        }
+
+        char previousPacketType = 0x0; // Undefined (0x0); 0x1: TX, and 0x2: RX
         // Critical section, accessing the data area
         _MUTEX_.lock();
+
+        // Operating the sessionMap, using the emplace for verifying if the session key has been existed;
+        // the returned value contains a pair consisting of an iterator to the inserted element 
+        // (or to the element that prevented the insertion) and a bool value;
+        // when the key exists, the returned second value is false (e.g., insert failed); when the key does not
+        // exist, the returned second value is true (e.g., insert success)
+        std::pair<std::map<std::tuple<uint32_t, uint32_t, uint16_t, uint16_t>, char>::iterator, bool> insertedResult = SizingMainCaller::LinuxSizingMainCaller::sessionMap.emplace(sortedSessionTuple, previousPacketType);
+        if (insertedResult.second == true) { // Key will inserted ...
+            // Do nothing
+        } else { // Key exist
+            previousPacketType = (insertedResult.first)->second;
+        }
+        
+
         // Comparing source and destination ports with the port to determine the direction
-        char packetTypeDetermineSet = 0x0;  // A variable to determine the type of the packet
+        char packetTypeDetermineSet = 0x0;  // A flag to check if the packet type has been determined
         // For readability, the author uses a variable, packetTypeDetermineSet, to determine the type of the packet. That implies that
-        // a packet only belongs a type to demonstrate the phenomenons of mutual exclusion.
-        if (packetTypeDetermineSet == 0x0) {  // TX packet; when the packet does not hit the port map
+        // a packet only belongs a type to demonstrate the phenomenons of mutual exclusion. The two sections are provided.
+        if (packetTypeDetermineSet == 0x0) {  // First, TX packet section; when the packet does not hit the port map
             std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>::iterator it = tmpMap->find((int)packetSourcePort);
             if (it != tmpMap->end()) {  // Hitting
-                // previousPacketType[it->first] = 0x0;
-                if ((it->second)->previousPacketType == 0x0) {
-                    (it->second)->previousPacketType = 0x1;             // Setting the previous packet type to TX
-                } 
-                else if ((it->second)->previousPacketType == 0x2) {
-                    (it->second)->flowChangeCount++;                    // Flow change occurs, the previous packet is RX
-                    (it->second)->rxGroupCount++;                       // rxGroupCount in the port shall plus 1.
-                    (it->second)->previousPacketType = 0x1;
-                    linuxPCAP->rxGroupCount++;                          // rxGroupCount shall plus 1.
+                // Updating the TX information
+                executePacketInformationUpdate(
+                    (long long)(pkthdr->len),
+                    &((it->second)->txPacketNumber),
+                    &((it->second)->txSize),
+                    &((it->second)->maxTxSize),
+                    &(linuxPCAP->txPacketNumber),
+                    &(linuxPCAP->txSize),
+                    &(linuxPCAP->maxTxSize),
+                    &packetTypeDetermineSet
+                );
+
+                // Determining if the cyclic direction packets have been detected
+                // When flow change occurs, the previous packet is "undefined" or "RX"
+                if (previousPacketType == 0x0 || previousPacketType == 0x2) {
+                    (it->second)->flowChangeNumber++; // Flow change occurs, the previous packet is RX or nothing
+                    (it->second)->rxGroupNumber++; // rxGroupNumber in the port shall plus 1.
+                    (insertedResult.first)->second = previousPacketType = 0x1; // Setting the previous packet type to TX
+                    linuxPCAP->rxGroupNumber++; // rxGroupNumber shall plus 1.
+
                 }
-
-                (it->second)->txPacketNumber++;                    // txPacketNumber in the port shall plus 1.
-                (it->second)->txSize += (long long)(pkthdr->len);  // txSize in the port shall plus the current one.
-
-                // Obtaining the maximum size in the port
-                if ((it->second)->maxTxSize < (long long)(pkthdr->len)) {
-                    (it->second)->maxTxSize = (long long)(pkthdr->len);
-                }
-
-                linuxPCAP->txPacketNumber++;                    // txPacketNumber shall plus 1.
-                linuxPCAP->txSize += (long long)(pkthdr->len);  // txSize shall plus the current one.
-
-                // Obtaining the maximum size
-                if (linuxPCAP->maxTxSize < (long long)(pkthdr->len)) {
-                    linuxPCAP->maxTxSize = (long long)(pkthdr->len);
-                }
-                packetTypeDetermineSet = 0x1;
             }
         }
 
-        if (packetTypeDetermineSet == 0x0) {  // RX packet; when the packet does not hit the port map
+        if (packetTypeDetermineSet == 0x0) {  // Second, RX packet; when the packet does not hit the port map
             std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>::iterator it = tmpMap->find((int)packetDestinationPort);
             if (it != tmpMap->end()) {  // Hitting
-                // previousPacketType[it->first] = 0x1;
-                if ((it->second)->previousPacketType == 0x0) {
-                    (it->second)->previousPacketType = 0x2;             // Setting the previous packet type to RX
-                } 
-                else if ((it->second)->previousPacketType == 0x1) {
-                    (it->second)->flowChangeCount++;                    // Flow change occurs, the previous packet is RX
-                    (it->second)->txGroupCount++;                       // txGroupCount in the port shall plus 1.
-                    (it->second)->previousPacketType = 0x2;
-                    linuxPCAP->txGroupCount++;                        // txGroupCount shall plus 1.
-                }
+                // Updating the RX information
+                executePacketInformationUpdate(
+                    (long long)(pkthdr->len),
+                    &((it->second)->rxPacketNumber),
+                    &((it->second)->rxSize),
+                    &((it->second)->maxRxSize),
+                    &(linuxPCAP->rxPacketNumber),
+                    &(linuxPCAP->rxSize),
+                    &(linuxPCAP->maxRxSize),
+                    &packetTypeDetermineSet
+                );
 
-                (it->second)->rxPacketNumber++;                    // rxPacketNumber in the port shall plus 1.
-                (it->second)->rxSize += (long long)(pkthdr->len);  // rxSize in the port shall plus the current one.
+                // Determining if the cyclic direction packets have been detected
+                // When flow change occurs, the previous packet is "undefined" or "TX"
+                if (previousPacketType == 0x0 || previousPacketType == 0x1) {
+                    (it->second)->flowChangeNumber++; // Flow change occurs, the previous packet is RX
+                    (it->second)->txGroupNumber++; // txGroupNumber in the port shall plus 1.
+                    (insertedResult.first)->second = previousPacketType = 0x2; // Setting the previous packet type to TX
+                    linuxPCAP->txGroupNumber++; // txGroupNumber shall plus 1.
 
-                // Obtaining the maximum size in the port
-                if ((it->second)->maxRxSize < (long long)(pkthdr->len)) {
-                    (it->second)->maxRxSize = (long long)(pkthdr->len);
-                }
-
-                // In this if section, the meaning implies that the packet from the client to server contain a SQL statement
-                if (tcpFlag == 0x18) {
-                    (it->second)->sqlRequestNumber++;
-                    (it->second)->sqlRequestSize += (long long)(pkthdr->len);
-                }
-
-                linuxPCAP->rxPacketNumber++;                    // rxPacketNumber shall plus 1.
-                linuxPCAP->rxSize += (long long)(pkthdr->len);  // rxSize shall plus the current one.
-
-                // Obtaining the maximum size
-                if (linuxPCAP->maxRxSize < (long long)(pkthdr->len)) {
-                    linuxPCAP->maxRxSize = (long long)(pkthdr->len);
-                }
-                packetTypeDetermineSet = 0x1;
-
-                // Recording the IP when first meeting the rx from the port; this IP will be reserved in the container for
-                // the case when the later packets' port are not in the defined array; this Ip can determine the type of the packet
-                std::unordered_map<uint32_t, char>::iterator itIp = ipMap.find(packetDestinationIp);
-                if (itIp == ipMap.end()) {  // No one hitting
-                    ipMap.emplace(packetDestinationIp, 0x0);
+                    // In this if section, the meaning implies that the packet from the client to server contain a SQL statement (cyclic direction + PSH + ACK)
+                    if (tcpFlag == 0x18) { // PSH + ACK flag
+                        (it->second)->sqlRequestNumber++;
+                        (it->second)->sqlRequestSize += (long long)(pkthdr->len);
+                    }
                 }
             }
         }
 
-        if (packetTypeDetermineSet == 0x0) {  // The port is not defined in the .json file
-
-            // Obtaining no type; because there are no ports match in the array that users defined
-            char packetTypeByIp = 0x0;
-            // For readability, the author uses a variable, packetTypeByIp, to determine the type of the packet. That implies that
-            // a packet only belongs a type to demonstrate the phenomenons of mutual exclusion.
-            if (packetTypeByIp == 0x0) {  // TX consideration
-                std::unordered_map<uint32_t, char>::iterator it = ipMap.find((int)packetSourceIp);
-                if (it != ipMap.end()) {  // Hitting
-                    linuxPCAP->txPacketNumber++;
-                    linuxPCAP->txSize += (long long)(pkthdr->len);
-
-                    // Obtaining the maximum size
-                    if (linuxPCAP->maxTxSize < (long long)(pkthdr->len)) {
-                        linuxPCAP->maxTxSize = (long long)(pkthdr->len);
-                    }
-                    packetTypeByIp = 0x1;
-                }
-            }
-
-            if (packetTypeByIp == 0x0) {  // RX consideration
-                std::unordered_map<uint32_t, char>::iterator it = ipMap.find((int)packetDestinationIp);
-                if (it != ipMap.end()) {  // Hitting
-                    linuxPCAP->rxPacketNumber++;
-                    linuxPCAP->rxSize += (long long)(pkthdr->len);
-
-                    // Obtaining the maximum size
-                    if (linuxPCAP->maxRxSize < (long long)(pkthdr->len)) {
-                        linuxPCAP->maxRxSize = (long long)(pkthdr->len);
-                    }
-                    packetTypeByIp = 0x1;
-                }
-            }
-        }
         // Critical section end
         _MUTEX_.unlock();
     }
@@ -472,6 +447,46 @@ void LinuxSizingMainCaller::packetHandler(u_char* userData, const struct pcap_pk
     if (_IS_PCAP_WORKED_ == 0x0) {
         pcap_breakloop((pcap_t*)linuxPCAP->descriptor);
     }
+}
+
+/**
+ * Updating the RX and TX packet information (according to the parameter)
+ * 
+ * @param packetHeaderLength [long long] The packet header length
+ * @param portXPacketNumber [long*] The TX/RX packet number from the defined ports
+ * @param portXSize [long long*] The TX/RX packet size from the defined ports
+ * @param portMaxXSize [long long*] The TX/RX max packet size from the defined ports
+ * @param XPacketNumber [long*] The TX/RX packet number
+ * @param XSize [long long*] The TX/RX packet size
+ * @param maxXSize [long long*] The TX/RX max packet size
+ * @param packetTypeDetermineSet [char] The flag if the section is exected; 0 is not executed, and 1 is executed
+ * @return [void] None
+ */
+void LinuxSizingMainCaller::executePacketInformationUpdate(long long packetHeaderLength,
+                                long* portXPacketNumber,
+                                long long* portXSize,
+                                long long* portMaxXSize,
+                                long* XPacketNumber,
+                                long long* XSize,
+                                long long* maxXSize,
+                                char* packetTypeDetermineSet) {
+    
+    (*portXPacketNumber)++;              // rx/txPacketNumber in the port shall plus 1.
+    (*portXSize) += packetHeaderLength;  // rx/txSize in the port shall plus the current one.
+
+    // Obtaining the rx/txmaximum size in the port
+    if ((*portMaxXSize) < packetHeaderLength) {
+        (*portMaxXSize) = packetHeaderLength;
+    }
+
+    (*XPacketNumber)++;                  // rx/txPacketNumber shall plus 1.
+    (*XSize) += packetHeaderLength;      // rx/txSize shall plus the current one.
+    
+    // Obtaining the rx/tx maximum size
+    if ((*maxXSize) < packetHeaderLength) {
+        (*maxXSize) = packetHeaderLength;
+    }
+    (*packetTypeDetermineSet) = 0x1;
 }
 
 /**
@@ -527,14 +542,14 @@ void LinuxSizingMainCaller::signalAlarmHandler(int) {
                                              timeEpoch,
                                              (tmp->deviceInterface).c_str(),
                                              (it2)->first,  // port number
-                                             tmp->txGroupCount,
+                                             tmp->txPacketNumber,
                                              tmp->txSize,
                                              tmp->maxTxSize,
                                              (long)0,
                                              (long long)0,
                                              (long long)0);
                         fwrite(output, sizeof(char), length, *_FILE_POINTER_);
-                        ((it2)->second)->txGroupCount = 0;
+                        ((it2)->second)->txGroupNumber = 0;
                         ((it2)->second)->txPacketNumber = 0;
                         ((it2)->second)->txSize = 0;
                         ((it2)->second)->maxTxSize = 0;
@@ -545,14 +560,14 @@ void LinuxSizingMainCaller::signalAlarmHandler(int) {
                                          timeEpoch,
                                          (tmp->deviceInterface).c_str(),
                                          (it2)->first,  // port number
-                                         tmp->rxGroupCount,
+                                         tmp->rxPacketNumber,
                                          tmp->rxSize,
                                          tmp->maxRxSize,
                                          (it2->second)->sqlRequestNumber,
                                          (it2->second)->sqlRequestSize,
                                          (it2->second)->sqlRequestNumber / (long long)_WRITING_FILE_SECOND_);
                         fwrite(output, sizeof(char), length, *_FILE_POINTER_);
-                        ((it2)->second)->rxGroupCount = 0;
+                        ((it2)->second)->rxGroupNumber = 0;
                         ((it2)->second)->rxPacketNumber = 0;
                         ((it2)->second)->rxSize = 0;
                         ((it2)->second)->maxRxSize = 0;
@@ -562,11 +577,11 @@ void LinuxSizingMainCaller::signalAlarmHandler(int) {
 
                     // Clearing the rx and tx number, size and max size information when all ports' information is written
                     tmp->txPacketNumber = 0;
-                    tmp->txGroupCount = 0;
+                    tmp->txGroupNumber = 0;
                     tmp->txSize = 0;
                     tmp->maxTxSize = 0;
                     tmp->rxPacketNumber = 0;
-                    tmp->rxGroupCount = 0;
+                    tmp->rxGroupNumber = 0;
                     tmp->rxSize = 0;
                     tmp->maxRxSize = 0;
                 }

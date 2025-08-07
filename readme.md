@@ -28,7 +28,7 @@ The current working directory is the project root. Users can use make to compile
 
 ## Changes
 - WindowsPCAP now uses WinDivert instead of NPCAP.
-- Added `txGroupCount`, `rxGroupCount` and `flowChangeCount`, sizing now counts packet groups instead of individual packets.
+- Added `txGroupNumber`, `rxGroupNumber` and `flowChangeNumber`, sizing now counts packet groups instead of individual packets.
 - `WindowsSizingMainCaller::signalInterruptedHandler()` now uses `CancelIOEx()` to stop loop instead of global flag `_IS_PCAP_WORKED_`.
 
 ## Running tips
@@ -37,7 +37,7 @@ The current working directory is the project root. Users can use make to compile
 
 ## Others
 - Linux platform
-  - Not added `txGroupCount`, `rxGroupCount` and `flowChangeCount`,
+  - Not added `txGroupNumber`, `rxGroupNumber` and `flowChangeNumber`,
 - Windows platform
   - WinDivert files required for execution are copied from `Vendors` (this had been denoted in `processMake.sh`)
   - On windows platforms, users shall execute the execution with `administrator privilege` (right click).
