@@ -501,41 +501,6 @@ void WindowsSizingMainCaller::packetHandler(u_char* userData, const pcap_pkthdr*
             }
         }
 
-        if (packetTypeDetermineSet == 0x0) {  // Third, the port is not defined in the .json file
-
-            // Obtaining no type; because there are no ports match in the array that users defined
-            char packetTypeByIp = 0x0;
-            // For readability, the author uses a variable, packetTypeByIp, to determine the type of the packet. That implies that
-            // a packet only belongs a type to demonstrate the phenomenons of mutual exclusion.
-            if (packetTypeByIp == 0x0) {  // TX consideration
-                std::unordered_map<uint32_t, char>::iterator it = ipMap.find((int)packetSourceIp);
-                if (it != ipMap.end()) {  // Hitting
-                    windowsPCAP->txPacketNumber++;
-                    windowsPCAP->txSize += (long long)(pkthdr->Length);
-
-                    // Obtaining the maximum size
-                    if (windowsPCAP->maxTxSize < (long long)(pkthdr->Length)) {
-                        windowsPCAP->maxTxSize = (long long)(pkthdr->Length);
-                    }
-                    packetTypeByIp = 0x1;
-                }
-            }
-
-            if (packetTypeByIp == 0x0) {  // RX consideration
-                std::unordered_map<uint32_t, char>::iterator it = ipMap.find((int)packetDestinationIp);
-                if (it != ipMap.end()) {  // Hitting
-                    windowsPCAP->rxPacketNumber++;
-                    windowsPCAP->rxSize += (long long)(pkthdr->Length);
-
-                    // Obtaining the maximum size
-                    if (windowsPCAP->maxRxSize < (long long)(pkthdr->Length)) {
-                        windowsPCAP->maxRxSize = (long long)(pkthdr->Length);
-                    }
-                    packetTypeByIp = 0x1;
-                }
-            }
-        }
-
         // Critical section end
         LeaveCriticalSection(&_CRITICAL_SECTION_);
     }
