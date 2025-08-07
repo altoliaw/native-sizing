@@ -16,8 +16,12 @@ PCAPPrototype::PCAPPortInformation::PCAPPortInformation() {
     txPacketNumber = 0;
     maxRxSize = 0;
     maxTxSize = 0;
+    rxGroupNumber = 0;
+    txGroupNumber = 0;
+    flowChangeNumber = 0;
     sqlRequestNumber = 0;
     sqlRequestSize = 0;
+    sqlMaxRequestNumberPerSec = 0;
 }
 
 /**
@@ -31,8 +35,12 @@ PCAPPrototype::PCAPPortInformation::~PCAPPortInformation() {
     txPacketNumber = 0;
     maxRxSize = 0;
     maxTxSize = 0;
+    rxGroupNumber = 0;
+    txGroupNumber = 0;
+    flowChangeNumber = 0;
     sqlRequestNumber = 0;
     sqlRequestSize = 0;
+    sqlMaxRequestNumberPerSec = 0;
 }
 
 /**
