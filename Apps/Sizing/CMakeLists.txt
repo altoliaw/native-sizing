@@ -23,7 +23,7 @@ if (NOT BUILD_TEST)
 	if(OPERATING_SYSTEM STREQUAL "0")
 		target_link_libraries(
 			SizingMain
-			Main.Sources
+			Sources.SizingMainCaller
 			Models.Commons
 			Models.FileParsers
 			Models.PCAP
@@ -46,7 +46,7 @@ if (NOT BUILD_TEST)
 		# Linking to the all library
 		target_link_libraries(
 			SizingMain -static
-			Main.Sources
+			Sources.SizingMainCaller
 			Models.Commons
 			Models.FileParsers
 			Models.PCAP
