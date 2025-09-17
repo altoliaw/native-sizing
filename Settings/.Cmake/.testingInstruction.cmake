@@ -6,6 +6,7 @@ option(BUILD_TEST "The default testing variable is on" ON)
 
 ## Enabling test
 if (BUILD_TEST)
+  set(CMAKE_BUILD_TYPE Debug)
   enable_testing()
 endif()
 
