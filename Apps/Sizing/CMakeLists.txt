@@ -20,7 +20,7 @@ if (NOT BUILD_TEST)
 	set(STATIC_LIB_PATH ${CMAKE_BINARY_DIR}/Vendors)
 
 	# Linux compiling / Windows compiling
-	if(OPERATING_SYSTEM STREQUAL "0")
+	if(OPERATING_SYSTEM STREQUAL "0" OR OPERATING_SYSTEM STREQUAL "0.1")
 		target_link_libraries(
 			SizingMain
 			Sources.SizingMainCaller
