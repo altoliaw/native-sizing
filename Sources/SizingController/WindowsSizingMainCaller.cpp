@@ -28,6 +28,15 @@ std::vector<PCAP::PCAPPrototype*> _PCAP_POINTER_;
 // The address of the global pointer referring to the file descriptor object
 FILE** _FILE_POINTER_ = nullptr;
 
+//===Static fields Declaration===
+// For reserving the session's previous, the key is a tuple which combines sorted ip and port information;
+// the second one is the session's previous packet type; the value is defined as follows: 0: undefined; 1: TX, and 2: RX
+std::map<std::tuple <uint32_t, uint32_t, uint16_t, uint16_t>, char> WindowsSizingMainCaller::sessionMap;
+// For recording the maximum number of packets per second
+long WindowsSizingMainCaller::currentSqlMaxRequestNumberPerSec = 0;
+// For reserving the starting time in the beginning or the updating time when the SQL statements receive
+std::chrono::steady_clock::time_point WindowsSizingMainCaller::startingTime = std::chrono::steady_clock::time_point::min();
+
 /**
  * The starting process, the entry of the process
  *
@@ -235,7 +244,7 @@ Commons::POSIXErrors WindowsSizingMainCaller::config(std::vector<unitService>* s
 /**
  * The function for the first type of the threads (n threads), packetThread; the task is to execute the "pcap_loop"
  *
- * @param pcap [PCAP::LinuxPCAP*] The address of the PCAP::LinuxPCAP object
+ * @param pcap [PCAP::WindowsPCAP*] The address of the PCAP::WindowsPCAP object
  * @param packetHandler [void (*)(u_char*, const pcap_pkthdr*, const u_char*)] The callback function for pcap_loop
  */
 void WindowsSizingMainCaller::packetTask(PCAP::WindowsPCAP* pcap, void (*packetHandler)(u_char*, const pcap_pkthdr*, const u_char*)) {
@@ -281,7 +290,7 @@ void WindowsSizingMainCaller::packetFileTask(FILE** fileDescriptor, const char* 
             char output[1024] = {'\0'};
             int length = sprintf(output,
                                  "UTC\tType\tInterface\tPort\tNumber(amount)\tSize(bytes)\tMaxSize(bytes)\t"
-                                 "SQL number in the time interval\tSQL size(bytes) in the time interval\tSQL number per time interval(eps)\n");
+                                 "SQL number in the time interval\tSQL size(bytes) in the time interval\tAverage SQL number per sec(eps)\tPeak SQL number per sec(eps)\n");
             fwrite(output, sizeof(char), length, *_FILE_POINTER_);
             if (*_FILE_POINTER_ != nullptr) {
                 fclose(*_FILE_POINTER_);
@@ -344,11 +353,16 @@ void WindowsSizingMainCaller::packetFileTask(FILE** fileDescriptor, const char* 
  * Calculating the amount of the packets, a callback function to throw into the PCAP module (user defined)
  *
  * @param userData [u_char*]
- * @param pkthdr [const struct pcap_pkthdr*] The address of the packet header
+ * @param pkthdr [const struct pcap_pkthdr*] The address of the packet header (here, the pointer refers to the object of the structure, "WINDIVERT_GROUP_TYPE")
+ * because in the winDivert, the ip header does not contain the information except the ip header
  * @param packet [const u_char*] The address of the packet
  */
 void WindowsSizingMainCaller::packetHandler(u_char* userData, const pcap_pkthdr* pkthdr, const u_char* packet) {
-    // Due to the setting of the function, execute(.), the data of userData is the object of children classes (LinuxPCAP, WindowsPCAP and so on ...)
+    // Opening the clock when the value equals to "std::chrono::steady_clock::time_point::min()"
+    if (startingTime == std::chrono::steady_clock::time_point::min()) {
+        startingTime = std::chrono::steady_clock::now(); // Assign now to the startingTime variable
+    }
+    // Due to the setting of the function, execute(.), the data of userData is the object of children classes (WindowsPCAP, WindowsPCAP and so on ...)
     PCAP::PCAPPrototype* pcapInstance = (PCAP::PCAPPrototype*)userData;
     // Determining what the instance belong to
     PCAP::WindowsPCAP* windowsPCAP = nullptr;
@@ -356,7 +370,7 @@ void WindowsSizingMainCaller::packetHandler(u_char* userData, const pcap_pkthdr*
         windowsPCAP = dynamic_cast<PCAP::WindowsPCAP*>(pcapInstance);
     }
 
-    // When the pcap belongs to linux pcap, ...
+    // When the pcap belongs to windows pcap, ...
     if (windowsPCAP != nullptr) {
         std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>* tmpMap = &(windowsPCAP->portRelatedInformation);
 
@@ -365,10 +379,12 @@ void WindowsSizingMainCaller::packetHandler(u_char* userData, const pcap_pkthdr*
 
         // Obtaining the IP header; the ip_p column implies the protocol;
         // the number of the TCP is 6, and the UDP is 17
-        ip* ip_header = (ip*)(packet + sizeof(ether_header));
+        PWINDIVERT_IPHDR ipHeader = pkthdr->ipHeader;
+        if (ipHeader == nullptr) {
+            return;  // Returning when the ipHeader is nullptr
+        }
 
         // Preparing the headers and the packet source/destination port variables
-        tcphdr* tcpHeader = nullptr;
         udphdr* udpHeader = nullptr;
         uint16_t packetSourcePort = 0;
         uint16_t packetDestinationPort = 0;
@@ -377,150 +393,135 @@ void WindowsSizingMainCaller::packetHandler(u_char* userData, const pcap_pkthdr*
         // Preparing the flag information of the tcp;
         // when the flag of the tcp is equal to 0x18, the packet belongs to SQL packets
         uint8_t tcpFlag = 0;
-
+        bool isKnownProtocol = true;
         // Determining the protocol (TCP or UDP)
-        switch (ip_header->ip_p) {
+        switch (ipHeader->Protocol) {
             case IPPROTO_TCP:  // TCP
-                tcpHeader = (tcphdr*)(packet + sizeof(ether_header) + sizeof(ip));
-                packetSourcePort = ntohs(tcpHeader->th_sport);
-                packetDestinationPort = ntohs(tcpHeader->th_dport);
-                tcpFlag = tcpHeader->th_flags;
-                packetSourceIp = ip_header->ip_src.s_addr;
-                packetDestinationIp = ip_header->ip_dst.s_addr;
+                if (pkthdr->tcpHeader != nullptr) { 
+                    packetSourcePort = ntohs(pkthdr->tcpHeader->SrcPort);
+                    packetDestinationPort = ntohs(pkthdr->tcpHeader->DstPort);
+                    tcpFlag = ((pkthdr->tcpHeader->Fin) | (pkthdr->tcpHeader->Syn << 1) | (pkthdr->tcpHeader->Rst << 2) |
+                                (pkthdr->tcpHeader->Psh << 3) | (pkthdr->tcpHeader->Ack << 4) | (pkthdr->tcpHeader->Urg << 5));
+                    packetSourceIp = pkthdr->ipHeader->SrcAddr;
+                    packetDestinationIp = pkthdr->ipHeader->DstAddr;
+                } else { // When the tcpHeader is nullptr, ...
+                    isKnownProtocol = false;
+                }
                 break;
             case IPPROTO_UDP:  // UDP
-                udpHeader = (udphdr*)(packet + sizeof(ether_header) + sizeof(ip));
-                packetSourcePort = ntohs(udpHeader->uh_sport);
-                packetDestinationPort = ntohs(udpHeader->uh_dport);
-                packetSourceIp = ip_header->ip_src.s_addr;
-                packetDestinationIp = ip_header->ip_dst.s_addr;
+                if (pkthdr->udpHeader != nullptr) {
+                    packetSourcePort = ntohs(pkthdr->udpHeader->SrcPort);
+                    packetDestinationPort = ntohs(pkthdr->udpHeader->DstPort);
+                    packetSourceIp = pkthdr->ipHeader->SrcAddr;
+                    packetDestinationIp = pkthdr->ipHeader->DstAddr;
+                }
                 break;
             default:
-                tcpHeader = (tcphdr*)(packet + sizeof(ether_header) + sizeof(ip));
-                packetSourcePort = ntohs(tcpHeader->th_sport);
-                packetDestinationPort = ntohs(tcpHeader->th_dport);
-                tcpFlag = tcpHeader->th_flags;
-                packetSourceIp = ip_header->ip_src.s_addr;
-                packetDestinationIp = ip_header->ip_dst.s_addr;
+                // Skipping (unknown)
+                isKnownProtocol = false;
         }
 
+        // If the protocol is unkown, the process shall be returned.
+        if (isKnownProtocol == false) {
+            return;
+        }
+
+        // Making a tuple with a sorted packet Ip; this will be the key in the session map
+        std::tuple<uint32_t, uint32_t, uint16_t, uint16_t> sortedSessionTuple;
+        if (packetSourceIp < packetDestinationIp) {
+            sortedSessionTuple = std::make_tuple(packetSourceIp, packetDestinationIp, packetSourcePort, packetDestinationPort);
+        } else {
+            sortedSessionTuple = std::make_tuple(packetDestinationIp, packetSourceIp, packetDestinationPort, packetSourcePort);
+        }
+
+        char previousPacketType = 0x0; // Undefined (0x0); 0x1: TX, and 0x2: RX
         // Critical section, accessing the data area
         EnterCriticalSection(&_CRITICAL_SECTION_);
 
+        // Operating the sessionMap, using the emplace for verifying if the session key has been existed;
+        // the returned value contains a pair consisting of an iterator to the inserted element 
+        // (or to the element that prevented the insertion) and a bool value;
+        // when the key exists, the returned second value is false (e.g., insert failed); when the key does not
+        // exist, the returned second value is true (e.g., insert success)
+        std::pair<std::map<std::tuple<uint32_t, uint32_t, uint16_t, uint16_t>, char>::iterator, bool> insertedResult = 
+                                SizingMainCaller::WindowsSizingMainCaller::sessionMap.emplace(sortedSessionTuple, previousPacketType);
+        if (insertedResult.second == true) { // Key will inserted ...
+            // Do nothing
+        } else { // Key exist
+            previousPacketType = (insertedResult.first)->second;
+        }
+
+        
         // Comparing source and destination ports with the port to determine the direction
-        char packetTypeDetermineSet = 0x0;  // A variable to determine the type of the packet
+        char packetTypeDetermineSet = 0x0;  // A flag to check if the packet type has been determined
         // For readability, the author uses a variable, packetTypeDetermineSet, to determine the type of the packet. That implies that
-        // a packet only belongs a type to demonstrate the phenomenons of mutual exclusion.
-        if (packetTypeDetermineSet == 0x0) {  // TX packet; when the packet does not hit the port map
+        // a packet only belongs a type to demonstrate the phenomenons of mutual exclusion. The three sections are provided.
+        if (packetTypeDetermineSet == 0x0) {  // First, TX packet section; when the packet does not hit the port map
             std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>::iterator it = tmpMap->find((int)packetSourcePort);
             if (it != tmpMap->end()) {  // Hitting
-                // previousPacketType[it->first] = 0x0;
-                if ((it->second)->previousPacketType == 0x0) {          // When the previous packet belongs to undefined, ...
-                    (it->second)->previousPacketType = 0x1;             // Setting the previous packet type to TX
-                } 
-                else if ((it->second)->previousPacketType == 0x2) {
-                    (it->second)->flowChangeCount++;                    // Flow change occurs, the previous packet is RX
-                    (it->second)->rxGroupCount++;                       // rxGroupCount in the port shall plus 1.
-                    (it->second)->previousPacketType = 0x1;             // Setting the previous packet type to TX
-                    windowsPCAP->rxGroupCount++;                        // rxGroupCount shall plus 1.
+                // Updating the TX information
+                executePacketInformationUpdate(
+                    (long long)(pkthdr->packetLength),
+                    &((it->second)->txPacketNumber),
+                    &((it->second)->txSize),
+                    &((it->second)->maxTxSize),
+                    &(windowsPCAP->txPacketNumber),
+                    &(windowsPCAP->txSize),
+                    &(windowsPCAP->maxTxSize),
+                    &packetTypeDetermineSet
+                );
+
+                // Determining if the cyclic direction packets have been detected
+                // When flow change occurs, the previous packet is "undefined" or "RX"
+                if (previousPacketType == 0x0 || previousPacketType == 0x2) {
+                    (it->second)->flowChangeNumber++; // Flow change occurs, the previous packet is RX or nothing
+                    (it->second)->rxGroupNumber++; // rxGroupNumber in the port shall plus 1.
+                    (insertedResult.first)->second = previousPacketType = 0x1; // Setting the previous packet type to TX
+                    windowsPCAP->rxGroupNumber++; // rxGroupNumber shall plus 1.
                 }
-
-                (it->second)->txPacketNumber++;                       // txPacketNumber in the port shall plus 1.
-                (it->second)->txSize += (long long)(pkthdr->Length);  // txSize in the port shall plus the current one.
-
-                // Obtaining the maximum size in the port
-                if ((it->second)->maxTxSize < (long long)(pkthdr->Length)) {
-                    (it->second)->maxTxSize = (long long)(pkthdr->Length);
-                }
-
-                windowsPCAP->txPacketNumber++;                       // txPacketNumber shall plus 1.
-                windowsPCAP->txSize += (long long)(pkthdr->Length);  // txSize shall plus the current one.
-
-                // Obtaining the maximum size
-                if (windowsPCAP->maxTxSize < (long long)(pkthdr->Length)) {
-                    windowsPCAP->maxTxSize = (long long)(pkthdr->Length);
-                }
-                packetTypeDetermineSet = 0x1; // The port has been hit.
             }
         }
 
-        if (packetTypeDetermineSet == 0x0) {  // RX packet; when the packet does not hit the port map
+        if (packetTypeDetermineSet == 0x0) {  // Second, RX packet; when the packet does not hit the port map
             std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>::iterator it = tmpMap->find((int)packetDestinationPort);
             if (it != tmpMap->end()) {  // Hitting
-                // previousPacketType[it->first] = 0x1;
-                if ((it->second)->previousPacketType == 0x0) {          // When the previous packet belongs to undefined, ...
-                    (it->second)->previousPacketType = 0x2;             // Setting the previous packet type to RX
-                } 
-                else if ((it->second)->previousPacketType == 0x1) {
-                    (it->second)->flowChangeCount++;                    // Flow change occurs, the previous packet is RX
-                    (it->second)->txGroupCount++;                       // txGroupCount in the port shall plus 1.
-                    (it->second)->previousPacketType = 0x2;
-                    windowsPCAP->txGroupCount++;                        // txGroupCount shall plus 1.
-                }
+                // Updating the RX information
+                executePacketInformationUpdate(
+                    (long long)(pkthdr->packetLength),
+                    &((it->second)->rxPacketNumber),
+                    &((it->second)->rxSize),
+                    &((it->second)->maxRxSize),
+                    &(windowsPCAP->rxPacketNumber),
+                    &(windowsPCAP->rxSize),
+                    &(windowsPCAP->maxRxSize),
+                    &packetTypeDetermineSet
+                );
+                
+                // Determining if the cyclic direction packets have been detected
+                // When flow change occurs, the previous packet is "undefined" or "TX"
+                if (previousPacketType == 0x0 || previousPacketType == 0x1) {
+                    (it->second)->flowChangeNumber++; // Flow change occurs, the previous packet is RX
+                    (it->second)->txGroupNumber++; // txGroupNumber in the port shall plus 1.
+                    (insertedResult.first)->second = previousPacketType = 0x2; // Setting the previous packet type to TX
+                    windowsPCAP->txGroupNumber++; // txGroupNumber shall plus 1.
 
-                (it->second)->rxPacketNumber++;                         // rxPacketNumber in the port shall plus 1.
-                (it->second)->rxSize += (long long)(pkthdr->Length);    // rxSize in the port shall plus the current one.
-
-                // Obtaining the maximum size in the port
-                if ((it->second)->maxRxSize < (long long)(pkthdr->Length)) {
-                    (it->second)->maxRxSize = (long long)(pkthdr->Length);
-                }
-
-                // In this if section, the meaning implies that the packet from the client to server contain a SQL statement
-                if (tcpFlag == 0x18) {
-                    (it->second)->sqlRequestNumber++;
-                    (it->second)->sqlRequestSize += (long long)(pkthdr->Length);
-                }
-
-                windowsPCAP->rxPacketNumber++;                         // rxPacketNumber shall plus 1.
-                windowsPCAP->rxSize += (long long)(pkthdr->Length);    // rxSize shall plus the current one.
-
-                // Obtaining the maximum size
-                if (windowsPCAP->maxRxSize < (long long)(pkthdr->Length)) {
-                    windowsPCAP->maxRxSize = (long long)(pkthdr->Length);
-                }
-                packetTypeDetermineSet = 0x1; // The port has been hit.
-
-                // Recording the IP when first meeting the rx from the port; this IP will be reserved in the container for
-                // the case when the later packets' port are not in the defined array; this Ip can determine the type of the packet
-                std::unordered_map<uint32_t, char>::iterator itIp = ipMap.find(packetDestinationIp);
-                if (itIp == ipMap.end()) {  // No one hitting
-                    ipMap.emplace(packetDestinationIp, 0x0);
-                }
-            }
-        }
-
-        if (packetTypeDetermineSet == 0x0) {  // The port is not defined in the .json file
-
-            // Obtaining no type; because there are no ports match in the array that users defined
-            char packetTypeByIp = 0x0;
-            // For readability, the author uses a variable, packetTypeByIp, to determine the type of the packet. That implies that
-            // a packet only belongs a type to demonstrate the phenomenons of mutual exclusion.
-            if (packetTypeByIp == 0x0) {  // TX consideration
-                std::unordered_map<uint32_t, char>::iterator it = ipMap.find((int)packetSourceIp);
-                if (it != ipMap.end()) {  // Hitting
-                    windowsPCAP->txPacketNumber++;
-                    windowsPCAP->txSize += (long long)(pkthdr->Length);
-
-                    // Obtaining the maximum size
-                    if (windowsPCAP->maxTxSize < (long long)(pkthdr->Length)) {
-                        windowsPCAP->maxTxSize = (long long)(pkthdr->Length);
+                    // In this if section, the meaning implies that the packet from the client to server contain a SQL statement (cyclic direction + PSH + ACK)
+                    if (tcpFlag == 0x18) { // PSH + ACK flag
+                        (it->second)->sqlRequestNumber++;
+                        (it->second)->sqlRequestSize += (long long)(pkthdr->packetLength);
+                        currentSqlMaxRequestNumberPerSec++; // Adding the number
+                        // Determining if the time has been equal to and larger than 1 sec
+                        std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+                        std::chrono::duration<double> elapsedSeconds = now - startingTime;
+                        if ( elapsedSeconds.count() >= 1.0) {
+                            // Determining if the kept data are lager than current reserved data in the same session 
+                            (it->second)->sqlMaxRequestNumberPerSec = ((it->second)->sqlMaxRequestNumberPerSec) > currentSqlMaxRequestNumberPerSec ?
+                                                                    ((it->second)->sqlMaxRequestNumberPerSec):
+                                                                    currentSqlMaxRequestNumberPerSec;
+                            startingTime = now;
+                            currentSqlMaxRequestNumberPerSec = 0;
+                        }
                     }
-                    packetTypeByIp = 0x1;
-                }
-            }
-
-            if (packetTypeByIp == 0x0) {  // RX consideration
-                std::unordered_map<uint32_t, char>::iterator it = ipMap.find((int)packetDestinationIp);
-                if (it != ipMap.end()) {  // Hitting
-                    windowsPCAP->rxPacketNumber++;
-                    windowsPCAP->rxSize += (long long)(pkthdr->Length);
-
-                    // Obtaining the maximum size
-                    if (windowsPCAP->maxRxSize < (long long)(pkthdr->Length)) {
-                        windowsPCAP->maxRxSize = (long long)(pkthdr->Length);
-                    }
-                    packetTypeByIp = 0x1;
                 }
             }
         }
@@ -528,6 +529,46 @@ void WindowsSizingMainCaller::packetHandler(u_char* userData, const pcap_pkthdr*
         // Critical section end
         LeaveCriticalSection(&_CRITICAL_SECTION_);
     }
+}
+
+/**
+ * Updating the RX and TX packet information (according to the parameter)
+ * 
+ * @param packetHeaderLength [long long] The packet header length
+ * @param portXPacketNumber [long*] The TX/RX packet number from the defined ports
+ * @param portXSize [long long*] The TX/RX packet size from the defined ports
+ * @param portMaxXSize [long long*] The TX/RX max packet size from the defined ports
+ * @param XPacketNumber [long*] The TX/RX packet number
+ * @param XSize [long long*] The TX/RX packet size
+ * @param maxXSize [long long*] The TX/RX max packet size
+ * @param packetTypeDetermineSet [char] The flag if the section is exected; 0 is not executed, and 1 is executed
+ * @return [void] None
+ */
+void WindowsSizingMainCaller::executePacketInformationUpdate(long long packetHeaderLength,
+                                  long* portXPacketNumber,
+                                  long long* portXSize,
+                                  long long* portMaxXSize,
+                                  long* XPacketNumber,
+                                  long long* XSize,
+                                  long long* maxXSize,
+                                  char* packetTypeDetermineSet) {
+
+    (*portXPacketNumber)++;              // rx/txPacketNumber in the port shall plus 1.
+    (*portXSize) += packetHeaderLength;  // rx/txSize in the port shall plus the current one.
+
+    // Obtaining the rx/txmaximum size in the port
+    if ((*portMaxXSize) < packetHeaderLength) {
+    (*portMaxXSize) = packetHeaderLength;
+    }
+
+    (*XPacketNumber)++;                  // rx/txPacketNumber shall plus 1.
+    (*XSize) += packetHeaderLength;      // rx/txSize shall plus the current one.
+
+    // Obtaining the rx/tx maximum size
+    if ((*maxXSize) < packetHeaderLength) {
+    (*maxXSize) = packetHeaderLength;
+    }
+    (*packetTypeDetermineSet) = 0x1;
 }
 
 /**
@@ -614,48 +655,51 @@ void WindowsSizingMainCaller::signalAlarmHandler() {
                         // TX part; in the section, the last two result will be to zero because the packets
                         // from the record set from the SQL server shall be ignored
                         int length = sprintf(output,
-                                             "%lu\tTX\t%s\t%d\t%lu\t%llu\t%lu\t%lu\t%llu\t%llu\n",
+                                             "%lu\tTX\t%s\t%d\t%lu\t%llu\t%lu\t%lu\t%llu\t%llu\t%llu\n",
                                              timeEpoch,
                                              (tmp->deviceInterface).c_str(),
                                              (it2)->first,  // port number
-                                             tmp->txGroupCount,
+                                             tmp->txPacketNumber,
                                              tmp->txSize,
                                              tmp->maxTxSize,
                                              (long)0,
                                              (long long)0,
+                                             (long long)0,
                                              (long long)0);
                         fwrite(output, sizeof(char), length, *_FILE_POINTER_);
-                        ((it2)->second)->txGroupCount = 0;
+                        ((it2)->second)->txGroupNumber = 0;
                         ((it2)->second)->txSize = 0;
                         ((it2)->second)->maxTxSize = 0;
 
                         // RX part
                         length = sprintf(output,
-                                         "%lu\tRX\t%s\t%d\t%lu\t%llu\t%lu\t%lu\t%llu\t%llu\n",
+                                         "%lu\tRX\t%s\t%d\t%lu\t%llu\t%lu\t%lu\t%llu\t%llu\t%llu\n",
                                          timeEpoch,
                                          (tmp->deviceInterface).c_str(),
                                          (it2)->first,  // port number
-                                         tmp->rxGroupCount,
+                                         tmp->rxPacketNumber,
                                          tmp->rxSize,
                                          tmp->maxRxSize,
                                          (it2->second)->sqlRequestNumber,
                                          (it2->second)->sqlRequestSize,
-                                         (it2->second)->sqlRequestNumber / (long long)_WRITING_FILE_SECOND_);
+                                         (it2->second)->sqlRequestNumber / (long long)_WRITING_FILE_SECOND_,
+                                         (it2->second)->sqlMaxRequestNumberPerSec);
                         fwrite(output, sizeof(char), length, *_FILE_POINTER_);
-                        ((it2)->second)->rxGroupCount = 0;
+                        ((it2)->second)->rxGroupNumber = 0;
                         ((it2)->second)->rxSize = 0;
                         ((it2)->second)->maxRxSize = 0;
                         ((it2)->second)->sqlRequestNumber = 0;
                         ((it2)->second)->sqlRequestSize = 0;
+                        ((it2)->second)->sqlMaxRequestNumberPerSec = 0;
                     }
 
                     // Clearing the rx and tx number, size and max size information when all ports' information is written
                     tmp->txPacketNumber = 0;
-                    tmp->txGroupCount = 0;
+                    tmp->txGroupNumber = 0;
                     tmp->txSize = 0;
                     tmp->maxTxSize = 0;
                     tmp->rxPacketNumber = 0;
-                    tmp->rxGroupCount = 0;
+                    tmp->rxGroupNumber = 0;
                     tmp->rxSize = 0;
                     tmp->maxRxSize = 0;
                 }

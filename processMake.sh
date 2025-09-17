@@ -32,16 +32,17 @@ cmake --build build
 OsType="$(uname -s | tr '[:upper:]' '[:lower:]')" # Obtaining the kernel type string and then translating the string with the lower case
 # After the parameter process above, the pre-processing will come.
 if [[ "$OsType" = "linux" ]]; then
-	# Do nothing
 	echo "No any pre-processes are necessary."
 elif [[ "$OsType" = *"mingw"* ]]; then
 	# Removing WinDivert service for avoiding that the service may exist already
-	# By using the window service command, sc, the execution will stop and delete the WinDivert .
+	# By using the window service command, sc, the execution will stop and delete the WinDivert.
+	# sc stop WinDivert | Out-Null
+	# sc delete WinDivert | Out-Null
 	sc stop WinDivert >/dev/null 2>&1
 	sc delete WinDivert >/dev/null 2>&1
 	# WinDivert.dll and WinDivert64.sys shall be stay with the executed file which refers to those WinDivert files. (TODO)
-	cp ./Vendors/WinDivert/Libs/WinDivert.dll ./Bin/
-	cp ./Vendors/WinDivert/Libs/WinDivert64.sys ./Bin/
+	cp -f ./Vendors/WinDivert/Libs/WinDivert.dll ./Bin/
+	cp -f ./Vendors/WinDivert/Libs/WinDivert64.sys ./Bin/
 	echo -e "The post-processing on the Windows has been executed."
 fi
 exit

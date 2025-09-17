@@ -24,6 +24,9 @@
 #include <thread>
 #include <unordered_map>
 #include <vector>
+#include <tuple>
+#include <map>
+#include <chrono>
 
 #include "../../Models/Commons/Headers/IOSpecification.hpp"
 #include "../../Models/Commons/Headers/POSIXErrors.hpp"
@@ -103,14 +106,23 @@ class WindowsSizingMainCaller : public SizingMainCallerPrototype {
         u_short uh_sum;
     };
 
-    Commons::POSIXErrors start(int, char**);
+    // For reserving the session's previous, the key is a tuple which combines sorted ip and port information;
+    // the second one is the session's previous packet type;   
+    // The value is defined as follows: 0: undefined; 1: TX, and 2: RX
+    static std::map<std::tuple <uint32_t, uint32_t, uint16_t, uint16_t>, char> sessionMap;
+    // For recording the maximum number of packets per second
+    static long currentSqlMaxRequestNumberPerSec;
+    // For reserving the starting time in the beginning or the updating time when the SQL statements receive
+    static std::chrono::steady_clock::time_point startingTime;
 
+    Commons::POSIXErrors start(int, char**);
     static BOOL WINAPI signalInterruptedHandler(DWORD);
     static void signalAlarmHandler();
     static Commons::POSIXErrors config(std::vector<unitService>*);
     static void packetHandler(u_char*, const pcap_pkthdr*, const u_char*);
     static void packetTask(PCAP::WindowsPCAP*, void (*)(u_char*, const pcap_pkthdr*, const u_char*));
     static void packetFileTask(FILE**, const char*);
+    static void executePacketInformationUpdate(long long, long*, long long*, long long*, long*, long long*, long long*, char*);
 };
 }  // namespace SizingMainCaller
 #endif

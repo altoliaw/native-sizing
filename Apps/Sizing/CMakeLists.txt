@@ -11,12 +11,6 @@ if (NOT BUILD_TEST)
 		COMMAND ${CMAKE_COMMAND} -E copy_if_different
 			"$<TARGET_FILE:SizingMain>"
 			"${CMAKE_SOURCE_DIR}/Bin/"
-
-		# Changing the root permission
-		# COMMAND chown root:root "${CMAKE_SOURCE_DIR}/Bin/$<TARGET_FILE_NAME:SizingMain>"
-
-		# Changing SUID（4755）
-		# COMMAND chmod 4755 "${CMAKE_SOURCE_DIR}/Bin/$<TARGET_FILE_NAME:SizingMain>"
 	)
 	
 	# Linking to the headers
@@ -26,10 +20,39 @@ if (NOT BUILD_TEST)
 	set(STATIC_LIB_PATH ${CMAKE_BINARY_DIR}/Vendors)
 
 	# Linux compiling / Windows compiling
-	if(OPERATING_SYSTEM STREQUAL "0")
+	if(OPERATING_SYSTEM STREQUAL "0" OR OPERATING_SYSTEM STREQUAL "0.1")
+
+		if(OPERATING_SYSTEM STREQUAL "0.1") # CentOS version
+			target_link_libraries(
+				SizingMain
+				Sources.SizingMainCaller
+				Models.Commons
+				Models.FileParsers
+				Models.PCAP
+				# Linux built-in libraries
+				pthread
+				# Vendor-specific libraries
+				${STATIC_LIB_PATH}/cJson/Libs/libcjson.a
+				${STATIC_LIB_PATH}/libpcap/Libs/libpcap.a
+				-lnl-3 -lnl-genl-3
+			)
+		else() # Other Linux version
+			target_link_libraries(
+				SizingMain
+				Sources.SizingMainCaller
+				Models.Commons
+				Models.FileParsers
+				Models.PCAP
+				# Linux built-in libraries
+				pthread
+				# Vendor-specific libraries
+				${STATIC_LIB_PATH}/cJson/Libs/libcjson.a
+				${STATIC_LIB_PATH}/libpcap/Libs/libpcap.a
+			)
+		endif()
 		target_link_libraries(
 			SizingMain
-			Main.Sources
+			Sources.SizingMainCaller
 			Models.Commons
 			Models.FileParsers
 			Models.PCAP
@@ -38,7 +61,14 @@ if (NOT BUILD_TEST)
 			# Vendor-specific libraries
 			${STATIC_LIB_PATH}/cJson/Libs/libcjson.a
 			${STATIC_LIB_PATH}/libpcap/Libs/libpcap.a
+			-lnl-3 -lnl-genl-3
 		)
+
+		# Changing the permission of the SizingMain
+		add_custom_command(TARGET SizingMain POST_BUILD
+        	COMMAND sudo chown root:root "${CMAKE_SOURCE_DIR}/Bin/SizingMain"
+        	COMMAND sudo chmod 4755 "${CMAKE_SOURCE_DIR}/Bin/SizingMain"
+    	)
 	else()
 		# Creating an execution in each model
 		set(CMAKE_EXE_LINKER_FLAGS "-static")
@@ -46,7 +76,7 @@ if (NOT BUILD_TEST)
 		# Linking to the all library
 		target_link_libraries(
 			SizingMain -static
-			Main.Sources
+			Sources.SizingMainCaller
 			Models.Commons
 			Models.FileParsers
 			Models.PCAP
