@@ -20,7 +20,36 @@ if (NOT BUILD_TEST)
 	set(STATIC_LIB_PATH ${CMAKE_BINARY_DIR}/Vendors)
 
 	# Linux compiling / Windows compiling
-	if(OPERATING_SYSTEM STREQUAL "0")
+	if(OPERATING_SYSTEM STREQUAL "0" OR OPERATING_SYSTEM STREQUAL "0.1")
+
+		if(OPERATING_SYSTEM STREQUAL "0.1") # CentOS version
+			target_link_libraries(
+				SizingMain
+				Sources.SizingMainCaller
+				Models.Commons
+				Models.FileParsers
+				Models.PCAP
+				# Linux built-in libraries
+				pthread
+				# Vendor-specific libraries
+				${STATIC_LIB_PATH}/cJson/Libs/libcjson.a
+				${STATIC_LIB_PATH}/libpcap/Libs/libpcap.a
+				-lnl-3 -lnl-genl-3
+			)
+		else() # Other Linux version
+			target_link_libraries(
+				SizingMain
+				Sources.SizingMainCaller
+				Models.Commons
+				Models.FileParsers
+				Models.PCAP
+				# Linux built-in libraries
+				pthread
+				# Vendor-specific libraries
+				${STATIC_LIB_PATH}/cJson/Libs/libcjson.a
+				${STATIC_LIB_PATH}/libpcap/Libs/libpcap.a
+			)
+		endif()
 		target_link_libraries(
 			SizingMain
 			Sources.SizingMainCaller
@@ -32,6 +61,7 @@ if (NOT BUILD_TEST)
 			# Vendor-specific libraries
 			${STATIC_LIB_PATH}/cJson/Libs/libcjson.a
 			${STATIC_LIB_PATH}/libpcap/Libs/libpcap.a
+			-lnl-3 -lnl-genl-3
 		)
 
 		# Changing the permission of the SizingMain

@@ -7,13 +7,24 @@
  */
 
 #include <algorithm>
+#include <iostream>
 
 #include "../../Models/Commons/Headers/POSIXErrors.hpp"
 #include "./SizingMainCallerPrototype.hpp"
 
 #ifdef __linux__  // Linux
 
+// The macro variable is from the compiled process where is in the CMakeLists.txt file from the proper cpp file folder
+// For more variable information, please refer to the file, namely .globalCmakeVariable.cmake
+// When the OS_ID is not defined in the CMakeLists.txt file from the proper cpp file folder,
+// the OS_ID will not be passed defined into compiled process
+#ifndef OS_ID
+
 #include "./LinuxSizingMainCaller.hpp"
+
+#else
+#include "./LinuxCentosSizingMainCaller.hpp"
+#endif
 
 #elif defined(_WIN32) || defined(_WIN64)
 

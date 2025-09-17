@@ -1,7 +1,7 @@
 set(STATIC_LIB_PATH ${CMAKE_BINARY_DIR}/Vendors)
 
-
-if(OPERATING_SYSTEM STREQUAL "0")
+# Linux compiling / Windows compiling
+if(OPERATING_SYSTEM STREQUAL "0" OR OPERATING_SYSTEM STREQUAL "0.1")
 	add_library(Models.PCAP
 		PCAPPrototype.cpp
 		LinuxPCAP.cpp

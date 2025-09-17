@@ -3,7 +3,7 @@ project(native-sizing)
 
 # [C++ Settings]
 ## GoogleTest requires at least C++17
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 
@@ -17,6 +17,7 @@ include(Settings/.Cmake/.globalCmakeVariable.cmake)
 # This file sets the OPERATING_SYSTEM variable based on the platform. 
 # If the platform does not match Linux or Windows, it will raise an error (exiting the process).
 include(Settings/.Cmake/.systemSupport.cmake)
+message(STATUS "Operating System: ${OPERATING_SYSTEM}")
 
 # [Testing Settings]
 ## Please refer to the file in the following:
