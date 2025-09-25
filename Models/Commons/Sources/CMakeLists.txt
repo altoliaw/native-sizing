@@ -1,5 +1,6 @@
 add_library(Models.Commons
 	StringImplement.cpp
+	IOExporters.cpp
 	HashTable.cpp
 	Time.cpp
 )

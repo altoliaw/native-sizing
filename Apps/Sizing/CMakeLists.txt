@@ -21,7 +21,7 @@ if (NOT BUILD_TEST)
 
 	# Linux compiling / Windows compiling
 	if(OPERATING_SYSTEM STREQUAL "0" OR OPERATING_SYSTEM STREQUAL "0.1")
-
+	
 		if(OPERATING_SYSTEM STREQUAL "0.1") # CentOS version
 			target_link_libraries(
 				SizingMain
@@ -50,25 +50,13 @@ if (NOT BUILD_TEST)
 				${STATIC_LIB_PATH}/libpcap/Libs/libpcap.a
 			)
 		endif()
-		target_link_libraries(
-			SizingMain
-			Sources.SizingMainCaller
-			Models.Commons
-			Models.FileParsers
-			Models.PCAP
-			# Linux built-in libraries
-			pthread
-			# Vendor-specific libraries
-			${STATIC_LIB_PATH}/cJson/Libs/libcjson.a
-			${STATIC_LIB_PATH}/libpcap/Libs/libpcap.a
-			-lnl-3 -lnl-genl-3
-		)
 
 		# Changing the permission of the SizingMain
 		add_custom_command(TARGET SizingMain POST_BUILD
         	COMMAND sudo chown root:root "${CMAKE_SOURCE_DIR}/Bin/SizingMain"
         	COMMAND sudo chmod 4755 "${CMAKE_SOURCE_DIR}/Bin/SizingMain"
     	)
+
 	else()
 		# Creating an execution in each model
 		set(CMAKE_EXE_LINKER_FLAGS "-static")

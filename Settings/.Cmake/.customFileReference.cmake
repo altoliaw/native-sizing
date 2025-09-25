@@ -10,3 +10,4 @@ configure_file(${CMAKE_SOURCE_DIR}/Settings/.Json/SizingMain.json ${CMAKE_BINARY
 ## Copying the third party software into the Vendors folder and the Outputs for testing
 file(COPY ${CMAKE_SOURCE_DIR}/Vendors DESTINATION ${CMAKE_BINARY_DIR})
 file(COPY ${CMAKE_SOURCE_DIR}/Outputs DESTINATION ${CMAKE_BINARY_DIR})
+file(COPY ${CMAKE_SOURCE_DIR}/ExternalData/a.txt DESTINATION ${CMAKE_BINARY_DIR}/ExternalData)
