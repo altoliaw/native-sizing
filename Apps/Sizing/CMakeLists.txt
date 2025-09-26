@@ -14,7 +14,7 @@ if (NOT BUILD_TEST)
 	)
 	
 	# Linking to the headers
-	target_include_directories(SizingMain PUBLIC ${CMAKE_SOURCE_DIR}/Headers/SizingController)
+	target_include_directories(SizingMain PUBLIC ${CMAKE_SOURCE_DIR}/Headers/SizingControllers)
 
 	# Linking to the library
 	set(STATIC_LIB_PATH ${CMAKE_BINARY_DIR}/Vendors)

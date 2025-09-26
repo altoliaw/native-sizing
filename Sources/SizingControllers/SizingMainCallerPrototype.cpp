@@ -1,7 +1,7 @@
 /**
  * @see SizingMainCallerPrototype.hpp
  */
-#include "../../Headers/SizingController/SizingMainCallerPrototype.hpp"
+#include "../../Headers/SizingControllers/SizingMainCallerPrototype.hpp"
 
 namespace SizingMainCaller {
 

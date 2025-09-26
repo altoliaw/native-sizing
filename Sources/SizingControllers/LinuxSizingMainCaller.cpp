@@ -1,15 +1,14 @@
 /**
  * @see SizingMainCaller.hpp
  */
-#include "../../Headers/SizingController/LinuxCentosSizingMainCaller.hpp"
+#include "../../Headers/SizingControllers/LinuxSizingMainCaller.hpp"
 #ifdef __linux__
 
 // The macro variable is from the compiled process where is in the CMakeLists.txt file from the proper cpp file folder
 // For more variable information, please refer to the file, namely .globalCmakeVariable.cmake
 // When the OS_ID is not defined in the CMakeLists.txt file from the proper cpp file folder,
 // the OS_ID will not be passed defined into compiled process
-#ifdef OS_ID
-
+#ifndef OS_ID
 namespace SizingMainCaller {
 //===Global Declaration===
 // Variables in .ini file
@@ -33,11 +32,12 @@ FILE** _FILE_POINTER_ = nullptr;
 //===Static fields Declaration===
 // For reserving the session's previous, the key is a tuple which combines sorted ip and port information;
 // the second one is the session's previous packet type; the value is defined as follows: 0: undefined; 1: TX, and 2: RX
-std::map<std::tuple <uint32_t, uint32_t, uint16_t, uint16_t>, char> LinuxCentosSizingMainCaller::sessionMap;
+std::map<std::tuple<uint32_t, uint32_t, uint16_t, uint16_t>, char> LinuxSizingMainCaller::sessionMap;
 // For recording the maximum number of packets per second
-long LinuxCentosSizingMainCaller::currentSqlMaxRequestNumberPerSec = 0;
+long LinuxSizingMainCaller::currentSqlMaxRequestNumberPerSec = 0;
 // For reserving the starting time in the beginning or the updating time when the SQL statements receive
-std::chrono::steady_clock::time_point LinuxCentosSizingMainCaller::startingTime =  std::chrono::steady_clock::time_point::min();;
+std::chrono::steady_clock::time_point LinuxSizingMainCaller::startingTime = std::chrono::steady_clock::time_point::min();
+;
 
 /**
  * The starting process, the entry of the process
@@ -46,12 +46,12 @@ std::chrono::steady_clock::time_point LinuxCentosSizingMainCaller::startingTime 
  * @param argV [char**] The array of the argument
  * @return [Commons::POSIXErrors] The status defined in the class "POSIXErrors" The status defined in the class "POSIXErrors"
  */
-Commons::POSIXErrors LinuxCentosSizingMainCaller::start(int argC, char** argV) {
+Commons::POSIXErrors LinuxSizingMainCaller::start(int argC, char** argV) {
     Commons::POSIXErrors result = Commons::POSIXErrors::OK;
 
     // TODO: This section shall be implemented by using "Bison" instead of the section defined in the following.
     // To determine if the argument is passed for the execution
-    if(argC == 2 && strcmp(argV[1], "-l") == 0) {
+    if (argC == 2 && strcmp(argV[1], "-l") == 0) {
         // Showing the information
         PCAP::LinuxPCAP::show();
         return result;
@@ -81,7 +81,7 @@ Commons::POSIXErrors LinuxCentosSizingMainCaller::start(int argC, char** argV) {
     _WRITING_FILE_LOCATION_ = OuputFilePathWithTime;
 
     // Installing a signal handler, interrupt
-    signal(SIGINT, LinuxCentosSizingMainCaller::signalInterruptedHandler);
+    signal(SIGINT, LinuxSizingMainCaller::signalInterruptedHandler);
 
     {  // Creating objects, opening the interfaces, executing the packet calculations
         // and closing the interfaces; the number of objects is equal to the number of
@@ -155,7 +155,7 @@ Commons::POSIXErrors LinuxCentosSizingMainCaller::start(int argC, char** argV) {
  * @return [Commons::POSIXErrors] The status defined in the class "POSIXErrors" The status
  * defined in the class "POSIXErrors"
  */
-Commons::POSIXErrors LinuxCentosSizingMainCaller::config(std::vector<unitService>* services) {
+Commons::POSIXErrors LinuxSizingMainCaller::config(std::vector<unitService>* services) {
     Commons::POSIXErrors error = Commons::POSIXErrors::OK;
 
     // Loading information from the .json file for the application
@@ -243,7 +243,7 @@ Commons::POSIXErrors LinuxCentosSizingMainCaller::config(std::vector<unitService
  * @param pcap [PCAP::LinuxPCAP*] The address of the PCAP::LinuxPCAP object
  * @param packetHandler [void (*)(u_char*, const pcap_pkthdr*, const u_char*)] The callback function for pcap_loop
  */
-void LinuxCentosSizingMainCaller::packetTask(PCAP::LinuxPCAP* pcap, void (*packetHandler)(u_char*, const pcap_pkthdr*, const u_char*)) {
+void LinuxSizingMainCaller::packetTask(PCAP::LinuxPCAP* pcap, void (*packetHandler)(u_char*, const pcap_pkthdr*, const u_char*)) {
     // The only argument will be set; as a result, the pcap object will be passed in the function, packetHandler.
     // For more information, please refer to the function, execute(.).
     pcap->execute(packetHandler);
@@ -257,9 +257,9 @@ void LinuxCentosSizingMainCaller::packetTask(PCAP::LinuxPCAP* pcap, void (*packe
  * which users defined in .json file.
  * @param filePath [const char*] The file path for recording the information
  */
-void LinuxCentosSizingMainCaller::packetFileTask(FILE** fileDescriptor, const char* filePath) {
+void LinuxSizingMainCaller::packetFileTask(FILE** fileDescriptor, const char* filePath) {
     // Installing a signal handler, alarm
-    signal(SIGALRM, LinuxCentosSizingMainCaller::signalAlarmHandler);
+    signal(SIGALRM, LinuxSizingMainCaller::signalAlarmHandler);
     _FILE_POINTER_ = fileDescriptor;  // Passing to the global variable
 
     // The first calling the function
@@ -270,7 +270,7 @@ void LinuxCentosSizingMainCaller::packetFileTask(FILE** fileDescriptor, const ch
         *_FILE_POINTER_ = fopen(filePath, "a+");
         if (*_FILE_POINTER_ == nullptr) {
             std::cerr << "Error opening the file!\n";
-            LinuxCentosSizingMainCaller::signalInterruptedHandler(0);  // Going to the end of the thread
+            LinuxSizingMainCaller::signalInterruptedHandler(0);  // Going to the end of the thread
 
         } else {  // Adding the header information in a line to the file
             char output[1024] = {'\0'};
@@ -303,10 +303,10 @@ void LinuxCentosSizingMainCaller::packetFileTask(FILE** fileDescriptor, const ch
  * @param pkthdr [const struct pcap_pkthdr*] The address of the packet header
  * @param packet [const u_char*] The address of the packet
  */
-void LinuxCentosSizingMainCaller::packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, const u_char* packet) {
+void LinuxSizingMainCaller::packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, const u_char* packet) {
     // Opening the clock when the value equals to "std::chrono::steady_clock::time_point::min()"
     if (startingTime == std::chrono::steady_clock::time_point::min()) {
-        startingTime = std::chrono::steady_clock::now(); // Assign now to the startingTime variable
+        startingTime = std::chrono::steady_clock::now();  // Assign now to the startingTime variable
     }
     // Due to the setting of the function, execute(.), the data of userData is the object of children classes (LinuxPCAP, WindowsPCAP and so on ...)
     PCAP::PCAPPrototype* pcapInstance = (PCAP::PCAPPrototype*)userData;
@@ -318,8 +318,8 @@ void LinuxCentosSizingMainCaller::packetHandler(u_char* userData, const struct p
 
     // When the pcap belongs to linux pcap, ...
     if (linuxPCAP != nullptr) {
-        std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>* tmpMap = &(linuxPCAP->portRelatedInformation); // Due to less ports in the setting
-        
+        std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>* tmpMap = &(linuxPCAP->portRelatedInformation);  // Due to less ports in the setting
+
         // Obtaining the IP header; the ip_p column implies the protocol;
         // the number of the TCP is 6, and the UDP is 17
         ip* ip_header = (ip*)(packet + sizeof(ether_header));
@@ -340,22 +340,16 @@ void LinuxCentosSizingMainCaller::packetHandler(u_char* userData, const struct p
         switch (ip_header->ip_p) {
             case IPPROTO_TCP:  // TCP
                 tcpHeader = (tcphdr*)(packet + sizeof(ether_header) + sizeof(ip));
-                packetSourcePort = ntohs(tcpHeader->source);
-                packetDestinationPort = ntohs(tcpHeader->dest);
-                tcpFlag = 0x0;
-                tcpFlag |= tcpHeader->fin  << 0;
-                tcpFlag |= tcpHeader->syn  << 1;
-                tcpFlag |= tcpHeader->rst  << 2;
-                tcpFlag |= tcpHeader->psh  << 3;
-                tcpFlag |= tcpHeader->ack  << 4;
-                tcpFlag |= tcpHeader->urg  << 5;
+                packetSourcePort = ntohs(tcpHeader->th_sport);
+                packetDestinationPort = ntohs(tcpHeader->th_dport);
+                tcpFlag = tcpHeader->th_flags;
                 packetSourceIp = ip_header->ip_src.s_addr;
                 packetDestinationIp = ip_header->ip_dst.s_addr;
                 break;
             case IPPROTO_UDP:  // UDP
                 udpHeader = (udphdr*)(packet + sizeof(ether_header) + sizeof(ip));
-                packetSourcePort = ntohs(udpHeader->source);
-                packetDestinationPort = ntohs(udpHeader->dest);
+                packetSourcePort = ntohs(udpHeader->uh_sport);
+                packetDestinationPort = ntohs(udpHeader->uh_dport);
                 packetSourceIp = ip_header->ip_src.s_addr;
                 packetDestinationIp = ip_header->ip_dst.s_addr;
                 break;
@@ -377,22 +371,21 @@ void LinuxCentosSizingMainCaller::packetHandler(u_char* userData, const struct p
             sortedSessionTuple = std::make_tuple(packetDestinationIp, packetSourceIp, packetDestinationPort, packetSourcePort);
         }
 
-        char previousPacketType = 0x0; // Undefined (0x0); 0x1: TX, and 0x2: RX
+        char previousPacketType = 0x0;  // Undefined (0x0); 0x1: TX, and 0x2: RX
         // Critical section, accessing the data area
         _MUTEX_.lock();
 
         // Operating the sessionMap, using the emplace for verifying if the session key has been existed;
-        // the returned value contains a pair consisting of an iterator to the inserted element 
+        // the returned value contains a pair consisting of an iterator to the inserted element
         // (or to the element that prevented the insertion) and a bool value;
         // when the key exists, the returned second value is false (e.g., insert failed); when the key does not
         // exist, the returned second value is true (e.g., insert success)
-        std::pair<std::map<std::tuple<uint32_t, uint32_t, uint16_t, uint16_t>, char>::iterator, bool> insertedResult = SizingMainCaller::LinuxCentosSizingMainCaller::sessionMap.emplace(sortedSessionTuple, previousPacketType);
-        if (insertedResult.second == true) { // Key will inserted ...
+        std::pair<std::map<std::tuple<uint32_t, uint32_t, uint16_t, uint16_t>, char>::iterator, bool> insertedResult = SizingMainCaller::LinuxSizingMainCaller::sessionMap.emplace(sortedSessionTuple, previousPacketType);
+        if (insertedResult.second == true) {  // Key will inserted ...
             // Do nothing
-        } else { // Key exist
+        } else {  // Key exist
             previousPacketType = (insertedResult.first)->second;
         }
-        
 
         // Comparing source and destination ports with the port to determine the direction
         char packetTypeDetermineSet = 0x0;  // A flag to check if the packet type has been determined
@@ -410,17 +403,15 @@ void LinuxCentosSizingMainCaller::packetHandler(u_char* userData, const struct p
                     &(linuxPCAP->txPacketNumber),
                     &(linuxPCAP->txSize),
                     &(linuxPCAP->maxTxSize),
-                    &packetTypeDetermineSet
-                );
+                    &packetTypeDetermineSet);
 
                 // Determining if the cyclic direction packets have been detected
                 // When flow change occurs, the previous packet is "undefined" or "RX"
                 if (previousPacketType == 0x0 || previousPacketType == 0x2) {
-                    (it->second)->flowChangeNumber++; // Flow change occurs, the previous packet is RX or nothing
-                    (it->second)->rxGroupNumber++; // rxGroupNumber in the port shall plus 1.
-                    (insertedResult.first)->second = previousPacketType = 0x1; // Setting the previous packet type to TX
-                    linuxPCAP->rxGroupNumber++; // rxGroupNumber shall plus 1.
-
+                    (it->second)->flowChangeNumber++;                           // Flow change occurs, the previous packet is RX or nothing
+                    (it->second)->rxGroupNumber++;                              // rxGroupNumber in the port shall plus 1.
+                    (insertedResult.first)->second = previousPacketType = 0x1;  // Setting the previous packet type to TX
+                    linuxPCAP->rxGroupNumber++;                                 // rxGroupNumber shall plus 1.
                 }
             }
         }
@@ -437,30 +428,27 @@ void LinuxCentosSizingMainCaller::packetHandler(u_char* userData, const struct p
                     &(linuxPCAP->rxPacketNumber),
                     &(linuxPCAP->rxSize),
                     &(linuxPCAP->maxRxSize),
-                    &packetTypeDetermineSet
-                );
+                    &packetTypeDetermineSet);
 
                 // Determining if the cyclic direction packets have been detected
                 // When flow change occurs, the previous packet is "undefined" or "TX"
                 if (previousPacketType == 0x0 || previousPacketType == 0x1) {
-                    (it->second)->flowChangeNumber++; // Flow change occurs, the previous packet is RX
-                    (it->second)->txGroupNumber++; // txGroupNumber in the port shall plus 1.
-                    (insertedResult.first)->second = previousPacketType = 0x2; // Setting the previous packet type to TX
-                    linuxPCAP->txGroupNumber++; // txGroupNumber shall plus 1.
+                    (it->second)->flowChangeNumber++;                           // Flow change occurs, the previous packet is RX
+                    (it->second)->txGroupNumber++;                              // txGroupNumber in the port shall plus 1.
+                    (insertedResult.first)->second = previousPacketType = 0x2;  // Setting the previous packet type to TX
+                    linuxPCAP->txGroupNumber++;                                 // txGroupNumber shall plus 1.
 
                     // In this if section, the meaning implies that the packet from the client to server contain a SQL statement (cyclic direction + PSH + ACK)
-                    if (tcpFlag == 0x18) { // PSH + ACK flag
+                    if (tcpFlag == 0x18) {  // PSH + ACK flag
                         (it->second)->sqlRequestNumber++;
                         (it->second)->sqlRequestSize += (long long)(pkthdr->len);
-                        currentSqlMaxRequestNumberPerSec++; // Adding the number
+                        currentSqlMaxRequestNumberPerSec++;  // Adding the number
                         // Determining if the time has been equal to and larger than 1 sec
                         std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
                         std::chrono::duration<double> elapsedSeconds = now - startingTime;
-                        if ( elapsedSeconds.count() >= 1.0) {
-                            // Determining if the kept data are lager than current reserved data in the same session 
-                            (it->second)->sqlMaxRequestNumberPerSec = ((it->second)->sqlMaxRequestNumberPerSec) > currentSqlMaxRequestNumberPerSec ?
-                                                                    ((it->second)->sqlMaxRequestNumberPerSec):
-                                                                    currentSqlMaxRequestNumberPerSec;
+                        if (elapsedSeconds.count() >= 1.0) {
+                            // Determining if the kept data are lager than current reserved data in the same session
+                            (it->second)->sqlMaxRequestNumberPerSec = ((it->second)->sqlMaxRequestNumberPerSec) > currentSqlMaxRequestNumberPerSec ? ((it->second)->sqlMaxRequestNumberPerSec) : currentSqlMaxRequestNumberPerSec;
                             startingTime = now;
                             currentSqlMaxRequestNumberPerSec = 0;
                         }
@@ -482,7 +470,7 @@ void LinuxCentosSizingMainCaller::packetHandler(u_char* userData, const struct p
 
 /**
  * Updating the RX and TX packet information (according to the parameter)
- * 
+ *
  * @param packetHeaderLength [long long] The packet header length
  * @param portXPacketNumber [long*] The TX/RX packet number from the defined ports
  * @param portXSize [long long*] The TX/RX packet size from the defined ports
@@ -493,15 +481,14 @@ void LinuxCentosSizingMainCaller::packetHandler(u_char* userData, const struct p
  * @param packetTypeDetermineSet [char] The flag if the section is exected; 0 is not executed, and 1 is executed
  * @return [void] None
  */
-void LinuxCentosSizingMainCaller::executePacketInformationUpdate(long long packetHeaderLength,
-                                long* portXPacketNumber,
-                                long long* portXSize,
-                                long long* portMaxXSize,
-                                long* XPacketNumber,
-                                long long* XSize,
-                                long long* maxXSize,
-                                char* packetTypeDetermineSet) {
-    
+void LinuxSizingMainCaller::executePacketInformationUpdate(long long packetHeaderLength,
+                                                           long* portXPacketNumber,
+                                                           long long* portXSize,
+                                                           long long* portMaxXSize,
+                                                           long* XPacketNumber,
+                                                           long long* XSize,
+                                                           long long* maxXSize,
+                                                           char* packetTypeDetermineSet) {
     (*portXPacketNumber)++;              // rx/txPacketNumber in the port shall plus 1.
     (*portXSize) += packetHeaderLength;  // rx/txSize in the port shall plus the current one.
 
@@ -510,9 +497,9 @@ void LinuxCentosSizingMainCaller::executePacketInformationUpdate(long long packe
         (*portMaxXSize) = packetHeaderLength;
     }
 
-    (*XPacketNumber)++;                  // rx/txPacketNumber shall plus 1.
-    (*XSize) += packetHeaderLength;      // rx/txSize shall plus the current one.
-    
+    (*XPacketNumber)++;              // rx/txPacketNumber shall plus 1.
+    (*XSize) += packetHeaderLength;  // rx/txSize shall plus the current one.
+
     // Obtaining the rx/tx maximum size
     if ((*maxXSize) < packetHeaderLength) {
         (*maxXSize) = packetHeaderLength;
@@ -525,7 +512,7 @@ void LinuxCentosSizingMainCaller::executePacketInformationUpdate(long long packe
  *
  * @param [int] The signal type (ignore)
  */
-void LinuxCentosSizingMainCaller::signalInterruptedHandler(int) {
+void LinuxSizingMainCaller::signalInterruptedHandler(int) {
     std::cerr << "\n"
               << "Interrupted signal occurs, please wait.\n";
     // Using these two global variables to break the loops in different threads
@@ -540,7 +527,7 @@ void LinuxCentosSizingMainCaller::signalInterruptedHandler(int) {
  *
  * @param signalType [int] The signal type and the parameter is useless in this method
  */
-void LinuxCentosSizingMainCaller::signalAlarmHandler(int) {
+void LinuxSizingMainCaller::signalAlarmHandler(int) {
     // File writing
     char output[1024] = {"\0"};
     if (*_FILE_POINTER_ == nullptr) {
@@ -549,7 +536,7 @@ void LinuxCentosSizingMainCaller::signalAlarmHandler(int) {
 
         if (*_FILE_POINTER_ == nullptr) {
             std::cerr << "Error opening the file!\n";
-            LinuxCentosSizingMainCaller::signalInterruptedHandler(0);  // Going to the end of the thread
+            LinuxSizingMainCaller::signalInterruptedHandler(0);  // Going to the end of the thread
 
         } else {
             _MUTEX_.lock();
@@ -617,7 +604,7 @@ void LinuxCentosSizingMainCaller::signalAlarmHandler(int) {
                     tmp->rxPacketNumber = 0;
                     tmp->rxGroupNumber = 0;
                     tmp->rxSize = 0;
-                    tmp->maxRxSize = 0;                   
+                    tmp->maxRxSize = 0;
                 }
             }
             _MUTEX_.unlock();

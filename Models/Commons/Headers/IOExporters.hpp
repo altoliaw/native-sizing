@@ -53,6 +53,9 @@ class IOExporters {
 
     static std::pair<Commons::POSIXErrors, long> printFromRegisteredDescriptor(const int, const unsigned char*, ...);
     static std::pair<Commons::POSIXErrors, long> printFromRegisteredDescriptor(const unsigned char*, ...);
+    static std::pair<Commons::POSIXErrors, long> printFromRegisteredDescriptor(const int, const unsigned char*, va_list);
+    static std::pair<Commons::POSIXErrors, long> printFromRegisteredDescriptor(const unsigned char*, va_list);
+    
     static Commons::POSIXErrors changeDescriptor(const int, const int);
     static std::pair<Commons::POSIXErrors, IOExporters::DescriptorBehavior> recoverDescriptor(const int);
     static Commons::POSIXErrors releaseDescriptor(const int);
