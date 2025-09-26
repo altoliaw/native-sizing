@@ -3,7 +3,6 @@
  */
 #include "../Headers/IOExporters.hpp"
 
-#ifdef __linux__
 namespace Commons {
 // The initialization of the static member defined in the class IOExporters, and
 // creating objects of the descriptors, namely STDIN, STDOUT, and STDERR, there are the default descriptors
@@ -250,4 +249,3 @@ std::pair<Commons::POSIXErrors, long> IOExporters::printFromRegisteredDescriptor
 }
 
 }  // namespace Commons
-#endif
