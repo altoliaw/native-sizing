@@ -83,15 +83,12 @@ Commons::POSIXErrors IOExporters::changeDescriptor(const int destinationDescript
         // First, if the destinationDescriptor has been swapped, the destinationDescriptor and newDescriptor shall be recovered.
         std::pair<Commons::POSIXErrors, Commons::IOExporters::DescriptorBehavior> returnedValue = IOExporters::recoverDescriptor(it->second->currentDescriptor);
         isSuccess = returnedValue.first;  // Passing the returned value (success flag) to the variable, isSuccess
-        fprintf(stderr, "The success is %d", isSuccess);
         returnedValue = IOExporters::recoverDescriptor(it2->second->currentDescriptor);
         isSuccess = (returnedValue.first != Commons::POSIXErrors::OK) ? returnedValue.first : isSuccess;  // Combining the result above
-        fprintf(stderr, "The success2 is %d", isSuccess);
-        if (isSuccess == Commons::POSIXErrors::OK) {                                                 // Changing the two descriptors
-            (it->second->reservedDescriptorInformation).first = dup(it->second->currentDescriptor);  // Copying to the reserved descriptor
-            dup2(it2->second->currentDescriptor, it->second->currentDescriptor);                     // Copying the device from the newDescriptor to destinationDescriptor
+        if (isSuccess == Commons::POSIXErrors::OK) {                                                      // Changing the two descriptors
+            (it->second->reservedDescriptorInformation).first = dup(it->second->currentDescriptor);       // Copying to the reserved descriptor
+            dup2(it2->second->currentDescriptor, it->second->currentDescriptor);                          // Copying the device from the newDescriptor to destinationDescriptor
             // Commons::IOExporters::STDOUT
-            fprintf(stdout, "it->second->currentDescriptor\n");
             (it->second->reservedDescriptorInformation).second = it2->second->currentDescriptor;  // Passing referred descriptor id for reservation
         }
     }
@@ -102,19 +99,132 @@ Commons::POSIXErrors IOExporters::changeDescriptor(const int destinationDescript
 /**
  * Displaying the string with the specified string format and the arguments by using the specified descriptor
  *
+ * @param descriptor [IN, const int, DescriptorType::STDOUT] The descriptor where users specify
  * @param stringFormat [IN, const unsigned char*] The format of the string modelled in C-style, such as "This is %d %s\n"
- * @param descriptor [IN, const int, DescriptorType::STDOUT] The descriptor; when the value is equal to -1, IOExporters::DescriptorType::STDOUT is the default
  * @param ... [IN] The arguments for the parameter, stringFormat
  * @return [OUT std::pair<Commons::POSIXErrors, long> ] Two types of result will be returned; the first one is the flag (defined in Commons::POSIXErrors) of the function;
  * the second one is the length of the processed string
  */
 std::pair<Commons::POSIXErrors, long> IOExporters::printFromRegisteredDescriptor(const int descriptor, const unsigned char* stringFormat, ...) {
-    Commons::POSIXErrors isSuccess = Commons::POSIXErrors::OK;
-    long templength = 0;  // A temporary for reserving the processed length
-    long Length = 0;      // The final length for returning
+    std::pair<Commons::POSIXErrors, long> returnedValue;
 
     va_list arguments;
     va_start(arguments, stringFormat);  // Stating from the location from the variable, descriptor defined in the parameter list
+    IOExporters::printFromRegisteredDescriptorExecution(descriptor, stringFormat, arguments);
+    va_end(arguments);  // The obtained arguments' process end
+    return returnedValue;
+}
+
+/**
+ * Displaying the string with the specified string format and the arguments by using the specified descriptor (overloading)
+ *
+ * @param stringFormat [IN, const unsigned char*] The format of the string modelled in C-style, such as "This is %d %s\n"
+ * @param ... [IN] The arguments for the parameter, stringFormat
+ * @return [OUT std::pair<Commons::POSIXErrors, long> ] Two types of result will be returned; the first one is the flag (defined in Commons::POSIXErrors) of the function;
+ * the second one is the length of the processed string
+ */
+std::pair<Commons::POSIXErrors, long> IOExporters::printFromRegisteredDescriptor(const unsigned char* stringFormat, ...) {
+    std::pair<Commons::POSIXErrors, long> returnedValue;
+
+    va_list arguments;
+    va_start(arguments, stringFormat);  // Stating from the location from the variable, descriptor defined in the parameter list
+    IOExporters::printFromRegisteredDescriptorExecution(IOExporters::DescriptorType::STDOUT, stringFormat, arguments);
+    va_end(arguments);  // The obtained arguments' process end
+    return returnedValue;
+}
+
+/**
+ * Recovering the specified descriptor
+ *
+ * @param descriptorNumber [IN, const int] The specfied descriptor
+ * @return std::pair<Commons::POSIXErrors, IOExporters::DescriptorBehavior> The pair contains successful information and the swapped information
+ * - The first one is the flag of success; 0: failed; 1: success
+ * - The second one is the swapped flag: "NONE" shows no swap occur; "SWAP" shows the swap occurs
+ */
+std::pair<Commons::POSIXErrors, IOExporters::DescriptorBehavior> IOExporters::recoverDescriptor(const int descriptorNumber) {
+    Commons::POSIXErrors isSuccess = Commons::POSIXErrors::OK;
+    IOExporters::DescriptorBehavior behavior = IOExporters::DescriptorBehavior::NONE;
+
+    // Verifying if the descriptor exists
+    std::map<int, std::unique_ptr<DescriptorInformation>>::iterator it = descriptorSet.find(descriptorNumber);
+    if (it == descriptorSet.end()) {  // No hitting
+        isSuccess = Commons::POSIXErrors::E_AGAIN;
+    } else {
+        // When the reserved device does not belong to -1 (a device has been linked. i.e., the swapped has been occurs)
+        if ((descriptorSet[descriptorNumber]->reservedDescriptorInformation).first != -1) {
+            // Swapping the past device which is referred by the reserved descriptor to the current descriptor
+            dup2((descriptorSet[descriptorNumber]->reservedDescriptorInformation).first, descriptorSet[descriptorNumber]->currentDescriptor);
+
+            // Releasing the reserved descriptor except STDIN, STDOUT, and STDERR (descriptor number always > 0 when success occurs)
+            if ((descriptorSet[descriptorNumber]->reservedDescriptorInformation).first >= DescriptorType::OTHERS) {
+                close((descriptorSet[descriptorNumber]->reservedDescriptorInformation).first);  // Removing the descriptor duplicating by users
+            }
+            (descriptorSet[descriptorNumber]->reservedDescriptorInformation).first = -1;   // There is no descriptor for reservation.
+            (descriptorSet[descriptorNumber]->reservedDescriptorInformation).second = -1;  // No descriptor number is necessary
+            behavior = IOExporters::DescriptorBehavior::SWAP;
+        }
+    }
+    return {isSuccess, behavior};
+}
+
+/**
+ * Removing the descriptor and destructing the descriptor from the map
+ *
+ * @param descriptorNumber [IN, const int] The descriptor that user requested for removal
+ * @return Commons::POSIXErrors [OUT, Commons::POSIXErrors] The flag to determine if the function has been success elegantly;
+ * when success, the returned value is equal to "Commons::POSIXErrors::OK";
+ * otherwise, the values in the "Commons::POSIXErrors" except "Commons::POSIXErrors::OK" will be occurred
+ */
+Commons::POSIXErrors IOExporters::releaseDescriptor(const int descriptorNumber) {
+    Commons::POSIXErrors isSuccess = Commons::POSIXErrors::OK;
+
+    // Using the currentDescriptor as id to removing the DescriptorInformation instance
+    std::map<int, std::unique_ptr<IOExporters::DescriptorInformation>>::iterator it = descriptorSet.find(descriptorNumber);
+    if (it == descriptorSet.end()) {  // No hitting the element in the map
+        // Do Nothing (i.e., the element does not exist.)
+        isSuccess = Commons::POSIXErrors::E_BADF;
+    } else {  // Hitting, executing the reset() to destruct the object
+        // Releasing the descriptor except  STDIN, STDOUT, and STDERR
+        if (it->first < DescriptorType::STDIN || it->first >= DescriptorType::OTHERS) {
+            // Recovering the descriptor
+            std::pair<Commons::POSIXErrors, Commons::IOExporters::DescriptorBehavior> isSuccessResult;
+            isSuccessResult = IOExporters::recoverDescriptor(descriptorNumber);
+            if (isSuccessResult.first == Commons::POSIXErrors::OK) {
+                // Removing the element in the map; this will call the destruct of the object (DescriptorInformation)
+                descriptorSet.erase(descriptorNumber);
+            } else {  // Recovering error
+                isSuccess = Commons::POSIXErrors::E_BADF;
+            }
+        } else {  // When the descriptor belongs to any one of STDIN, STDOUT, and STDERR; this will not remove by users manually
+            isSuccess = Commons::POSIXErrors::E_BADF;
+        }
+    }
+    return isSuccess;
+}
+
+/**
+ * This function is for unit test for recovering the original static map
+ */
+void IOExporters::resetDescriptorSet() {
+    descriptorSet.clear();
+    descriptorSet.emplace(DescriptorType::STDIN, std::make_unique<DescriptorInformation>(DescriptorType::STDIN));
+    descriptorSet.emplace(DescriptorType::STDOUT, std::make_unique<DescriptorInformation>(DescriptorType::STDOUT));
+    descriptorSet.emplace(DescriptorType::STDERR, std::make_unique<DescriptorInformation>(DescriptorType::STDERR));
+}
+
+/**
+ * The implement of "printFromRegisteredDescriptor" function series overloading
+ *
+ * @param descriptor [IN, const int, DescriptorType::STDOUT] The descriptor where users specify
+ * @param stringFormat [IN, const unsigned char*] The format of the string modelled in C-style, such as "This is %d %s\n"
+ * @param arguments [IN, va_list] The arguments for the parameter, stringFormat
+ * @return [OUT std::pair<Commons::POSIXErrors, long> ] Two types of result will be returned; the first one is the flag (defined in Commons::POSIXErrors) of the function;
+ * the second one is the length of the processed string
+ */
+std::pair<Commons::POSIXErrors, long> IOExporters::printFromRegisteredDescriptorExecution(const int descriptor, const unsigned char* stringFormat, va_list arguments) {
+    Commons::POSIXErrors isSuccess = Commons::POSIXErrors::OK;
+    long templength = 0;  // A temporary for reserving the processed length
+    long Length = 0;      // The final length for returning
 
     // Preparing a copy for measuring the length
     {
@@ -136,74 +246,7 @@ std::pair<Commons::POSIXErrors, long> IOExporters::printFromRegisteredDescriptor
         }
         buffer.reset();  // Releasing the storage
     }
-    va_end(arguments);  // The obtained arguments' process end
     return {isSuccess, Length};
-}
-
-/**
- * Recovering the specified descriptor
- *
- * @param descriptorNumber [IN, const int] The specfied descriptor
- * @return std::pair<Commons::POSIXErrors, IOExporters::DescriptorBehavior> The pair contains successful information and the swapped information
- * - The first one is the flag of success; 0: failed; 1: success
- * - The second one is the swapped flag: "NONE" shows no swap occur; "SWAP" shows the swap occurs
- */
-std::pair<Commons::POSIXErrors, IOExporters::DescriptorBehavior> IOExporters::recoverDescriptor(const int descriptorNumber) {
-    Commons::POSIXErrors isSuccess = Commons::POSIXErrors::OK;
-    IOExporters::DescriptorBehavior behavior = IOExporters::DescriptorBehavior::NONE;
-
-    // When the reserved device does not belong to -1 (a device has been linked. i.e., the swapped has been occurs)
-    if ((descriptorSet[descriptorNumber]->reservedDescriptorInformation).first != -1) {
-        // Swapping the past device which is referred by the reserved descriptor to the current descriptor
-        dup2((descriptorSet[descriptorNumber]->reservedDescriptorInformation).first, descriptorSet[descriptorNumber]->currentDescriptor);
-
-        // Releasing the reserved descriptor except STDIN, STDOUT, and STDERR (descriptor number always > 0 when success occurs)
-        if ((descriptorSet[descriptorNumber]->reservedDescriptorInformation).first >= DescriptorType::OTHERS) {
-            close((descriptorSet[descriptorNumber]->reservedDescriptorInformation).first);  // Removing the descriptor duplicating by users
-        }
-        (descriptorSet[descriptorNumber]->reservedDescriptorInformation).first = -1;   // There is no descriptor for reservation.
-        (descriptorSet[descriptorNumber]->reservedDescriptorInformation).second = -1;  // No descriptor number is necessary
-        behavior = IOExporters::DescriptorBehavior::SWAP;
-    }
-    return {isSuccess, behavior};
-}
-
-/**
- * Removing the descriptor and destructing the descriptor
- *
- * @param descriptorNumber [IN, const int] The descriptor that user requested for removal
- * @return Commons::POSIXErrors [OUT, Commons::POSIXErrors] The flag to determine if the function has been success elegantly;
- * when success, the returned value is equal to "Commons::POSIXErrors::OK";
- * otherwise, the values in the "Commons::POSIXErrors" except "Commons::POSIXErrors::OK" will be occurred
- */
-Commons::POSIXErrors IOExporters::releaseDescriptor(const int descriptorNumber) {
-    Commons::POSIXErrors isSuccess = Commons::POSIXErrors::OK;
-
-    // Using the currentDescriptor as id to removing the DescriptorInformation instance
-    std::map<int, std::unique_ptr<IOExporters::DescriptorInformation>>::iterator it = descriptorSet.find(descriptorNumber);
-    if (it == descriptorSet.end()) {  // No hitting the element in the map
-        // Do Nothing (i.e., the element does not exist.)
-        isSuccess = Commons::POSIXErrors::E_BADF;
-    } else {  // Hitting, executing the reset() to destruct the object
-        // Releasing the descriptor except  STDIN, STDOUT, and STDERR
-        if (it->first < DescriptorType::STDIN || it->first >= DescriptorType::OTHERS) {
-            // Removing the element in the map; this will call the destruct of the object (DescriptorInformation)
-            descriptorSet.erase(descriptorNumber);
-        } else {  // When the descriptor belongs to any one of STDIN, STDOUT, and STDERR; this will not remove by users manually
-            isSuccess = Commons::POSIXErrors::E_BADF;
-        }
-    }
-    return isSuccess;
-}
-
-/**
- * This is for unit test for recovering the original static map
- */
-void IOExporters::resetDescriptorSet() {
-    descriptorSet.clear();
-    descriptorSet.emplace(DescriptorType::STDIN, std::make_unique<DescriptorInformation>(DescriptorType::STDIN));
-    descriptorSet.emplace(DescriptorType::STDOUT, std::make_unique<DescriptorInformation>(DescriptorType::STDOUT));
-    descriptorSet.emplace(DescriptorType::STDERR, std::make_unique<DescriptorInformation>(DescriptorType::STDERR));
 }
 
 }  // namespace Commons

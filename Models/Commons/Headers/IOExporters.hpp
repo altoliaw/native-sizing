@@ -48,6 +48,7 @@ class IOExporters {
      static std::map<int, std::unique_ptr<DescriptorInformation>> descriptorSet; // The descriptor set by using map, the first element implies the current descriptor
 
      static std::pair<Commons::POSIXErrors, long> printFromRegisteredDescriptor(const int, const unsigned char*, ...);
+     static std::pair<Commons::POSIXErrors, long> printFromRegisteredDescriptor(const unsigned char*, ...);
      static Commons::POSIXErrors changeDescriptor(const int, const int);
      static std::pair<Commons::POSIXErrors, IOExporters::DescriptorBehavior> recoverDescriptor(const int);
      static Commons::POSIXErrors releaseDescriptor(const int);
@@ -56,7 +57,7 @@ class IOExporters {
      private:
      IOExporters() = delete;
      ~IOExporters();
-     static std::pair<Commons::POSIXErrors, long> printFromRegisteredDescriptorExecution(const unsigned char*, const int, va_list args);
+     static std::pair<Commons::POSIXErrors, long> printFromRegisteredDescriptorExecution(const int, const unsigned char*, va_list);
 };
 
 }  // namespace Commons
