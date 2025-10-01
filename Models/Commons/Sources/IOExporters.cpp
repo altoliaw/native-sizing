@@ -51,7 +51,7 @@ IOExporters::~IOExporters() {
 }
 
 /**
- * Changing the descriptor; the
+ * Changing the new descriptor to the destination descriptor
  *
  * @param destinationDescriptor [IN, const int] The descriptor that users shall operate
  * @param newDescriptor [IN, const int] The descriptor that user wants to redirect to

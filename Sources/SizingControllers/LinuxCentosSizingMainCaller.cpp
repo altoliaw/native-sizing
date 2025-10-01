@@ -17,6 +17,8 @@ namespace SizingMainCaller {
 char* _WRITING_FILE_LOCATION_ = nullptr;
 // The time interval, "s" (the file will be recorded every "s" second(s))
 unsigned int _WRITING_FILE_SECOND_ = 30;
+// The output layout format type (default value is equal to 0.)
+unsigned int _OUTPUT_LAYOUT_TYPE_ = 0;
 
 // Determining if the "pcap_loop" shall be still working, 0x0: halting, 0x1: working
 volatile char _IS_PCAP_WORKED_ = 0x1;
@@ -177,6 +179,18 @@ Commons::POSIXErrors LinuxCentosSizingMainCaller::config(std::vector<unitService
     stream.str("");  // Removing the value
     stream << serviceJsonString;
     stream >> _WRITING_FILE_SECOND_;
+
+    // Obtaining the attribute, outputLayoutType, in the .json file
+    error = FileParsers::InitializedJsonFileParser::getValueFromFileParser((const unsigned char*)"base.outputLayoutType", serviceJsonString);
+    if (error != Commons::POSIXErrors::OK) {
+        std::cerr << "base.outputLayoutType does not exist in the .json file.\n";
+        return Commons::POSIXErrors::E_EXIST;
+    }
+    // Parsing the string into the unsigned int
+    stream.clear();  // Removing the error flags
+    stream.str("");  // Removing the value
+    stream << serviceJsonString;
+    stream >> _OUTPUT_LAYOUT_TYPE_;
 
     // Obtaining the attribute, service, in the .json file
     cJSON* cJsonItem = nullptr;

@@ -2,12 +2,13 @@
 	"base": {
 		"service":[
 			{
-				"interface": "3",
+				"interface": "ens192",
 				"port": [
 					"80"
 				]
 			}
 		],
-		"writingFileSecond": 10
+		"writingFileSecond": 10,
+		"outputLayoutType": 1
 	}
 }

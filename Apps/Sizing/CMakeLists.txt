@@ -26,6 +26,7 @@ if (NOT BUILD_TEST)
 			target_link_libraries(
 				SizingMain
 				Sources.SizingMainCaller
+				Services.Sizing
 				Models.Commons
 				Models.FileParsers
 				Models.PCAP
@@ -40,6 +41,7 @@ if (NOT BUILD_TEST)
 			target_link_libraries(
 				SizingMain
 				Sources.SizingMainCaller
+				Services.Sizing
 				Models.Commons
 				Models.FileParsers
 				Models.PCAP

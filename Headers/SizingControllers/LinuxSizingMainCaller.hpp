@@ -10,9 +10,9 @@
 
 // The macro variable is from the compiled process where is in the CMakeLists.txt file from the proper cpp file folder
 // For more variable information, please refer to the file, namely .globalCmakeVariable.cmake
-// When the OS_ID is not defined in the CMakeLists.txt file from the proper cpp file folder, 
+// When the OS_ID is not defined in the CMakeLists.txt file from the proper cpp file folder,
 // the OS_ID will not be passed defined into compiled process
-#ifndef OS_ID 
+#ifndef OS_ID
 #include <netinet/if_ether.h>  // For Ethernet header structure
 #include <netinet/ip.h>        // For IP header structure
 #include <netinet/tcp.h>       // For TCP header structure
@@ -37,6 +37,7 @@
 #include "../../Models/Commons/Headers/Time.hpp"
 #include "../../Models/FileParsers/Headers/InitializedJsonFileParser.hpp"
 #include "../../Models/PCAP/Headers/LinuxPCAP.hpp"
+#include "../../Services/SizingServices/Headers/Transformer.hpp"
 #include "./SizingMainCallerPrototype.hpp"
 
 namespace SizingMainCaller {

@@ -8,6 +8,7 @@
 				]
 			}
 		],
-		"writingFileSecond": 30
+		"writingFileSecond": 30,
+		"outputLayoutType": 0
 	}
 }

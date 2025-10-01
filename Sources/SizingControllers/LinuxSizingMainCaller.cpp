@@ -1,5 +1,5 @@
 /**
- * @see SizingMainCaller.hpp
+ * @see LinuxSizingMainCaller.hpp
  */
 #include "../../Headers/SizingControllers/LinuxSizingMainCaller.hpp"
 #ifdef __linux__
@@ -16,6 +16,8 @@ namespace SizingMainCaller {
 char* _WRITING_FILE_LOCATION_ = nullptr;
 // The time interval, "s" (the file will be recorded every "s" second(s))
 unsigned int _WRITING_FILE_SECOND_ = 30;
+// The output layout format type (default value is equal to 0.)
+unsigned int _OUTPUT_LAYOUT_TYPE_ = 0;
 
 // Determining if the "pcap_loop" shall be still working, 0x0: halting, 0x1: working
 volatile char _IS_PCAP_WORKED_ = 0x1;
@@ -178,6 +180,18 @@ Commons::POSIXErrors LinuxSizingMainCaller::config(std::vector<unitService>* ser
     stream << serviceJsonString;
     stream >> _WRITING_FILE_SECOND_;
 
+    // Obtaining the attribute, outputLayoutType, in the .json file
+    error = FileParsers::InitializedJsonFileParser::getValueFromFileParser((const unsigned char*)"base.outputLayoutType", serviceJsonString);
+    if (error != Commons::POSIXErrors::OK) {
+        std::cerr << "base.outputLayoutType does not exist in the .json file.\n";
+        return Commons::POSIXErrors::E_EXIST;
+    }
+    // Parsing the string into the unsigned int
+    stream.clear();  // Removing the error flags
+    stream.str("");  // Removing the value
+    stream << serviceJsonString;
+    stream >> _OUTPUT_LAYOUT_TYPE_;
+
     // Obtaining the attribute, service, in the .json file
     cJSON* cJsonItem = nullptr;
     error = FileParsers::InitializedJsonFileParser::getValueFromFileParser((const unsigned char*)"base.service", serviceJsonString, &cJsonItem);
@@ -273,12 +287,20 @@ void LinuxSizingMainCaller::packetFileTask(FILE** fileDescriptor, const char* fi
             LinuxSizingMainCaller::signalInterruptedHandler(0);  // Going to the end of the thread
 
         } else {  // Adding the header information in a line to the file
-            char output[1024] = {'\0'};
-            int length = sprintf(output,
-                                 "UTC\tType\tInterface\tPort\tNumber(amount)\tSize(bytes)\tMaxSize(bytes)\t"
-                                 "SQL number in the time interval\tSQL size(bytes) in the time interval\tAverage SQL number per sec(eps)\tPeak SQL number per sec(eps)\n");
-            fwrite(output, sizeof(char), length, *_FILE_POINTER_);
+            // Outputing the title by the mechanism from the "services" defined in the Services/SizingServices/Sources/Transformer.cpp
+            SizingServices::Transformer::defaultOutputLayoutType = (int)_OUTPUT_LAYOUT_TYPE_;  // Assigning the output format
+            switch ((int)SizingServices::Transformer::defaultOutputLayoutType) {
+                case SizingServices::Transformer::DEFAULT:
+                    // Printing the title; e.g.. UTC\tType\tInterface\tPort ...
+                    SizingServices::Transformer::printContent((unsigned int)SizingServices::Transformer::LayoutFormatAndStringType::TITLE, 11, fileno(*_FILE_POINTER_));
+                    break;
+                case SizingServices::Transformer::FLOWTYPE:
+                    SizingServices::Transformer::printContent((unsigned int)SizingServices::Transformer::LayoutFormatAndStringType::TITLE, 9, fileno(*_FILE_POINTER_));
+                    break;
+            }
+
             if (*_FILE_POINTER_ != nullptr) {
+                SizingServices::Transformer::releaseDescriptors();
                 fclose(*_FILE_POINTER_);
                 *_FILE_POINTER_ = nullptr;
             }
@@ -539,6 +561,8 @@ void LinuxSizingMainCaller::signalAlarmHandler(int) {
             LinuxSizingMainCaller::signalInterruptedHandler(0);  // Going to the end of the thread
 
         } else {
+            SizingServices::Transformer::defaultOutputLayoutType = (int)_OUTPUT_LAYOUT_TYPE_;  // Assigning the output format
+
             _MUTEX_.lock();
             // "UTC\tType\tPort\tNumber(amount)\tSize(byte)\tMaxSize\tSQL number per time interval(eps)\tSQL size per time interval(eps)\n";
             time_t timeEpoch = Commons::Time::getEpoch();
@@ -555,38 +579,42 @@ void LinuxSizingMainCaller::signalAlarmHandler(int) {
                          it2++) {
                         // TX part; in the section, the last two result will be to zero because the packets
                         // from the record set from the SQL server shall be ignored
-                        int length = sprintf(output,
-                                             "%lu\tTX\t%s\t%d\t%lu\t%llu\t%lu\t%lu\t%llu\t%llu\t%llu\n",
-                                             timeEpoch,
-                                             (tmp->deviceInterface).c_str(),
-                                             (it2)->first,  // port number
-                                             tmp->txPacketNumber,
-                                             tmp->txSize,
-                                             tmp->maxTxSize,
-                                             (long)0,
-                                             (long long)0,
-                                             (long long)0,
-                                             (long long)0);
-                        fwrite(output, sizeof(char), length, *_FILE_POINTER_);
+                        // Outputing the format with arguments by the mechanism from the "services" defined in the Services/SizingServices/Sources/Transformer.cpp
+                        switch ((int)SizingServices::Transformer::defaultOutputLayoutType) {
+                            case SizingServices::Transformer::DEFAULT:
+                                SizingServices::Transformer::printContent((unsigned int)SizingServices::Transformer::LayoutFormatAndStringType::FORMAT, 11, fileno(*_FILE_POINTER_),
+                                                                          timeEpoch, "TX", (tmp->deviceInterface).c_str(), (it2)->first, tmp->txPacketNumber,
+                                                                          tmp->txSize, tmp->maxTxSize, (long)0, (long long)0, (long long)0,
+                                                                          (long long)0);
+                                break;
+                            case SizingServices::Transformer::FLOWTYPE:
+                                SizingServices::Transformer::printContent((unsigned int)SizingServices::Transformer::LayoutFormatAndStringType::FORMAT, 9, fileno(*_FILE_POINTER_),
+                                                                          timeEpoch, "TX", (tmp->deviceInterface).c_str(), (it2)->first, _WRITING_FILE_SECOND_,
+                                                                          (tmp->txSize / (long)_WRITING_FILE_SECOND_), tmp->maxTxSize, (long long)0, (long long)0);
+                                break;
+                        }
+
                         ((it2)->second)->txGroupNumber = 0;
                         ((it2)->second)->txPacketNumber = 0;
                         ((it2)->second)->txSize = 0;
                         ((it2)->second)->maxTxSize = 0;
 
                         // RX part
-                        length = sprintf(output,
-                                         "%lu\tRX\t%s\t%d\t%lu\t%llu\t%lu\t%lu\t%llu\t%llu\t%llu\n",
-                                         timeEpoch,
-                                         (tmp->deviceInterface).c_str(),
-                                         (it2)->first,  // port number
-                                         tmp->rxPacketNumber,
-                                         tmp->rxSize,
-                                         tmp->maxRxSize,
-                                         (it2->second)->sqlRequestNumber,
-                                         (it2->second)->sqlRequestSize,
-                                         (it2->second)->sqlRequestNumber / (long long)_WRITING_FILE_SECOND_,
-                                         (it2->second)->sqlMaxRequestNumberPerSec);
-                        fwrite(output, sizeof(char), length, *_FILE_POINTER_);
+                        // Outputing the format with arguments by the mechanism from the "services" defined in the Services/SizingServices/Sources/Transformer.cpp
+                        switch ((int)SizingServices::Transformer::defaultOutputLayoutType) {
+                            case SizingServices::Transformer::DEFAULT:
+                                SizingServices::Transformer::printContent((unsigned int)SizingServices::Transformer::LayoutFormatAndStringType::FORMAT, 11, fileno(*_FILE_POINTER_),
+                                                                          timeEpoch, "RX", (tmp->deviceInterface).c_str(), (it2)->first, tmp->rxPacketNumber,
+                                                                          tmp->rxSize, tmp->maxRxSize, (it2->second)->sqlRequestNumber, (it2->second)->sqlRequestSize, (it2->second)->sqlRequestNumber / (long long)_WRITING_FILE_SECOND_,
+                                                                          (it2->second)->sqlMaxRequestNumberPerSec);
+                                break;
+                            case SizingServices::Transformer::FLOWTYPE:
+                                std::cerr << (it2->second)->sqlMaxRequestNumberPerSec << "\n";
+                                SizingServices::Transformer::printContent((unsigned int)SizingServices::Transformer::LayoutFormatAndStringType::FORMAT, 9, fileno(*_FILE_POINTER_),
+                                                                          timeEpoch, "RX", (tmp->deviceInterface).c_str(), (it2)->first, _WRITING_FILE_SECOND_,
+                                                                          (tmp->rxSize / (long)_WRITING_FILE_SECOND_), tmp->maxRxSize, (it2->second)->sqlRequestNumber / (long long)_WRITING_FILE_SECOND_, (it2->second)->sqlMaxRequestNumberPerSec);
+                                break;
+                        }
                         ((it2)->second)->rxGroupNumber = 0;
                         ((it2)->second)->rxPacketNumber = 0;
                         ((it2)->second)->rxSize = 0;
@@ -611,11 +639,13 @@ void LinuxSizingMainCaller::signalAlarmHandler(int) {
             alarm(_WRITING_FILE_SECOND_);
             // Closing the file
             if (*_FILE_POINTER_ != nullptr) {
+                SizingServices::Transformer::releaseDescriptors();
                 fclose(*_FILE_POINTER_);
                 *_FILE_POINTER_ = nullptr;
             }
         }
     } else {  // Closing the descriptor and skipping the handling in the ith loop
+        SizingServices::Transformer::releaseDescriptors();
         fclose(*_FILE_POINTER_);
         *_FILE_POINTER_ = nullptr;
     }
