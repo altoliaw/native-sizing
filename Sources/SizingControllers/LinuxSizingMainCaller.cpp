@@ -551,7 +551,6 @@ void LinuxSizingMainCaller::signalInterruptedHandler(int) {
  */
 void LinuxSizingMainCaller::signalAlarmHandler(int) {
     // File writing
-    char output[1024] = {"\0"};
     if (*_FILE_POINTER_ == nullptr) {
         // Opening the file
         *_FILE_POINTER_ = fopen(_WRITING_FILE_LOCATION_, "a+");
@@ -562,7 +561,6 @@ void LinuxSizingMainCaller::signalAlarmHandler(int) {
 
         } else {
             SizingServices::Transformer::defaultOutputLayoutType = (int)_OUTPUT_LAYOUT_TYPE_;  // Assigning the output format
-
             _MUTEX_.lock();
             // "UTC\tType\tPort\tNumber(amount)\tSize(byte)\tMaxSize\tSQL number per time interval(eps)\tSQL size per time interval(eps)\n";
             time_t timeEpoch = Commons::Time::getEpoch();
@@ -593,7 +591,6 @@ void LinuxSizingMainCaller::signalAlarmHandler(int) {
                                                                           (tmp->txSize / (long)_WRITING_FILE_SECOND_), tmp->maxTxSize, (long long)0, (long long)0);
                                 break;
                         }
-
                         ((it2)->second)->txGroupNumber = 0;
                         ((it2)->second)->txPacketNumber = 0;
                         ((it2)->second)->txSize = 0;
@@ -609,7 +606,6 @@ void LinuxSizingMainCaller::signalAlarmHandler(int) {
                                                                           (it2->second)->sqlMaxRequestNumberPerSec);
                                 break;
                             case SizingServices::Transformer::FLOWTYPE:
-                                std::cerr << (it2->second)->sqlMaxRequestNumberPerSec << "\n";
                                 SizingServices::Transformer::printContent((unsigned int)SizingServices::Transformer::LayoutFormatAndStringType::FORMAT, 9, fileno(*_FILE_POINTER_),
                                                                           timeEpoch, "RX", (tmp->deviceInterface).c_str(), (it2)->first, _WRITING_FILE_SECOND_,
                                                                           (tmp->rxSize / (long)_WRITING_FILE_SECOND_), tmp->maxRxSize, (it2->second)->sqlRequestNumber / (long long)_WRITING_FILE_SECOND_, (it2->second)->sqlMaxRequestNumberPerSec);

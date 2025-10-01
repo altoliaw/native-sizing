@@ -37,6 +37,7 @@
 #include "../../Models/Commons/Headers/Time.hpp"
 #include "../../Models/FileParsers/Headers/InitializedJsonFileParser.hpp"
 #include "../../Models/PCAP/Headers/LinuxPCAP.hpp"
+#include "../../Services/SizingServices/Headers/Transformer.hpp"
 #include "./SizingMainCallerPrototype.hpp"
 
 namespace SizingMainCaller {

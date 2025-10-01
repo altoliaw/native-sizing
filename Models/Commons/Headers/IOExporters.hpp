@@ -16,6 +16,7 @@
 #include <string>
 
 #include "./POSIXErrors.hpp"
+#include "./CompatMakeUnique.hpp"
 
 namespace Commons {
 /**
