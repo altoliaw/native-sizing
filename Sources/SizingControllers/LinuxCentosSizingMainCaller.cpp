@@ -37,17 +37,17 @@ FILE** _FILE_POINTER_ = nullptr;
 // the second one is the session's previous packet type; the value is defined as follows: 0: undefined; 1: TX, and 2: RX
 std::map<std::tuple <uint32_t, uint32_t, uint16_t, uint16_t>, char> LinuxCentosSizingMainCaller::sessionMap;
 // For recording the maximum number of packets which contain SQL per second
-long LinuxSizingMainCaller::currentSqlMaxRequestNumberPerSec = 0;
+long LinuxCentosSizingMainCaller::currentSqlMaxRequestNumberPerSec = 0;
 // For reserving the starting time in the beginning or the updating time when the SQL statements receive
-std::chrono::steady_clock::time_point LinuxSizingMainCaller::startingTime = std::chrono::steady_clock::time_point::min();
+std::chrono::steady_clock::time_point LinuxCentosSizingMainCaller::startingTime = std::chrono::steady_clock::time_point::min();
 // For recording the maximum size of tx packets per second
-long LinuxSizingMainCaller::currentMaxTxSizePerSec = 0;
+long LinuxCentosSizingMainCaller::currentMaxTxSizePerSec = 0;
 // For recording the maximum size of rx packets per second
-long LinuxSizingMainCaller::currentMaxRxSizePerSec = 0;
+long LinuxCentosSizingMainCaller::currentMaxRxSizePerSec = 0;
 // For reserving the starting time in the beginning or the updating time when receiving a tx packet
-std::chrono::steady_clock::time_point LinuxSizingMainCaller::startingTimeTX = std::chrono::steady_clock::time_point::min();
+std::chrono::steady_clock::time_point LinuxCentosSizingMainCaller::startingTimeTX = std::chrono::steady_clock::time_point::min();
 // For reserving the starting time in the beginning or the updating time when receiving a rx packet
-std::chrono::steady_clock::time_point LinuxSizingMainCaller::startingTimeRX = std::chrono::steady_clock::time_point::min();
+std::chrono::steady_clock::time_point LinuxCentosSizingMainCaller::startingTimeRX = std::chrono::steady_clock::time_point::min();
 /**
  * The starting process, the entry of the process
  *
