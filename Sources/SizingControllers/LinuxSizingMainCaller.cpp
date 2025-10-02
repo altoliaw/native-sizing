@@ -35,11 +35,18 @@ FILE** _FILE_POINTER_ = nullptr;
 // For reserving the session's previous, the key is a tuple which combines sorted ip and port information;
 // the second one is the session's previous packet type; the value is defined as follows: 0: undefined; 1: TX, and 2: RX
 std::map<std::tuple<uint32_t, uint32_t, uint16_t, uint16_t>, char> LinuxSizingMainCaller::sessionMap;
-// For recording the maximum number of packets per second
+// For recording the maximum number of packets which contain SQL per second
 long LinuxSizingMainCaller::currentSqlMaxRequestNumberPerSec = 0;
 // For reserving the starting time in the beginning or the updating time when the SQL statements receive
 std::chrono::steady_clock::time_point LinuxSizingMainCaller::startingTime = std::chrono::steady_clock::time_point::min();
-;
+// For recording the maximum size of tx packets per second
+long LinuxSizingMainCaller::currentMaxTxSizePerSec = 0;
+// For recording the maximum size of rx packets per second
+long LinuxSizingMainCaller::currentMaxRxSizePerSec = 0;
+// For reserving the starting time in the beginning or the updating time when receiving a tx packet
+std::chrono::steady_clock::time_point LinuxSizingMainCaller::startingTimeTX = std::chrono::steady_clock::time_point::min();
+// For reserving the starting time in the beginning or the updating time when receiving a rx packet
+std::chrono::steady_clock::time_point LinuxSizingMainCaller::startingTimeRX = std::chrono::steady_clock::time_point::min();
 
 /**
  * The starting process, the entry of the process
@@ -330,6 +337,17 @@ void LinuxSizingMainCaller::packetHandler(u_char* userData, const struct pcap_pk
     if (startingTime == std::chrono::steady_clock::time_point::min()) {
         startingTime = std::chrono::steady_clock::now();  // Assign now to the startingTime variable
     }
+
+    // Opening the clock when the value equals to "std::chrono::steady_clock::time_point::min()"
+    if (startingTimeTX == std::chrono::steady_clock::time_point::min()) {
+        startingTimeTX = std::chrono::steady_clock::now();  // Assign now to the startingTime variable
+    }
+
+    // Opening the clock when the value equals to "std::chrono::steady_clock::time_point::min()"
+    if (startingTimeRX == std::chrono::steady_clock::time_point::min()) {
+        startingTimeRX = std::chrono::steady_clock::now();  // Assign now to the startingTime variable
+    }
+
     // Due to the setting of the function, execute(.), the data of userData is the object of children classes (LinuxPCAP, WindowsPCAP and so on ...)
     PCAP::PCAPPrototype* pcapInstance = (PCAP::PCAPPrototype*)userData;
     // Determining what the instance belong to
@@ -427,6 +445,18 @@ void LinuxSizingMainCaller::packetHandler(u_char* userData, const struct pcap_pk
                     &(linuxPCAP->maxTxSize),
                     &packetTypeDetermineSet);
 
+                {  // Determining if the time has been equal to and larger than 1 sec (tx max size per sec)
+                    currentMaxTxSizePerSec += (long)(pkthdr->len);
+                    std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+                    std::chrono::duration<double> elapsedSeconds = now - startingTimeTX;
+                    if (elapsedSeconds.count() >= 1.0) {
+                        // Determining if the kept data are lager than current reserved data in the same session
+                        (it->second)->maxTxSizePerSec = ((it->second)->maxTxSizePerSec) > currentMaxTxSizePerSec ? ((it->second)->maxTxSizePerSec) : currentMaxTxSizePerSec;
+                        startingTimeTX = now;
+                        currentMaxTxSizePerSec = 0;
+                    }
+                }
+
                 // Determining if the cyclic direction packets have been detected
                 // When flow change occurs, the previous packet is "undefined" or "RX"
                 if (previousPacketType == 0x0 || previousPacketType == 0x2) {
@@ -451,6 +481,18 @@ void LinuxSizingMainCaller::packetHandler(u_char* userData, const struct pcap_pk
                     &(linuxPCAP->rxSize),
                     &(linuxPCAP->maxRxSize),
                     &packetTypeDetermineSet);
+
+                {  // Determining if the time has been equal to and larger than 1 sec (rx max size per sec)
+                    currentMaxRxSizePerSec += (long)(pkthdr->len);
+                    std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
+                    std::chrono::duration<double> elapsedSeconds = now - startingTimeRX;
+                    if (elapsedSeconds.count() >= 1.0) {
+                        // Determining if the kept data are lager than current reserved data in the same session
+                        (it->second)->maxRxSizePerSec = ((it->second)->maxRxSizePerSec) > currentMaxRxSizePerSec ? ((it->second)->maxRxSizePerSec) : currentMaxRxSizePerSec;
+                        startingTimeRX = now;
+                        currentMaxRxSizePerSec = 0;
+                    }
+                }
 
                 // Determining if the cyclic direction packets have been detected
                 // When flow change occurs, the previous packet is "undefined" or "TX"
@@ -588,7 +630,7 @@ void LinuxSizingMainCaller::signalAlarmHandler(int) {
                             case SizingServices::Transformer::FLOWTYPE:
                                 SizingServices::Transformer::printContent((unsigned int)SizingServices::Transformer::LayoutFormatAndStringType::FORMAT, 9, fileno(*_FILE_POINTER_),
                                                                           timeEpoch, "TX", (tmp->deviceInterface).c_str(), (it2)->first, _WRITING_FILE_SECOND_,
-                                                                          (tmp->txSize / (long)_WRITING_FILE_SECOND_), tmp->maxTxSize, (long long)0, (long long)0);
+                                                                          (tmp->txSize / (long)_WRITING_FILE_SECOND_), (it2->second)->maxTxSizePerSec, (long long)0, (long long)0);
                                 break;
                         }
                         ((it2)->second)->txGroupNumber = 0;
@@ -608,7 +650,7 @@ void LinuxSizingMainCaller::signalAlarmHandler(int) {
                             case SizingServices::Transformer::FLOWTYPE:
                                 SizingServices::Transformer::printContent((unsigned int)SizingServices::Transformer::LayoutFormatAndStringType::FORMAT, 9, fileno(*_FILE_POINTER_),
                                                                           timeEpoch, "RX", (tmp->deviceInterface).c_str(), (it2)->first, _WRITING_FILE_SECOND_,
-                                                                          (tmp->rxSize / (long)_WRITING_FILE_SECOND_), tmp->maxRxSize, (it2->second)->sqlRequestNumber / (long long)_WRITING_FILE_SECOND_, (it2->second)->sqlMaxRequestNumberPerSec);
+                                                                          (tmp->rxSize / (long)_WRITING_FILE_SECOND_), (it2->second)->maxRxSizePerSec, (it2->second)->sqlRequestNumber / (long long)_WRITING_FILE_SECOND_, (it2->second)->sqlMaxRequestNumberPerSec);
                                 break;
                         }
                         ((it2)->second)->rxGroupNumber = 0;

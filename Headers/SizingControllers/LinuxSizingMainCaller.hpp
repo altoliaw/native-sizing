@@ -47,10 +47,18 @@ class LinuxSizingMainCaller : public SizingMainCallerPrototype {
     // the second one is the session's previous packet type;
     // The value is defined as follows: 0: undefined; 1: TX, and 2: RX
     static std::map<std::tuple<uint32_t, uint32_t, uint16_t, uint16_t>, char> sessionMap;
-    // For recording the maximum number of packets per second
+    // For recording the maximum number of packets where contain SQL per second
     static long currentSqlMaxRequestNumberPerSec;
     // For reserving the starting time in the beginning or the updating time when the SQL statements receive
     static std::chrono::steady_clock::time_point startingTime;
+    // For recording the maximum size of tx packets per second
+    static long currentMaxTxSizePerSec;
+    // For recording the maximum size of rx packets per second
+    static long currentMaxRxSizePerSec;
+    // For reserving the starting time in the beginning or the updating time when receiving a tx packet
+    static std::chrono::steady_clock::time_point startingTimeTX;
+    // For reserving the starting time in the beginning or the updating time when receiving a rx packet
+    static std::chrono::steady_clock::time_point startingTimeRX;
 
     Commons::POSIXErrors start(int, char**);
     static void signalInterruptedHandler(int);
