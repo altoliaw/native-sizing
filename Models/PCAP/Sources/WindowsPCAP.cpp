@@ -106,9 +106,10 @@ void WindowsPCAP::open(const char* device, const int snaplen, const int promisc,
     // Copying the NIC information into the object
     std::string deviceInterface(device);
     this->deviceInterface = deviceInterface;
-    std::string filter = "ifIdx == " + deviceInterface;
+    // std::string filter = "ifIdx == " + deviceInterface;
+    std::string filter = "true";
     // Opening the WinDivert handle
-    pcapDescriptor = WinDivertOpen((const char*)filter.c_str(), WINDIVERT_LAYER_NETWORK, 0, 0);
+    pcapDescriptor = WinDivertOpen((const char*)filter.c_str(), WINDIVERT_LAYER_NETWORK_FORWARD, 0, 0);
     if (pcapDescriptor == INVALID_HANDLE_VALUE) {
         std::cerr << "[Error] PCAP open failed; please verifying if the permission is root" << GetLastError() << "\n";
     }
@@ -191,7 +192,9 @@ void WindowsPCAP::pcap_loop(HANDLE* pcapDescriptorPointer, int count, void (*cal
         unsigned char packet[65535 + 64] = {'\0'}; // The size here is allocated 65535 + 64 bytes, which is larger than the maximum size announced by the WinDivert
         WINDIVERT_ADDRESS address;
         UINT packetLength = 0;
+        std::cerr << "starting recv\n";
         if (!WinDivertRecv(*pcapDescriptorPointer, packet, sizeof(packet), &packetLength, &address)) { // When receiving nothing, ...
+            std::cerr << "keeping recv error" << "\n";
             DWORD error = GetLastError();
             if (error == ERROR_OPERATION_ABORTED) { // Checking for cancellation
                 // Obtaining the signal "ctrl+c"
@@ -202,6 +205,7 @@ void WindowsPCAP::pcap_loop(HANDLE* pcapDescriptorPointer, int count, void (*cal
                 return true;
             }
         } else {
+            std::cerr << "keeping recv" << packetLength << "\n";
             PWINDIVERT_IPHDR ipHeader = nullptr;
             PWINDIVERT_TCPHDR tcpHeader = nullptr;
             PWINDIVERT_UDPHDR udpHeader = nullptr;

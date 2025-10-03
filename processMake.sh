@@ -40,6 +40,10 @@ elif [[ "$OsType" = *"mingw"* ]]; then
 	# sc delete WinDivert | Out-Null
 	sc stop WinDivert >/dev/null 2>&1
 	sc delete WinDivert >/dev/null 2>&1
+	# Windows commands on the powershell
+	# sc stop WinDivert *> $null
+	# sc delete WinDivert *> $null
+
 	# WinDivert.dll and WinDivert64.sys shall be stay with the executed file which refers to those WinDivert files. (TODO)
 	cp -f ./Vendors/WinDivert/Libs/WinDivert.dll ./Bin/
 	cp -f ./Vendors/WinDivert/Libs/WinDivert64.sys ./Bin/

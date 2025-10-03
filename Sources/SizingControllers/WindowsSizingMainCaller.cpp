@@ -372,6 +372,7 @@ void WindowsSizingMainCaller::packetFileTask(FILE** fileDescriptor, const char* 
  * @param packet [const u_char*] The address of the packet
  */
 void WindowsSizingMainCaller::packetHandler(u_char* userData, const pcap_pkthdr* pkthdr, const u_char* packet) {
+    std::cerr << "YES\n";
     // Opening the clock when the value equals to "std::chrono::steady_clock::time_point::min()"
     if (startingTime == std::chrono::steady_clock::time_point::min()) {
         startingTime = std::chrono::steady_clock::now(); // Assign now to the startingTime variable
