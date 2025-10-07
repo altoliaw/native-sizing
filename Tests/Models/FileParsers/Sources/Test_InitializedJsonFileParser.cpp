@@ -35,7 +35,7 @@ TEST(FileParsers, Test_InitializedJsonFileParser_parseInitializedFile) {
      */
     ASSERT_EQ(Commons::POSIXErrors::OK, error);
     ASSERT_EQ(current->type, cJSON_String);
-    ASSERT_STREQ((char*)value, "1521");
+    ASSERT_STREQ((char*)value, "80");
 
     current = nullptr;
     error = FileParsers::InitializedJsonFileParser::getValueFromFileParser((const unsigned char*)"base.writingFileSecond", value, &current);
