@@ -17,14 +17,25 @@ if(UNIX)
             file(READ "/etc/os-release" OS_RELEASE_CONTENTS)
 
             # Parsing the ID (RHEL or CentOS)
+            # ID = rhel and (ID = centos and VERSION_ID= 8), the OS category belong to RHEL 8 series; 
+            # ID = centos, the OS category belong to centos 7
+            # This part will affect the C code due to the make_unique usage.
             string(REGEX MATCH "ID=\"?([a-zA-Z0-9]+)\"?" _match "${OS_RELEASE_CONTENTS}") # Using regex to match the ID line such as ID="rhel" or ID=centos
             STRING(TOUPPER "${CMAKE_MATCH_1}" OS_ID) # Extracting the matched ID and converting to upper case for easier comparison
+            string(REGEX MATCH "VERSION_ID=\"?([0-9]+)\"?" _match "${OS_RELEASE_CONTENTS}") # Using regex to match the ID line such as ID="rhel" or ID=centos
+            STRING(TOUPPER "${CMAKE_MATCH_1}" OS_VERSION) # Extracting the matched ID and converting to upper case for easier comparison
+
             
             # Verifying the OS category in details
             if(OS_ID STREQUAL "RHEL")
                 set(OPERATING_SYSTEM 0 CACHE STRING "${OPERATING_SYSTEM_STRING}")
             elseif(OS_ID STREQUAL "CENTOS")
-                set(OPERATING_SYSTEM 0.1 CACHE STRING "${OPERATING_SYSTEM_STRING}")
+                # When the variable, VERSION_ID, is equal to 8, the operator system still belongs to RHEL (because the docker uses the CENTOS 8 as RHEL 8)
+                if(OS_VERSION STREQUAL "8")
+                    set(OPERATING_SYSTEM 0 CACHE STRING "${OPERATING_SYSTEM_STRING}")
+                else()
+                    set(OPERATING_SYSTEM 0.1 CACHE STRING "${OPERATING_SYSTEM_STRING}")
+                endif()
             endif()
         else() # When there is no /etc/os-release file in Linux platforms
             message(FATAL_ERROR "/etc/os-release file does not exist, cannot determine the Linux distribution!")
