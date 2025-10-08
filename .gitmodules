@@ -3,4 +3,4 @@
 	url = git@github.com:google/googletest.git
 [submodule "wiki"]
 	path = wiki
-	url = https://github.com/altoliaw/native-sizing.wiki.git
+	url = git@github.com:altoliaw/native-sizing.wiki.git
