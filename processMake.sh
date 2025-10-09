@@ -2,9 +2,6 @@
 
 # Considering the dependency of the native sizing by the traversal of the structure in the file, globalDependencies.json
 Vendors="Vendors"
-source $(pwd)/Shells/installVendor.sh && \
-dependenciesTraversal $(pwd)/Settings/.Json/globalDependencies.json $(pwd)/$Vendors/.$Vendors.json
-
 
 # Parsing the parameters into the array; these are defined as below:
 # --remove | --r | -r
@@ -16,8 +13,16 @@ for i in "${!ParameterArray[@]}"; do  # ${#ParameterArray[@]} implies the number
 		--remove|--r|-r)
 			rm -rf build
 			echo -e "Build directory has been removed."
+			;;
+		--vendor|--v|-v)
+			rm -rf $Vendors
+			;;
 	esac
 done
+
+# Considering the dependency of the native sizing by the traversal of the structure in the file, globalDependencies.json
+source $(pwd)/Shells/installVendor.sh && \
+dependenciesTraversal $(pwd)/Settings/.Json/globalDependencies.json $(pwd)/$Vendors/.$Vendors.json
 
 # Folders' generations
 mkdir -p Outputs
