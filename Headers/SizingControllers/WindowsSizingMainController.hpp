@@ -43,7 +43,7 @@
 #endif
 
 namespace SizingControllers {
-class WindowsSizingMainCaller : public SizingMainCallerPrototype {
+class WindowsSizingMainCaller : public SizingMainControllerPrototype {
    public:
     /**
      * Definition for the Windows's ether_header structure; this structure is

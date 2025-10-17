@@ -38,10 +38,10 @@
 #include "../../Models/FileParsers/Headers/InitializedJsonFileParser.hpp"
 #include "../../Models/PCAP/Headers/LinuxPCAP.hpp"
 #include "../../Services/SizingServices/Headers/Transformer.hpp"
-#include "./SizingMainCallerPrototype.hpp"
+#include "./SizingMainControllerPrototype.hpp"
 
 namespace SizingControllers {
-class LinuxCentosSizingMainCaller : public SizingMainCallerPrototype {
+class LinuxCentosSizingMainController : public SizingMainControllerPrototype {
    public:
     // For reserving the session's previous, the key is a tuple which combines sorted ip and port information;
     // the second one is the session's previous packet type;   

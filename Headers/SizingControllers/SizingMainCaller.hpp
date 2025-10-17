@@ -10,7 +10,7 @@
 #include <iostream>
 
 #include "../../Models/Commons/Headers/POSIXErrors.hpp"
-#include "./SizingMainCallerPrototype.hpp"
+#include "./SizingMainControllerPrototype.hpp"
 
 #ifdef __linux__  // Linux
 
@@ -20,15 +20,15 @@
 // the OS_ID will not be passed defined into compiled process
 #ifndef OS_ID
 
-#include "./LinuxSizingMainCaller.hpp"
+#include "./LinuxSizingMainController.hpp"
 
 #else
-#include "./LinuxCentosSizingMainCaller.hpp"
+#include "./LinuxCentosSizingMainController.hpp"
 #endif
 
 #elif defined(_WIN32) || defined(_WIN64)
 
-#include "./WindowsSizingMainCaller.hpp"
+#include "./WindowsSizingMainController.hpp"
 
 #endif
 

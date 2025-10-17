@@ -18,7 +18,7 @@ struct unitService {
     ~unitService();
 };
 
-class SizingMainCallerPrototype {
+class SizingMainControllerPrototype {
    public:
     virtual Commons::POSIXErrors start(int, char**) = 0;
 };
