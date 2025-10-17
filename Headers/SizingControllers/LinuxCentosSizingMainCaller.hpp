@@ -40,7 +40,7 @@
 #include "../../Services/SizingServices/Headers/Transformer.hpp"
 #include "./SizingMainCallerPrototype.hpp"
 
-namespace SizingMainCaller {
+namespace SizingControllers {
 class LinuxCentosSizingMainCaller : public SizingMainCallerPrototype {
    public:
     // For reserving the session's previous, the key is a tuple which combines sorted ip and port information;

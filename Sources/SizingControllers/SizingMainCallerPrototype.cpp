@@ -3,7 +3,7 @@
  */
 #include "../../Headers/SizingControllers/SizingMainCallerPrototype.hpp"
 
-namespace SizingMainCaller {
+namespace SizingControllers {
 
 /**
  * Constructor

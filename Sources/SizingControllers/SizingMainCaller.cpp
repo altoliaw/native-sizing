@@ -1,9 +1,9 @@
 /**
- * @see SizingMainCaller.hpp
+ * @see SizingControllers.hpp
  */
 #include "../../Headers/SizingControllers/SizingMainCaller.hpp"
 
-namespace SizingMainCaller {
+namespace SizingControllers {
 
 /**
  * The starting process, the entry of the process

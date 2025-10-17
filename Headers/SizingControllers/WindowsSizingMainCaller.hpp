@@ -42,7 +42,7 @@
     typedef unsigned char u_char;
 #endif
 
-namespace SizingMainCaller {
+namespace SizingControllers {
 class WindowsSizingMainCaller : public SizingMainCallerPrototype {
    public:
     /**

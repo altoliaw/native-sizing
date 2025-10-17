@@ -9,7 +9,7 @@
 // When the OS_ID is not defined in the CMakeLists.txt file from the proper cpp file folder,
 // the OS_ID will not be passed defined into compiled process
 #ifndef OS_ID
-namespace SizingMainCaller {
+namespace SizingControllers {
 //===Global Declaration===
 // Variables in .ini file
 // Writing file path
@@ -420,7 +420,7 @@ void LinuxSizingMainCaller::packetHandler(u_char* userData, const struct pcap_pk
         // (or to the element that prevented the insertion) and a bool value;
         // when the key exists, the returned second value is false (e.g., insert failed); when the key does not
         // exist, the returned second value is true (e.g., insert success)
-        std::pair<std::map<std::tuple<uint32_t, uint32_t, uint16_t, uint16_t>, char>::iterator, bool> insertedResult = SizingMainCaller::LinuxSizingMainCaller::sessionMap.emplace(sortedSessionTuple, previousPacketType);
+        std::pair<std::map<std::tuple<uint32_t, uint32_t, uint16_t, uint16_t>, char>::iterator, bool> insertedResult = SizingControllers::LinuxSizingMainCaller::sessionMap.emplace(sortedSessionTuple, previousPacketType);
         if (insertedResult.second == true) {  // Key will inserted ...
             // Do nothing
         } else {  // Key exist

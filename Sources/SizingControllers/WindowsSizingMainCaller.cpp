@@ -4,7 +4,7 @@
 #include "../../Headers/SizingControllers/WindowsSizingMainCaller.hpp"
 #ifdef _WIN32
 
-namespace SizingMainCaller {
+namespace SizingControllers {
 //===Global Declaration===
 // Variables in .ini file
 // Writing file path

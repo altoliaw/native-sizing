@@ -9,7 +9,7 @@
 #include <vector>
 #include "../../Models/Commons/Headers/POSIXErrors.hpp"
 
-namespace SizingMainCaller {
+namespace SizingControllers {
 struct unitService {
    public:
     char interfaceName[256];

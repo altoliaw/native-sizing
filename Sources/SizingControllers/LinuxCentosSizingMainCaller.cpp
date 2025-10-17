@@ -10,7 +10,7 @@
 // the OS_ID will not be passed defined into compiled process
 #ifdef OS_ID
 
-namespace SizingMainCaller {
+namespace SizingControllers {
 //===Global Declaration===
 // Variables in .ini file
 // Writing file path
