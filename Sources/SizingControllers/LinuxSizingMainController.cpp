@@ -689,6 +689,6 @@ void LinuxSizingMainController::signalAlarmHandler(int) {
     }
 }
 
-}  // namespace SizingMainCaller
+}  // namespace SizingMainController
 #endif
 #endif

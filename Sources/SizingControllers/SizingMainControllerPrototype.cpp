@@ -1,7 +1,7 @@
 /**
  * @see SizingMainCallerPrototype.hpp
  */
-#include "../../Headers/SizingControllers/SizingMainCallerPrototype.hpp"
+#include "../../Headers/SizingControllers/SizingMainControllerPrototype.hpp"
 
 namespace SizingControllers {
 
@@ -27,4 +27,4 @@ unitService::~unitService() {
     }
 }
 
-}  // namespace SizingMainCaller
+}  // namespace SizingMainController

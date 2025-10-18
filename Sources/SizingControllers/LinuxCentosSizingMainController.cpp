@@ -702,6 +702,6 @@ void LinuxCentosSizingMainController::signalAlarmHandler(int) {
     }
 }
 
-}  // namespace SizingMainCaller
+}  // namespace SizingMainController
 #endif
 #endif

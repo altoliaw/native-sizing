@@ -25,7 +25,7 @@ if (NOT BUILD_TEST)
 		if(OPERATING_SYSTEM STREQUAL "0.1") # CentOS version
 			target_link_libraries(
 				SizingMain
-				Sources.SizingMainCaller
+				Sources.SizingControllers
 				Services.Sizing
 				Models.Commons
 				Models.FileParsers
@@ -40,7 +40,7 @@ if (NOT BUILD_TEST)
 		else() # Other Linux version
 			target_link_libraries(
 				SizingMain
-				Sources.SizingMainCaller
+				Sources.SizingControllers
 				Services.Sizing
 				Models.Commons
 				Models.FileParsers
@@ -66,7 +66,7 @@ if (NOT BUILD_TEST)
 		# Linking to the all library
 		target_link_libraries(
 			SizingMain -static
-			Sources.SizingMainCaller
+			Sources.SizingControllers
 			Models.Commons
 			Models.FileParsers
 			Models.PCAP

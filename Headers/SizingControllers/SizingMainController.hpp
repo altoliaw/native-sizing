@@ -33,8 +33,8 @@
 #endif
 
 namespace SizingControllers {
-class SizingMainCaller {
+class SizingMainController {
    public:
     Commons::POSIXErrors start(int, char**);
 };
-}  // namespace SizingMainCaller
+}  // namespace SizingMainController

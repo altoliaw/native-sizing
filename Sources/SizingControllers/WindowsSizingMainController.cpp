@@ -1,7 +1,7 @@
 /**
  * @see WindowsSizingMainCaller.hpp
  */
-#include "../../Headers/SizingControllers/WindowsSizingMainCaller.hpp"
+#include "../../Headers/SizingControllers/WindowsSizingMainController.hpp"
 #ifdef _WIN32
 
 namespace SizingControllers {
@@ -733,5 +733,5 @@ void WindowsSizingMainCaller::signalAlarmHandler() {
     }
 }
 
-}  // namespace SizingMainCaller
+}  // namespace SizingMainController
 #endif
