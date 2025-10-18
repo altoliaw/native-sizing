@@ -426,7 +426,7 @@ void LinuxCentosSizingMainController::packetHandler(u_char* userData, const stru
         // (or to the element that prevented the insertion) and a bool value;
         // when the key exists, the returned second value is false (e.g., insert failed); when the key does not
         // exist, the returned second value is true (e.g., insert success)
-        std::pair<std::map<std::tuple<uint32_t, uint32_t, uint16_t, uint16_t>, char>::iterator, bool> insertedResult = SizingMainCaller::LinuxCentosSizingMainController::sessionMap.emplace(sortedSessionTuple, previousPacketType);
+        std::pair<std::map<std::tuple<uint32_t, uint32_t, uint16_t, uint16_t>, char>::iterator, bool> insertedResult = SizingControllers::LinuxCentosSizingMainController::sessionMap.emplace(sortedSessionTuple, previousPacketType);
         if (insertedResult.second == true) { // Key will inserted ...
             // Do nothing
         } else { // Key exist
