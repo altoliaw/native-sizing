@@ -1,0 +1,33 @@
+{
+	"base": {
+		"capture": {
+			"interface": "ens192",
+			"port": [
+				"80",
+				"443"
+			]
+		},
+		"targets": [
+			{
+				"host": "192.168.1.100",
+				"port": 8080
+			},
+			{
+				"host": "192.168.1.101",
+				"port": 8080
+			},
+			{
+				"host": "192.168.1.102",
+				"port": 8080
+			}
+		],
+		"loadBalancer": {
+			"algorithm": "round-robin"
+		},
+		"statistics": {
+			"enabled": true,
+			"writingFileSecond": 10,
+			"outputLayoutType": 1
+		}
+	}
+}
