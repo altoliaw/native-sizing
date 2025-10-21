@@ -28,7 +28,11 @@
 
 #elif defined(_WIN32) || defined(_WIN64)
 
+#ifdef USE_WINDIVERT_KERNEL
 #include "./WindowsSizingMainController.hpp"
+#else
+#include "./WindowsNpcapSizingMainController.hpp"
+#endif
 
 #endif
 

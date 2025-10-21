@@ -29,8 +29,13 @@ Commons::POSIXErrors SizingMainController::start(int argC, char** argV) {
 
     caller = &instance;
 #elif defined(_WIN32)
-    WindowsSizingMainController instance;
-    caller = &instance;
+    #ifdef USE_WINDIVERT_KERNEL
+        WindowsSizingMainController instance;
+        caller = &instance;
+    #else // Default to NPCAP
+        WindowsNpcapSizingMainController instance;
+        caller = &instance;
+    #endif
 #endif
     
     result = caller->start(argC, argV);

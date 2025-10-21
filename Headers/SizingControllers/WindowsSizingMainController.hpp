@@ -1,5 +1,5 @@
 #pragma once
-/** @file WindowsSizingMainCaller.hpp
+/** @file WindowsSizingMainController.hpp
  * The headers and global variables from other package for Linux programs
  *
  * @author Nick, Liao
@@ -33,7 +33,7 @@
 #include "../../Models/FileParsers/Headers/InitializedJsonFileParser.hpp"
 #include "../../Models/PCAP/Headers/PCAPPrototype.hpp"
 #include "../../Models/PCAP/Headers/WindowsPCAP.hpp"
-#include "./SizingMainCallerPrototype.hpp"
+#include "./SizingMainControllerPrototype.hpp"
 
 /* In some windows platforms, u_char type is not defined; for ensuring that u_char can be used 
  * on all windows, here the process will verify whether u_char exists (TODO, delete)*/
@@ -43,7 +43,7 @@
 #endif
 
 namespace SizingControllers {
-class WindowsSizingMainCaller : public SizingMainControllerPrototype {
+class WindowsSizingMainController : public SizingMainControllerPrototype {
    public:
     /**
      * Definition for the Windows's ether_header structure; this structure is

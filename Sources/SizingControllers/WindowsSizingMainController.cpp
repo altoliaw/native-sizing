@@ -1,5 +1,5 @@
 /**
- * @see WindowsSizingMainCaller.hpp
+ * @see WindowsSizingMainController.hpp
  */
 #include "../../Headers/SizingControllers/WindowsSizingMainController.hpp"
 #ifdef _WIN32
@@ -33,11 +33,11 @@ FILE** _FILE_POINTER_ = nullptr;
 //===Static fields Declaration===
 // For reserving the session's previous, the key is a tuple which combines sorted ip and port information;
 // the second one is the session's previous packet type; the value is defined as follows: 0: undefined; 1: TX, and 2: RX
-std::map<std::tuple <uint32_t, uint32_t, uint16_t, uint16_t>, char> WindowsSizingMainCaller::sessionMap;
+std::map<std::tuple <uint32_t, uint32_t, uint16_t, uint16_t>, char> WindowsSizingMainController::sessionMap;
 // For recording the maximum number of packets per second
-long WindowsSizingMainCaller::currentSqlMaxRequestNumberPerSec = 0;
+long WindowsSizingMainController::currentSqlMaxRequestNumberPerSec = 0;
 // For reserving the starting time in the beginning or the updating time when the SQL statements receive
-std::chrono::steady_clock::time_point WindowsSizingMainCaller::startingTime = std::chrono::steady_clock::time_point::min();
+std::chrono::steady_clock::time_point WindowsSizingMainController::startingTime = std::chrono::steady_clock::time_point::min();
 
 /**
  * The starting process, the entry of the process
@@ -46,7 +46,7 @@ std::chrono::steady_clock::time_point WindowsSizingMainCaller::startingTime = st
  * @param argV [char**] The array of the argument
  * @return [Commons::POSIXErrors] The status defined in the class "POSIXErrors" The status defined in the class "POSIXErrors"
  */
-Commons::POSIXErrors WindowsSizingMainCaller::start(int argC, char** argV) {
+Commons::POSIXErrors WindowsSizingMainController::start(int argC, char** argV) {
     Commons::POSIXErrors result = Commons::POSIXErrors::OK;
 
     // TODO: This section shall be implemented by using "Bison" instead of the section defined in the following.
@@ -81,7 +81,7 @@ Commons::POSIXErrors WindowsSizingMainCaller::start(int argC, char** argV) {
     _WRITING_FILE_LOCATION_ = OuputFilePathWithTime;
 
     // Installing a signal handler, interrupt
-    SetConsoleCtrlHandler(WindowsSizingMainCaller::signalInterruptedHandler, TRUE);
+    SetConsoleCtrlHandler(WindowsSizingMainController::signalInterruptedHandler, TRUE);
 
     {                                                           // Creating objects, opening the interfaces, executing the packet calculations
                                                                 // and closing the interfaces; the number of objects is equal to the number of
@@ -161,7 +161,7 @@ Commons::POSIXErrors WindowsSizingMainCaller::start(int argC, char** argV) {
  * @return [Commons::POSIXErrors] The status defined in the class "POSIXErrors" The status
  * defined in the class "POSIXErrors"
  */
-Commons::POSIXErrors WindowsSizingMainCaller::config(std::vector<unitService>* services) {
+Commons::POSIXErrors WindowsSizingMainController::config(std::vector<unitService>* services) {
     Commons::POSIXErrors error = Commons::POSIXErrors::OK;
 
     // Loading information from the .json file for the application
@@ -261,7 +261,7 @@ Commons::POSIXErrors WindowsSizingMainCaller::config(std::vector<unitService>* s
  * @param pcap [PCAP::WindowsPCAP*] The address of the PCAP::WindowsPCAP object
  * @param packetHandler [void (*)(u_char*, const pcap_pkthdr*, const u_char*)] The callback function for pcap_loop
  */
-void WindowsSizingMainCaller::packetTask(PCAP::WindowsPCAP* pcap, void (*packetHandler)(u_char*, const pcap_pkthdr*, const u_char*)) {
+void WindowsSizingMainController::packetTask(PCAP::WindowsPCAP* pcap, void (*packetHandler)(u_char*, const pcap_pkthdr*, const u_char*)) {
     // The only argument will be set; as a result, the pcap object will be passed in the function, packetHandler.
     // For more information, please refer to the function, execute(.).
     pcap->execute(packetHandler);
@@ -275,8 +275,8 @@ void WindowsSizingMainCaller::packetTask(PCAP::WindowsPCAP* pcap, void (*packetH
  * which users defined in .json file.
  * @param filePath [const char*] The file path for recording the information
  */
-void WindowsSizingMainCaller::packetFileTask(FILE** fileDescriptor, const char* filePath) {
-    // Registering the handler, "exit event"; this variable is used in the WindowsSizingMainCaller::signalInterruptedHandler
+void WindowsSizingMainController::packetFileTask(FILE** fileDescriptor, const char* filePath) {
+    // Registering the handler, "exit event"; this variable is used in the WindowsSizingMainController::signalInterruptedHandler
     _EXITED_EVENT_ = CreateEvent(NULL, TRUE, FALSE, NULL);
     if (_EXITED_EVENT_ == nullptr) {
         _IS_ALARM_WORKED_ = 0x0;  // Disabled alarm
@@ -298,7 +298,7 @@ void WindowsSizingMainCaller::packetFileTask(FILE** fileDescriptor, const char* 
         *_FILE_POINTER_ = fopen(filePath, "a+");
         if (*_FILE_POINTER_ == nullptr) {
             std::cerr << "Error opening the file!\n";
-            WindowsSizingMainCaller::signalInterruptedHandler(CTRL_C_EVENT);  // Going to the end of the thread
+            WindowsSizingMainController::signalInterruptedHandler(CTRL_C_EVENT);  // Going to the end of the thread
 
         } else {  // Adding the header information in a line to the file
             char output[1024] = {'\0'};
@@ -371,7 +371,7 @@ void WindowsSizingMainCaller::packetFileTask(FILE** fileDescriptor, const char* 
  * because in the winDivert, the ip header does not contain the information except the ip header
  * @param packet [const u_char*] The address of the packet
  */
-void WindowsSizingMainCaller::packetHandler(u_char* userData, const pcap_pkthdr* pkthdr, const u_char* packet) {
+void WindowsSizingMainController::packetHandler(u_char* userData, const pcap_pkthdr* pkthdr, const u_char* packet) {
     // Opening the clock when the value equals to "std::chrono::steady_clock::time_point::min()"
     if (startingTime == std::chrono::steady_clock::time_point::min()) {
         startingTime = std::chrono::steady_clock::now(); // Assign now to the startingTime variable
@@ -458,7 +458,7 @@ void WindowsSizingMainCaller::packetHandler(u_char* userData, const pcap_pkthdr*
         // when the key exists, the returned second value is false (e.g., insert failed); when the key does not
         // exist, the returned second value is true (e.g., insert success)
         std::pair<std::map<std::tuple<uint32_t, uint32_t, uint16_t, uint16_t>, char>::iterator, bool> insertedResult = 
-                                SizingMainCaller::WindowsSizingMainCaller::sessionMap.emplace(sortedSessionTuple, previousPacketType);
+                                WindowsSizingMainController::sessionMap.emplace(sortedSessionTuple, previousPacketType);
         if (insertedResult.second == true) { // Key will inserted ...
             // Do nothing
         } else { // Key exist
@@ -558,7 +558,7 @@ void WindowsSizingMainCaller::packetHandler(u_char* userData, const pcap_pkthdr*
  * @param packetTypeDetermineSet [char] The flag if the section is exected; 0 is not executed, and 1 is executed
  * @return [void] None
  */
-void WindowsSizingMainCaller::executePacketInformationUpdate(long long packetHeaderLength,
+void WindowsSizingMainController::executePacketInformationUpdate(long long packetHeaderLength,
                                   long* portXPacketNumber,
                                   long long* portXSize,
                                   long long* portMaxXSize,
@@ -591,7 +591,7 @@ void WindowsSizingMainCaller::executePacketInformationUpdate(long long packetHea
  * @param signal [DWORD] The signal type
  * @return [BOOL WINAPI] The successful result; the TRUE shows okay; otherwise false
  */
-BOOL WINAPI WindowsSizingMainCaller::signalInterruptedHandler(DWORD signal) {
+BOOL WINAPI WindowsSizingMainController::signalInterruptedHandler(DWORD signal) {
     if (signal == CTRL_C_EVENT) {  // When encountering the interrupted signal
         std::cerr << "\n"
                   << "Interrupted signal occurs, please wait.\n";
@@ -638,7 +638,7 @@ BOOL WINAPI WindowsSizingMainCaller::signalInterruptedHandler(DWORD signal) {
  *
  * @param signalType [int] The signal type and the parameter is useless in this method
  */
-void WindowsSizingMainCaller::signalAlarmHandler() {
+void WindowsSizingMainController::signalAlarmHandler() {
     // File writing
     char output[1024] = {"\0"};
     if (*_FILE_POINTER_ == nullptr) {
@@ -647,7 +647,7 @@ void WindowsSizingMainCaller::signalAlarmHandler() {
 
         if (*_FILE_POINTER_ == nullptr) {
             std::cerr << "Error opening the file!\n";
-            WindowsSizingMainCaller::signalInterruptedHandler(CTRL_C_EVENT);  // Going to the end of the thread
+            WindowsSizingMainController::signalInterruptedHandler(CTRL_C_EVENT);  // Going to the end of the thread
 
         } else {
             // Critical section, accessing the data area
@@ -733,5 +733,5 @@ void WindowsSizingMainCaller::signalAlarmHandler() {
     }
 }
 
-}  // namespace SizingMainController
+}  // namespace SizingControllers
 #endif
