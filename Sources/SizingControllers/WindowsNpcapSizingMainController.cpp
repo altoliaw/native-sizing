@@ -495,10 +495,17 @@ void WindowsNpcapSizingMainController::signalAlarmHandler() {
             EnterCriticalSection(&_CRITICAL_SECTION_);
             time_t timeEpoch = Commons::Time::getEpoch();
             // Iterate through all pcap instances.
-            for (PCAP::PCAPPrototype* pcap_ptr : _PCAP_POINTER_) {
-                if (PCAP::WindowsNpcapPCAP* tmp = dynamic_cast<PCAP::WindowsNpcapPCAP*>(pcap_ptr)) {
+            for (std::vector<PCAP::PCAPPrototype*>::iterator it = _PCAP_POINTER_.begin();
+                 it != _PCAP_POINTER_.end();
+                 it++) {
+                if (PCAP::WindowsNpcapPCAP* tmp = dynamic_cast<PCAP::WindowsNpcapPCAP*>(*it)) {
                     // Iterate through all monitored ports for the current instance.
-                    for (auto const& [port, info] : tmp->portRelatedInformation) {
+                    for (std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>::iterator it2 = (tmp->portRelatedInformation).begin();
+                         it2 != (tmp->portRelatedInformation).end();
+                         it2++) {
+                        int port = it2->first;
+                        PCAP::PCAPPrototype::PCAPPortInformation* info = it2->second;
+
                         // Write TX statistics.
                         int length = sprintf(output, "%lu\tTX\t%s\t%d\t%lu\t%llu\t%lu\t%lu\t%llu\t%llu\t%llu\n", timeEpoch, (tmp->deviceInterface).c_str(), port, tmp->txPacketNumber, tmp->txSize, tmp->maxTxSize, (long)0, (long long)0, (long long)0, (long long)0);
                         fwrite(output, sizeof(char), length, *_FILE_POINTER_);
@@ -506,7 +513,7 @@ void WindowsNpcapSizingMainController::signalAlarmHandler() {
                         info->txGroupNumber = 0;
                         info->txSize = 0;
                         info->maxTxSize = 0;
-
+ 
                         // Write RX statistics.
                         length = sprintf(output, "%lu\tRX\t%s\t%d\t%lu\t%llu\t%lu\t%lu\t%llu\t%llu\t%llu\n", timeEpoch, (tmp->deviceInterface).c_str(), port, tmp->rxPacketNumber, tmp->rxSize, tmp->maxRxSize, info->sqlRequestNumber, info->sqlRequestSize, info->sqlRequestNumber / (long long)_WRITING_FILE_SECOND_, info->sqlMaxRequestNumberPerSec);
                         fwrite(output, sizeof(char), length, *_FILE_POINTER_);
@@ -518,6 +525,7 @@ void WindowsNpcapSizingMainController::signalAlarmHandler() {
                         info->sqlRequestSize = 0;
                         info->sqlMaxRequestNumberPerSec = 0;
                     }
+
                     // Reset interface-total counters.
                     tmp->txPacketNumber = 0;
                     tmp->txGroupNumber = 0;

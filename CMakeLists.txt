@@ -7,7 +7,7 @@ message(STATUS "Selected Windows PCAP Kernel (CMake): ${WINDOWS_PCAP_KERNEL}")
 
 # [C++ Settings]
 ## GoogleTest requires at least C++17
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 
