@@ -26,6 +26,7 @@
 #include "../../Models/FileParsers/Headers/InitializedJsonFileParser.hpp"
 #include "../../Models/PCAP/Headers/PCAPPrototype.hpp"
 #include "../../Models/PCAP/Headers/WindowsNpcapPCAP.hpp" // Include the Npcap model
+#include "../../Services/SizingServices/Headers/Transformer.hpp"
 #include "./SizingMainControllerPrototype.hpp"
 
 #ifndef u_char
@@ -81,6 +82,14 @@ class WindowsNpcapSizingMainController : public SizingMainControllerPrototype {
     static std::map<std::tuple <uint32_t, uint32_t, uint16_t, uint16_t>, char> sessionMap;
     static long currentSqlMaxRequestNumberPerSec;
     static std::chrono::steady_clock::time_point startingTime;
+    // For recording the maximum size of tx packets per second
+    static long currentMaxTxSizePerSec;
+    // For recording the maximum size of rx packets per second
+    static long currentMaxRxSizePerSec;
+    // For reserving the starting time in the beginning or the updating time when receiving a tx packet
+    static std::chrono::steady_clock::time_point startingTimeTX;
+    // For reserving the starting time in the beginning or the updating time when receiving a rx packet
+    static std::chrono::steady_clock::time_point startingTimeRX;
 
     // Public interface
     Commons::POSIXErrors start(int, char**);

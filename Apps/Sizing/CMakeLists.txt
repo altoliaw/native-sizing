@@ -82,6 +82,7 @@ if (NOT BUILD_TEST)
 			SizingMain
 			PUBLIC
 				Sources.SizingControllers
+				Services.Sizing
 				Models.Commons
 				Models.FileParsers
 				Models.PCAP
