@@ -21,7 +21,9 @@ if(OPERATING_SYSTEM STREQUAL "0" OR OPERATING_SYSTEM STREQUAL "0.1")
 
 else() # Windows
 	set(STATIC_LIB_PATH ${CMAKE_BINARY_DIR}/Vendors)
-	if(WINDOWS_PCAP_KERNEL STREQUAL "NPCAP")
+	# 1   -> Npcap
+	# 1.1 -> WinDivert
+	if(OPERATING_SYSTEM STREQUAL "1")
 		add_library(Sources.SizingControllers
 			SizingMainControllerPrototype.cpp
 			SizingMainController.cpp
@@ -31,7 +33,7 @@ else() # Windows
 			../../Headers/SizingControllers
 			${STATIC_LIB_PATH}/npcap/Includes
 		)
-	elseif(WINDOWS_PCAP_KERNEL STREQUAL "WINDIVERT")
+	elseif(OPERATING_SYSTEM STREQUAL "1.1")
 		add_library(Sources.SizingControllers
 			SizingMainControllerPrototype.cpp
 			SizingMainController.cpp
@@ -41,8 +43,8 @@ else() # Windows
 			../../Headers/SizingControllers
 			${STATIC_LIB_PATH}/WinDivert/Includes
 		)
-		target_compile_definitions(Sources.SizingControllers PUBLIC USE_WINDIVERT_KERNEL)
+		target_compile_definitions(Sources.SizingControllers PUBLIC OS_ID=${OS})
 	else()
-		message(FATAL_ERROR "No valid WINDOWS_PCAP_KERNEL specified. Choose NPCAP or WINDIVERT.")
+		message(FATAL_ERROR "No valid OPERATING_SYSTEM specified.")
 	endif()
 endif()

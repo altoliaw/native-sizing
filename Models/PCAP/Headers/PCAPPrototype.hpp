@@ -12,7 +12,7 @@
 #include <pcap.h>
 
 #elif defined(_WIN32)
-#ifdef USE_WINDIVERT_KERNEL
+#ifdef OS_ID
 // Importing the header of winDivert, the file is in the folder, Vendors/winDivert/Includes/
 #include "windivert.h"
 

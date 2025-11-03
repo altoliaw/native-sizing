@@ -6,6 +6,25 @@ if (NOT BUILD_TEST)
 		SizingMain.cpp
 	)
 
+	# Conditionally set the output name for different Windows builds
+	# 1   -> Npcap
+	# 1.1 -> WinDivert
+	if(OPERATING_SYSTEM STREQUAL "1")
+		set_target_properties(SizingMain PROPERTIES OUTPUT_NAME "SizingMain_npcap")
+	elseif(OPERATING_SYSTEM STREQUAL "1.1")
+		set_target_properties(SizingMain PROPERTIES OUTPUT_NAME "SizingMain_windivert")
+	endif()
+
+	# Add a post-build command to copy the executable to the Bin directory
+	add_custom_command(
+		TARGET SizingMain
+		POST_BUILD
+		COMMAND ${CMAKE_COMMAND} -E copy_if_different
+			"$<TARGET_FILE:SizingMain>"
+			"${CMAKE_SOURCE_DIR}/Bin/"
+		COMMENT "Copying executable to ${CMAKE_SOURCE_DIR}/Bin/"
+	)
+
 
 	
 	# Linking to the headers
@@ -73,10 +92,10 @@ if (NOT BUILD_TEST)
 				${STATIC_LIB_PATH}/cJson/Libs/libcjson.a
 		)
 
-		if(WINDOWS_PCAP_KERNEL STREQUAL "WINDIVERT")
-			target_link_libraries(SizingMain PUBLIC ${STATIC_LIB_PATH}/winDivert/Libs/WinDivert.lib)
-		elseif(WINDOWS_PCAP_KERNEL STREQUAL "NPCAP")
+		if(OPERATING_SYSTEM STREQUAL "1")
 			target_link_libraries(SizingMain PUBLIC ${STATIC_LIB_PATH}/nPcap/Libs/x64/wpcap.lib)
+		elseif(OPERATING_SYSTEM STREQUAL "1.1")
+			target_link_libraries(SizingMain PUBLIC ${STATIC_LIB_PATH}/winDivert/Libs/WinDivert.lib)
 		endif()
 	endif()
 endif()

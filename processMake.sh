@@ -27,50 +27,51 @@ mkdir -p Bin		# Creating the folder for execution
 # Cmake process
 OsType="$(uname -s | tr '[:upper:]' '[:lower:]')" # Obtaining the kernel type string and then translating the string with the lower case
 
+# A generic function to configure and build the project.
+# It accepts an optional OS flag. If a flag is provided, it's passed to CMake;
+# otherwise, CMake's internal OS detection is used.
+build_project() {
+    local os_flag=$1
+    local cmake_args=("-S" "." "-B" "build" "-DBUILD_TEST=OFF" "-DCMAKE_BUILD_TYPE=Debug")
+
+    if [[ -n "$os_flag" ]]; then
+        echo "--- Building with explicit OS flag: $os_flag ---"
+        cmake_args+=("-DOPERATING_SYSTEM=$os_flag")
+    else
+        echo "--- Building with default OS detection (for Linux) ---"
+    fi
+
+    cmake "${cmake_args[@]}"
+    cmake --build build
+}
+
+# 1. Create build directory
+mkdir -p build
+
+# 2. Execute build(s) and post-processing based on OS
 if [[ "$OsType" = "linux" ]]; then
-    echo "Linux build process..."
-    mkdir -p build
-    cmake -S . -B build -DBUILD_TEST=OFF -DCMAKE_BUILD_TYPE=Debug
-    cmake --build build
-    cp -f build/Apps/Sizing/SizingMain ./Bin/
-    echo "SizingMain copied to Bin directory."
-    echo "No any pre-processes are necessary."
-
+    build_project "" # Call with no flag to trigger auto-detection in CMake
 elif [[ "$OsType" = *"mingw"* ]]; then
-    echo "Windows dual-kernel build process..."
-    mkdir -p build
+    # For Windows, build both targets sequentially with a clean step in between
+    echo "--- Building for Npcap ---"
+    build_project "1"   # Build NPCAP
 
-    # --- NPCAP Build ---
-    echo "Building NPCAP version..."
-    cmake -S . -B build -DBUILD_TEST=OFF -DCMAKE_BUILD_TYPE=Debug -DWINDOWS_PCAP_KERNEL=NPCAP
-    cmake --build build
-    cp -f build/Apps/Sizing/SizingMain.exe ./Bin/SizingMain_npcap.exe
-    echo "SizingMain_npcap.exe created in Bin directory."
-
-    # --- Clean ---
-    echo "Cleaning build directory for next build..."
+    echo "--- Cleaning build directory for next target ---"
     cmake --build build --target clean
 
-    # --- WinDivert Build ---
-    echo "Building WinDivert version..."
-    cmake -S . -B build -DBUILD_TEST=OFF -DCMAKE_BUILD_TYPE=Debug -DWINDOWS_PCAP_KERNEL=WINDIVERT
-    cmake --build build
-    cp -f build/Apps/Sizing/SizingMain.exe ./Bin/SizingMain_windivert.exe
-    echo "SizingMain_windivert.exe created in Bin directory."
+    echo "--- Building for WinDivert ---"
+    build_project "1.1" # Build WinDivert
 
-    # --- Post-processing for WinDivert ---
-    echo "Performing post-processing for WinDivert..."
+    # Perform post-processing steps immediately after Windows builds
+    echo "--- Performing post-processing for WinDivert ---"
     sc stop WinDivert >/dev/null 2>&1
     sc delete WinDivert >/dev/null 2>&1
     cp -f ./Vendors/WinDivert/Libs/WinDivert.dll ./Bin/
     cp -f ./Vendors/WinDivert/Libs/WinDivert64.sys ./Bin/
     echo -e "The post-processing on the Windows has been executed. Executables are already in Bin."
 else
-    echo "Unsupported OS: $OsType"
-    # Fallback to default build for other OS types if necessary
-    mkdir -p build
-    cmake -S . -B build -DBUILD_TEST=OFF -DCMAKE_BUILD_TYPE=Debug
-    cmake --build build
+    echo "Unsupported OS: $OsType. Attempting default build."
+    build_project ""
 fi
 exit
 

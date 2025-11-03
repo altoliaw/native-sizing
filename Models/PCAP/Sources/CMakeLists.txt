@@ -13,7 +13,9 @@ if(OPERATING_SYSTEM STREQUAL "0" OR OPERATING_SYSTEM STREQUAL "0.1")
 		${STATIC_LIB_PATH}/libpcap/Includes
 	)
 else() # For Windows
-	if(WINDOWS_PCAP_KERNEL STREQUAL "NPCAP")
+	# 1   -> Npcap
+	# 1.1 -> WinDivert
+	if(OPERATING_SYSTEM STREQUAL "1")
 		add_library(Models.PCAP
 			PCAPPrototype.cpp
 			WindowsNpcapPCAP.cpp
@@ -22,7 +24,7 @@ else() # For Windows
 			${CMAKE_SOURCE_DIR}/Models/PCAP/Headers
 			${STATIC_LIB_PATH}/npcap/Includes
 		)
-	elseif(WINDOWS_PCAP_KERNEL STREQUAL "WINDIVERT")
+	elseif(OPERATING_SYSTEM STREQUAL "1.1")
 		add_library(Models.PCAP
 			PCAPPrototype.cpp
 			WindowsPCAP.cpp
@@ -31,8 +33,8 @@ else() # For Windows
 			${CMAKE_SOURCE_DIR}/Models/PCAP/Headers
 			${STATIC_LIB_PATH}/winDivert/Includes
 		)
-		target_compile_definitions(Models.PCAP PUBLIC USE_WINDIVERT_KERNEL)
+		target_compile_definitions(Models.PCAP PUBLIC OS_ID=${OS})
 	else()
-		message(FATAL_ERROR "No valid WINDOWS_PCAP_KERNEL specified. Choose NPCAP or WINDIVERT.")
+		message(FATAL_ERROR "No valid OPERATING_SYSTEM specified.")
 	endif()
 endif()

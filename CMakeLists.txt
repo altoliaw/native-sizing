@@ -1,12 +1,8 @@
 cmake_minimum_required(VERSION 3.14)
 project(native-sizing)
 
-# [Windows PCAP Kernel Settings]
-set(WINDOWS_PCAP_KERNEL "WINDIVERT" CACHE STRING "Selects the PCAP kernel for Windows: WINDIVERT or NPCAP")
-message(STATUS "Selected Windows PCAP Kernel (CMake): ${WINDOWS_PCAP_KERNEL}") 
-
 # [C++ Settings]
-## GoogleTest requires at least C++17
+## GoogleTest requires at least C++14
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
