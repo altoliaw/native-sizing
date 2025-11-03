@@ -27,7 +27,7 @@ else() # For Windows
 	elseif(OPERATING_SYSTEM STREQUAL "1.1")
 		add_library(Models.PCAP
 			PCAPPrototype.cpp
-			WindowsPCAP.cpp
+			WindowsWinDivertPCAP.cpp
 		)
 		target_include_directories(Models.PCAP PUBLIC
 			${CMAKE_SOURCE_DIR}/Models/PCAP/Headers

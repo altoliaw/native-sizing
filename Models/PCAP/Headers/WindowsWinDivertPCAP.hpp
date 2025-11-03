@@ -24,7 +24,7 @@ namespace PCAP {
 /**
  * The inherited class to the parent class, PCAPPrototype
  */
-class WindowsPCAP : public PCAPPrototype {
+class WindowsWinDivertPCAP : public PCAPPrototype {
    public:
     /* This class is for reserving the value for verifying if the simulated function, pcap_loop, 
        shall be executed.
@@ -41,8 +41,8 @@ class WindowsPCAP : public PCAPPrototype {
 
     PcapSignal pcapSignalInfo; // The object for displaying the flag in the PCAP simulated function
     HANDLE pcapDescriptor;  // The pointer for referring to the variable "handle" from the prototype
-    WindowsPCAP();
-    virtual ~WindowsPCAP();
+    WindowsWinDivertPCAP();
+    virtual ~WindowsWinDivertPCAP();
     void open(const char*, const int, const int, const int, std::vector<int>*);
     void execute(void (*)(u_char*, const pcap_pkthdr*, const u_char*) = nullptr);
     void close(void);

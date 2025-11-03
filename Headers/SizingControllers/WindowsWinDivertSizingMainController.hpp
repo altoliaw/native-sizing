@@ -1,5 +1,5 @@
 #pragma once
-/** @file WindowsSizingMainController.hpp
+/** @file WindowsSizingWinDivertMainController.hpp
  * The headers and global variables from other package for Linux programs
  *
  * @author Nick, Liao
@@ -32,7 +32,7 @@
 #include "../../Models/Commons/Headers/Time.hpp"
 #include "../../Models/FileParsers/Headers/InitializedJsonFileParser.hpp"
 #include "../../Models/PCAP/Headers/PCAPPrototype.hpp"
-#include "../../Models/PCAP/Headers/WindowsPCAP.hpp"
+#include "../../Models/PCAP/Headers/WindowsWinDivertPCAP.hpp"
 #include "./SizingMainControllerPrototype.hpp"
 
 /* In some windows platforms, u_char type is not defined; for ensuring that u_char can be used 
@@ -43,7 +43,7 @@
 #endif
 
 namespace SizingControllers {
-class WindowsSizingMainController : public SizingMainControllerPrototype {
+class WindowsWinDivertSizingMainController : public SizingMainControllerPrototype {
    public:
     /**
      * Definition for the Windows's ether_header structure; this structure is
@@ -119,7 +119,7 @@ class WindowsSizingMainController : public SizingMainControllerPrototype {
     static void signalAlarmHandler();
     static Commons::POSIXErrors config(std::vector<unitService>*);
     static void packetHandler(u_char*, const pcap_pkthdr*, const u_char*);
-    static void packetTask(PCAP::WindowsPCAP*, void (*)(u_char*, const pcap_pkthdr*, const u_char*));
+    static void packetTask(PCAP::WindowsWinDivertPCAP*, void (*)(u_char*, const pcap_pkthdr*, const u_char*));
     static void packetFileTask(FILE**, const char*);
     static void executePacketInformationUpdate(long long, long*, long long*, long long*, long*, long long*, long long*, char*);
 };

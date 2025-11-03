@@ -1,7 +1,7 @@
 /**
  * @see WindowsSizingMainController.hpp
  */
-#include "../../Headers/SizingControllers/WindowsSizingMainController.hpp"
+#include "../../Headers/SizingControllers/WindowsWinDivertSizingMainController.hpp"
 #ifdef _WIN32
 
 namespace SizingControllers {
@@ -33,11 +33,11 @@ FILE** _FILE_POINTER_ = nullptr;
 //===Static fields Declaration===
 // For reserving the session's previous, the key is a tuple which combines sorted ip and port information;
 // the second one is the session's previous packet type; the value is defined as follows: 0: undefined; 1: TX, and 2: RX
-std::map<std::tuple <uint32_t, uint32_t, uint16_t, uint16_t>, char> WindowsSizingMainController::sessionMap;
+std::map<std::tuple <uint32_t, uint32_t, uint16_t, uint16_t>, char> WindowsWinDivertSizingMainController::sessionMap;
 // For recording the maximum number of packets per second
-long WindowsSizingMainController::currentSqlMaxRequestNumberPerSec = 0;
+long WindowsWinDivertSizingMainController::currentSqlMaxRequestNumberPerSec = 0;
 // For reserving the starting time in the beginning or the updating time when the SQL statements receive
-std::chrono::steady_clock::time_point WindowsSizingMainController::startingTime = std::chrono::steady_clock::time_point::min();
+std::chrono::steady_clock::time_point WindowsWinDivertSizingMainController::startingTime = std::chrono::steady_clock::time_point::min();
 
 /**
  * The starting process, the entry of the process
@@ -46,14 +46,14 @@ std::chrono::steady_clock::time_point WindowsSizingMainController::startingTime 
  * @param argV [char**] The array of the argument
  * @return [Commons::POSIXErrors] The status defined in the class "POSIXErrors" The status defined in the class "POSIXErrors"
  */
-Commons::POSIXErrors WindowsSizingMainController::start(int argC, char** argV) {
+Commons::POSIXErrors WindowsWinDivertSizingMainController::start(int argC, char** argV) {
     Commons::POSIXErrors result = Commons::POSIXErrors::OK;
 
     // TODO: This section shall be implemented by using "Bison" instead of the section defined in the following.
     // To determine if the argument is passed for the execution
     if (argC == 2 && strcmp(argV[1], "-l") == 0) {
         // Showing the information
-        PCAP::WindowsPCAP::show();
+        PCAP::WindowsWinDivertPCAP::show();
         return result;
     }
 
@@ -81,16 +81,16 @@ Commons::POSIXErrors WindowsSizingMainController::start(int argC, char** argV) {
     _WRITING_FILE_LOCATION_ = OuputFilePathWithTime;
 
     // Installing a signal handler, interrupt
-    SetConsoleCtrlHandler(WindowsSizingMainController::signalInterruptedHandler, TRUE);
+    SetConsoleCtrlHandler(WindowsWinDivertSizingMainController::signalInterruptedHandler, TRUE);
 
     {                                                           // Creating objects, opening the interfaces, executing the packet calculations
                                                                 // and closing the interfaces; the number of objects is equal to the number of
                                                                 // the interfaces
-        std::vector<PCAP::WindowsPCAP*> pcapObjectOfInterface;  // Here each element shall be a pointer because there exist a pointer which refers to a
+        std::vector<PCAP::WindowsWinDivertPCAP*> pcapObjectOfInterface;  // Here each element shall be a pointer because there exist a pointer which refers to a
                                                                 // resource in the class. When the vector reserve objects, the destructor will occur twice in the following loop.
                                                                 // The best approach is used the dynamic memory allocation with pointers.
         for (unsigned int i = 0; i < interfaceNameArray.size(); i++) {
-            PCAP::WindowsPCAP* pcapObject = new PCAP::WindowsPCAP();
+            PCAP::WindowsWinDivertPCAP* pcapObject = new PCAP::WindowsWinDivertPCAP();
             pcapObject->open(interfaceNameArray[i].interfaceName, BUFSIZ, 1, 1000, &(interfaceNameArray[i].port));
 
             // Putting each pcap object into thread array
@@ -161,7 +161,7 @@ Commons::POSIXErrors WindowsSizingMainController::start(int argC, char** argV) {
  * @return [Commons::POSIXErrors] The status defined in the class "POSIXErrors" The status
  * defined in the class "POSIXErrors"
  */
-Commons::POSIXErrors WindowsSizingMainController::config(std::vector<unitService>* services) {
+Commons::POSIXErrors WindowsWinDivertSizingMainController::config(std::vector<unitService>* services) {
     Commons::POSIXErrors error = Commons::POSIXErrors::OK;
 
     // Loading information from the .json file for the application
@@ -258,10 +258,10 @@ Commons::POSIXErrors WindowsSizingMainController::config(std::vector<unitService
 /**
  * The function for the first type of the threads (n threads), packetThread; the task is to execute the "pcap_loop"
  *
- * @param pcap [PCAP::WindowsPCAP*] The address of the PCAP::WindowsPCAP object
+ * @param pcap [PCAP::WindowsWinDivertPCAP*] The address of the PCAP::WindowsWinDivertPCAP object
  * @param packetHandler [void (*)(u_char*, const pcap_pkthdr*, const u_char*)] The callback function for pcap_loop
  */
-void WindowsSizingMainController::packetTask(PCAP::WindowsPCAP* pcap, void (*packetHandler)(u_char*, const pcap_pkthdr*, const u_char*)) {
+void WindowsWinDivertSizingMainController::packetTask(PCAP::WindowsWinDivertPCAP* pcap, void (*packetHandler)(u_char*, const pcap_pkthdr*, const u_char*)) {
     // The only argument will be set; as a result, the pcap object will be passed in the function, packetHandler.
     // For more information, please refer to the function, execute(.).
     pcap->execute(packetHandler);
@@ -275,8 +275,8 @@ void WindowsSizingMainController::packetTask(PCAP::WindowsPCAP* pcap, void (*pac
  * which users defined in .json file.
  * @param filePath [const char*] The file path for recording the information
  */
-void WindowsSizingMainController::packetFileTask(FILE** fileDescriptor, const char* filePath) {
-    // Registering the handler, "exit event"; this variable is used in the WindowsSizingMainController::signalInterruptedHandler
+void WindowsWinDivertSizingMainController::packetFileTask(FILE** fileDescriptor, const char* filePath) {
+    // Registering the handler, "exit event"; this variable is used in the WindowsWinDivertSizingMainController::signalInterruptedHandler
     _EXITED_EVENT_ = CreateEvent(NULL, TRUE, FALSE, NULL);
     if (_EXITED_EVENT_ == nullptr) {
         _IS_ALARM_WORKED_ = 0x0;  // Disabled alarm
@@ -298,7 +298,7 @@ void WindowsSizingMainController::packetFileTask(FILE** fileDescriptor, const ch
         *_FILE_POINTER_ = fopen(filePath, "a+");
         if (*_FILE_POINTER_ == nullptr) {
             std::cerr << "Error opening the file!\n";
-            WindowsSizingMainController::signalInterruptedHandler(CTRL_C_EVENT);  // Going to the end of the thread
+            WindowsWinDivertSizingMainController::signalInterruptedHandler(CTRL_C_EVENT);  // Going to the end of the thread
 
         } else {  // Adding the header information in a line to the file
             char output[1024] = {'\0'};
@@ -371,7 +371,7 @@ void WindowsSizingMainController::packetFileTask(FILE** fileDescriptor, const ch
  * because in the winDivert, the ip header does not contain the information except the ip header
  * @param packet [const u_char*] The address of the packet
  */
-void WindowsSizingMainController::packetHandler(u_char* userData, const pcap_pkthdr* pkthdr, const u_char* packet) {
+void WindowsWinDivertSizingMainController::packetHandler(u_char* userData, const pcap_pkthdr* pkthdr, const u_char* packet) {
     // Opening the clock when the value equals to "std::chrono::steady_clock::time_point::min()"
     if (startingTime == std::chrono::steady_clock::time_point::min()) {
         startingTime = std::chrono::steady_clock::now(); // Assign now to the startingTime variable
@@ -379,9 +379,9 @@ void WindowsSizingMainController::packetHandler(u_char* userData, const pcap_pkt
     // Due to the setting of the function, execute(.), the data of userData is the object of children classes (WindowsPCAP, WindowsPCAP and so on ...)
     PCAP::PCAPPrototype* pcapInstance = (PCAP::PCAPPrototype*)userData;
     // Determining what the instance belong to
-    PCAP::WindowsPCAP* windowsPCAP = nullptr;
-    if (dynamic_cast<PCAP::WindowsPCAP*>(pcapInstance)) {
-        windowsPCAP = dynamic_cast<PCAP::WindowsPCAP*>(pcapInstance);
+    PCAP::WindowsWinDivertPCAP* windowsPCAP = nullptr;
+    if (dynamic_cast<PCAP::WindowsWinDivertPCAP*>(pcapInstance)) {
+        windowsPCAP = dynamic_cast<PCAP::WindowsWinDivertPCAP*>(pcapInstance);
     }
 
     // When the pcap belongs to windows pcap, ...
@@ -458,7 +458,7 @@ void WindowsSizingMainController::packetHandler(u_char* userData, const pcap_pkt
         // when the key exists, the returned second value is false (e.g., insert failed); when the key does not
         // exist, the returned second value is true (e.g., insert success)
         std::pair<std::map<std::tuple<uint32_t, uint32_t, uint16_t, uint16_t>, char>::iterator, bool> insertedResult = 
-                                WindowsSizingMainController::sessionMap.emplace(sortedSessionTuple, previousPacketType);
+                                WindowsWinDivertSizingMainController::sessionMap.emplace(sortedSessionTuple, previousPacketType);
         if (insertedResult.second == true) { // Key will inserted ...
             // Do nothing
         } else { // Key exist
@@ -558,7 +558,7 @@ void WindowsSizingMainController::packetHandler(u_char* userData, const pcap_pkt
  * @param packetTypeDetermineSet [char] The flag if the section is exected; 0 is not executed, and 1 is executed
  * @return [void] None
  */
-void WindowsSizingMainController::executePacketInformationUpdate(long long packetHeaderLength,
+void WindowsWinDivertSizingMainController::executePacketInformationUpdate(long long packetHeaderLength,
                                   long* portXPacketNumber,
                                   long long* portXSize,
                                   long long* portMaxXSize,
@@ -591,7 +591,7 @@ void WindowsSizingMainController::executePacketInformationUpdate(long long packe
  * @param signal [DWORD] The signal type
  * @return [BOOL WINAPI] The successful result; the TRUE shows okay; otherwise false
  */
-BOOL WINAPI WindowsSizingMainController::signalInterruptedHandler(DWORD signal) {
+BOOL WINAPI WindowsWinDivertSizingMainController::signalInterruptedHandler(DWORD signal) {
     if (signal == CTRL_C_EVENT) {  // When encountering the interrupted signal
         std::cerr << "\n"
                   << "Interrupted signal occurs, please wait.\n";
@@ -608,7 +608,7 @@ BOOL WINAPI WindowsSizingMainController::signalInterruptedHandler(DWORD signal) 
             for (std::vector<PCAP::PCAPPrototype*>::iterator it = _PCAP_POINTER_.begin(); 
                 it != _PCAP_POINTER_.end(); 
                 ++it) {
-                if (PCAP::WindowsPCAP* winPCAPPointer = dynamic_cast<PCAP::WindowsPCAP*>(*it)) {
+                if (PCAP::WindowsWinDivertPCAP* winPCAPPointer = dynamic_cast<PCAP::WindowsWinDivertPCAP*>(*it)) {
                     if (winPCAPPointer->descriptor != INVALID_HANDLE_VALUE) {
                         CancelIoEx((HANDLE)winPCAPPointer->descriptor, nullptr); // Unblock all "WinDivertRecv" blocking functions
                     }
@@ -638,7 +638,7 @@ BOOL WINAPI WindowsSizingMainController::signalInterruptedHandler(DWORD signal) 
  *
  * @param signalType [int] The signal type and the parameter is useless in this method
  */
-void WindowsSizingMainController::signalAlarmHandler() {
+void WindowsWinDivertSizingMainController::signalAlarmHandler() {
     // File writing
     char output[1024] = {"\0"};
     if (*_FILE_POINTER_ == nullptr) {
@@ -647,7 +647,7 @@ void WindowsSizingMainController::signalAlarmHandler() {
 
         if (*_FILE_POINTER_ == nullptr) {
             std::cerr << "Error opening the file!\n";
-            WindowsSizingMainController::signalInterruptedHandler(CTRL_C_EVENT);  // Going to the end of the thread
+            WindowsWinDivertSizingMainController::signalInterruptedHandler(CTRL_C_EVENT);  // Going to the end of the thread
 
         } else {
             // Critical section, accessing the data area
@@ -660,9 +660,9 @@ void WindowsSizingMainController::signalAlarmHandler() {
             for (std::vector<PCAP::PCAPPrototype*>::iterator it = _PCAP_POINTER_.begin();
                  it != _PCAP_POINTER_.end();
                  it++) {
-                if (dynamic_cast<PCAP::WindowsPCAP*>(*it)) {
+                if (dynamic_cast<PCAP::WindowsWinDivertPCAP*>(*it)) {
                     // Passing the object to the correct type
-                    PCAP::WindowsPCAP* tmp = dynamic_cast<PCAP::WindowsPCAP*>(*it);
+                    PCAP::WindowsWinDivertPCAP* tmp = dynamic_cast<PCAP::WindowsWinDivertPCAP*>(*it);
                     for (std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>::iterator it2 = (tmp->portRelatedInformation).begin();
                          it2 != (tmp->portRelatedInformation).end();
                          it2++) {

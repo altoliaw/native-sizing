@@ -30,7 +30,7 @@ Commons::POSIXErrors SizingMainController::start(int argC, char** argV) {
     caller = &instance;
 #elif defined(_WIN32)
     #ifdef OS_ID
-        WindowsSizingMainController instance;
+        WindowsWinDivertSizingMainController instance;
         caller = &instance;
     #else // Default to NPCAP
         WindowsNpcapSizingMainController instance;

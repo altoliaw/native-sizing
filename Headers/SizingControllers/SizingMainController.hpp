@@ -29,7 +29,7 @@
 #elif defined(_WIN32) || defined(_WIN64)
 
 #ifdef OS_ID
-#include "./WindowsSizingMainController.hpp"
+#include "./WindowsWinDivertSizingMainController.hpp"
 #else
 #include "./WindowsNpcapSizingMainController.hpp"
 #endif

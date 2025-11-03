@@ -37,7 +37,7 @@ else() # Windows
 		add_library(Sources.SizingControllers
 			SizingMainControllerPrototype.cpp
 			SizingMainController.cpp
-			WindowsSizingMainController.cpp
+			WindowsWinDivertSizingMainController.cpp
 		)
 		target_include_directories(Sources.SizingControllers PUBLIC 
 			../../Headers/SizingControllers

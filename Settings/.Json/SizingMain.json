@@ -2,7 +2,7 @@
 	"base": {
 		"service":[
 			{
-				"interface": "\\Device\\NPF_{842E6838-395E-4C4E-B9E8-D2B67BDCCCF0}",
+				"interface": "11",
 				"port": [
 					"80"
 				]
