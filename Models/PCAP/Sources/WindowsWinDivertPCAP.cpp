@@ -1,14 +1,14 @@
 /**
  * @see WindowsPCAP.hpp
  */
-#include "../Headers/WindowsPCAP.hpp"
+#include "../Headers/WindowsWinDivertPCAP.hpp"
 
 #ifdef _WIN32
 namespace PCAP {
 /**
  * Constructor
  */
-WindowsPCAP::WindowsPCAP() {
+WindowsWinDivertPCAP::WindowsWinDivertPCAP() {
     errBuff[0] = '\0';
     descriptor = nullptr;
     pcapDescriptor = (HANDLE)descriptor; // HANDLE is the macro, thr original definition is equal to the pointer type.
@@ -27,7 +27,7 @@ WindowsPCAP::WindowsPCAP() {
 /**
  * Destructor
  */
-WindowsPCAP::~WindowsPCAP() {
+WindowsWinDivertPCAP::~WindowsWinDivertPCAP() {
     // PCAP handle shall be closed and NULL.
     if (pcapDescriptor != nullptr && pcapDescriptor != INVALID_HANDLE_VALUE) {
         this->close();
@@ -65,7 +65,7 @@ WindowsPCAP::~WindowsPCAP() {
 /**
  * Subclass constructor 
  */
-WindowsPCAP::PcapSignal::PcapSignal() {
+WindowsWinDivertPCAP::PcapSignal::PcapSignal() {
     isExecuted = true; // Initializing the value is true for the simulated function, pcap_loop, working
     checkPCAPSignal = [this](bool input) { // Capturing by value; here the flag, input, 
                                            // determines whether the simulated pcap_loop continues or stops
@@ -80,7 +80,7 @@ WindowsPCAP::PcapSignal::PcapSignal() {
 /**
  * Subclass destructor 
  */
-WindowsPCAP::PcapSignal::~PcapSignal() { 
+WindowsWinDivertPCAP::PcapSignal::~PcapSignal() { 
     isExecuted = false;
     checkPCAPSignal = nullptr;
 }
@@ -96,7 +96,7 @@ WindowsPCAP::PcapSignal::~PcapSignal() {
  * @param timeout [const int] Timeout (milliseconds)
  * @param port [std::vector<int>*] The port of the server for distinguishing with the packets from rx and tx
  */
-void WindowsPCAP::open(const char* device, const int snaplen, const int promisc, const int timeout, std::vector<int>* port) {
+void WindowsWinDivertPCAP::open(const char* device, const int snaplen, const int promisc, const int timeout, std::vector<int>* port) {
 
     /* Setting the variable of receiving packet filter; when the value is equal to "" or "true",
        that implies that the winDivert will receive all packets; when the value equals to "tcp or udp",
@@ -129,12 +129,12 @@ void WindowsPCAP::open(const char* device, const int snaplen, const int promisc,
  * @param callback [void (*)(u_char*, const pcap_pkthdr*, const u_char*)] The callback function for pcap_loop;
  * the default value of the function is "nullptr" (has been initialized in the declaration)
  */
-void WindowsPCAP::execute(void (*callback)(u_char*, const pcap_pkthdr*, const u_char*)) {
+void WindowsWinDivertPCAP::execute(void (*callback)(u_char*, const pcap_pkthdr*, const u_char*)) {
     // When pcapDescriptor belongs to INVALID_HANDLE_VALUE, ...
     if (pcapDescriptor != INVALID_HANDLE_VALUE) {
         pcap_loop(&pcapDescriptor, 
                    0, 
-                   ((callback == nullptr) ? WindowsPCAP::packetHandler : callback), // if callback is nullptr,
+                   ((callback == nullptr) ? WindowsWinDivertPCAP::packetHandler : callback), // if callback is nullptr, 
                     reinterpret_cast<u_char*>(this)
         );
     }
@@ -143,7 +143,7 @@ void WindowsPCAP::execute(void (*callback)(u_char*, const pcap_pkthdr*, const u_
 /**
  * Closing the PCAP
  */
-void WindowsPCAP::close() {
+void WindowsWinDivertPCAP::close() {
     if (pcapDescriptor != nullptr && pcapDescriptor != INVALID_HANDLE_VALUE) {
         WinDivertClose(pcapDescriptor);
         pcapDescriptor = INVALID_HANDLE_VALUE;  // Setting the handle to invalid value
@@ -159,13 +159,13 @@ void WindowsPCAP::close() {
  * @param pkthdr [const struct pcap_pkthdr*] The header of the packet (metadata)
  * @param packet [const u_char*] The data from the last position of the header of the packet
  */
-void WindowsPCAP::packetHandler(u_char* userData, const pcap_pkthdr* pkthdr, const u_char* packet) {
+void WindowsWinDivertPCAP::packetHandler(u_char* userData, const pcap_pkthdr* pkthdr, const u_char* packet) {
     // Due to the setting of the function, execute(.), the data of userData is the object of children classes (LinuxPCAP, WindowsPCAP and so on ...)
     PCAP::PCAPPrototype* pcapInstance = (PCAP::PCAPPrototype*)userData;
     // Determining what the instance belong to
-    PCAP::WindowsPCAP* windowsPCAP = nullptr;
-    if (dynamic_cast<PCAP::WindowsPCAP*>(pcapInstance)) {
-        windowsPCAP = dynamic_cast<PCAP::WindowsPCAP*>(pcapInstance);
+    PCAP::WindowsWinDivertPCAP* windowsPCAP = nullptr;
+    if (dynamic_cast<PCAP::WindowsWinDivertPCAP*>(pcapInstance)) {
+        windowsPCAP = dynamic_cast<PCAP::WindowsWinDivertPCAP*>(pcapInstance);
         (windowsPCAP->rxGroupNumber) ++;
         std::cout << windowsPCAP->rxGroupNumber<< "  packets\t";
         long* totalSize = (long*)(userData + sizeof(int));
@@ -183,8 +183,8 @@ void WindowsPCAP::packetHandler(u_char* userData, const pcap_pkthdr* pkthdr, con
  * this implies that the process will capture exactly count packets
  * @param callback [void (*)(u_char*, const pcap_pkthdr*, const u_char*)] The callback function  
  */
-void WindowsPCAP::pcap_loop(HANDLE* pcapDescriptorPointer, int count, void (*callback)(u_char*, const pcap_pkthdr*, const u_char*), u_char* userDefinedData) {
-    WindowsPCAP* object = reinterpret_cast<WindowsPCAP*>(userDefinedData); // Re-referring to the object with different pointers
+void WindowsWinDivertPCAP::pcap_loop(HANDLE* pcapDescriptorPointer, int count, void (*callback)(u_char*, const pcap_pkthdr*, const u_char*), u_char* userDefinedData) {
+    WindowsWinDivertPCAP* object = reinterpret_cast<WindowsWinDivertPCAP*>(userDefinedData); // Re-referring to the object with different pointers
     // The callback execution (implemented by the lambda as below:)
     std::function<bool()> receiveAndHandlePacket = [=]() -> bool {
          // Buffer for packet data information
@@ -221,7 +221,7 @@ void WindowsPCAP::pcap_loop(HANDLE* pcapDescriptorPointer, int count, void (*cal
                     WINDIVERT_GROUP_TYPE* ipHeader = &packetGroupType;
                     // WINDIVERT_IPHDR* ipHeader = (WINDIVERT_IPHDR*)(packet);
                     if (callback == nullptr) {
-                        WindowsPCAP::packetHandler((u_char*)&rxPacketNumber, ipHeader, packet);
+                        WindowsWinDivertPCAP::packetHandler((u_char*)&rxPacketNumber, ipHeader, packet);
                     } else {
                         callback(userDefinedData, ipHeader, packet);
                     }
@@ -261,17 +261,17 @@ void WindowsPCAP::pcap_loop(HANDLE* pcapDescriptorPointer, int count, void (*cal
  * The simulation of the pcap_breakloop; in winDirvert, there is no pcap_breakloop function in winDivert; as a result, the function shall be defined manually
  * 
  */
-void WindowsPCAP::pcap_breakloop() {
+void WindowsWinDivertPCAP::pcap_breakloop() {
     (this->pcapSignalInfo).checkPCAPSignal(false); 
 }
 
 /**
  * Displaying the devices for .Json settings; this function is for windows platform because
  * the interface name on windows platform is involved with the registered machine codes; as
- * a result, the on windows platform, the editor shall provide device information for users'
+ * a result, the on windows platform, the editor shall provide device information for users' 
  * json definition
  */
-void WindowsPCAP::show() {
+void WindowsWinDivertPCAP::show() {
     WSADATA wsaData; // An object for reserving the "window sockets application" (wsa) information for winsock 
                      // and the winsock introduction is list as below:
                      // https://learn.microsoft.com/en-us/windows/win32/winsock/windows-sockets-start-page-2
@@ -323,7 +323,7 @@ void WindowsPCAP::show() {
          adapter != nullptr; adapter = adapter->Next) {
 
         ULONG ifIndex = adapter->IfIndex; // Windows' Ifindex (this number is for the setting when using winDivert)
-        std::string adapterName = "\\\\Device\\\\NPF_"; // On windows platforms, the prefix will display the prefix "\Device\NPF_" and the uuid. 
+        std::string adapterName = "\\Device\\NPF_"; // On windows platforms, the prefix will display the prefix \"Device\NPF_\" and the uuid. 
         adapterName = (adapter->AdapterName) ? (adapterName + adapter->AdapterName ) : "Unknown";
         std::cerr << (++index) << ".\t" << adapterName << "  IfIndex: " << ifIndex  <<"\t";
 

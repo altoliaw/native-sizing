@@ -30,25 +30,53 @@ mkdir -p Logs
 mkdir -p Bin		# Creating the folder for execution
 
 # Cmake process
-mkdir -p build
-cmake -S . -B build -DBUILD_TEST=OFF -DCMAKE_BUILD_TYPE=Debug
-cmake --build build
-
 OsType="$(uname -s | tr '[:upper:]' '[:lower:]')" # Obtaining the kernel type string and then translating the string with the lower case
-# After the parameter process above, the pre-processing will come.
+
+# A generic function to configure and build the project.
+# It accepts an optional OS flag. If a flag is provided, it's passed to CMake;
+# otherwise, CMake's internal OS detection is used.
+build_project() {
+    local os_flag=$1
+    local cmake_args=("-S" "." "-B" "build" "-DBUILD_TEST=OFF" "-DCMAKE_BUILD_TYPE=Debug")
+
+    if [[ -n "$os_flag" ]]; then
+        echo "--- Building with explicit OS flag: $os_flag ---"
+        cmake_args+=("-DOPERATING_SYSTEM=$os_flag")
+    else
+        echo "--- Building with default OS detection (for Linux) ---"
+    fi
+
+    cmake "${cmake_args[@]}"
+    cmake --build build
+}
+
+# 1. Create build directory
+mkdir -p build
+
+# 2. Execute build(s) and post-processing based on OS
 if [[ "$OsType" = "linux" ]]; then
-	echo "No any pre-processes are necessary."
+    build_project "" # Call with no flag to trigger auto-detection in CMake
 elif [[ "$OsType" = *"mingw"* ]]; then
-	# Removing WinDivert service for avoiding that the service may exist already
-	# By using the window service command, sc, the execution will stop and delete the WinDivert.
-	# sc stop WinDivert | Out-Null
-	# sc delete WinDivert | Out-Null
-	sc stop WinDivert >/dev/null 2>&1
-	sc delete WinDivert >/dev/null 2>&1
-	# WinDivert.dll and WinDivert64.sys shall be stay with the executed file which refers to those WinDivert files. (TODO)
-	cp -f ./Vendors/WinDivert/Libs/WinDivert.dll ./Bin/
-	cp -f ./Vendors/WinDivert/Libs/WinDivert64.sys ./Bin/
-	echo -e "The post-processing on the Windows has been executed."
+    # For Windows, build both targets sequentially with a clean step in between
+    echo "--- Building for Npcap ---"
+    build_project "1"   # Build NPCAP
+
+    echo "--- Cleaning build directory for next target ---"
+    cmake --build build --target clean
+
+    echo "--- Building for WinDivert ---"
+    build_project "1.1" # Build WinDivert
+
+    # Perform post-processing steps immediately after Windows builds
+    echo "--- Performing post-processing for WinDivert ---"
+    sc stop WinDivert >/dev/null 2>&1
+    sc delete WinDivert >/dev/null 2>&1
+    cp -f ./Vendors/WinDivert/Libs/WinDivert.dll ./Bin/
+    cp -f ./Vendors/WinDivert/Libs/WinDivert64.sys ./Bin/
+    echo -e "The post-processing on the Windows has been executed. Executables are already in Bin."
+else
+    echo "Unsupported OS: $OsType. Attempting default build."
+    build_project ""
 fi
 exit
 

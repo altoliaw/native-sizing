@@ -2,7 +2,7 @@
 	"base": {
 		"service":[
 			{
-				"interface": "ens192",
+				"interface": "11",
 				"port": [
 					"80"
 				]

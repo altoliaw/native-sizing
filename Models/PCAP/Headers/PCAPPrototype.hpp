@@ -12,6 +12,7 @@
 #include <pcap.h>
 
 #elif defined(_WIN32)
+#ifdef OS_ID
 // Importing the header of winDivert, the file is in the folder, Vendors/winDivert/Includes/
 #include "windivert.h"
 
@@ -53,6 +54,9 @@ typedef PCAP::WINDIVERT_GROUP_TYPE pcap_pkthdr;
 /* In addition to the pcap_pkthdr, in windDivert, PCAP_ERRBUF_SIZE is not defined. Hence, here
  * the macro shall be set as 256 manually */
 #define PCAP_ERRBUF_SIZE 256
+#else // For Npcap on Windows
+#include <pcap.h>
+#endif 
 
 #endif
 

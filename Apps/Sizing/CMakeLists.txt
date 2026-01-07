@@ -6,12 +6,26 @@ if (NOT BUILD_TEST)
 		SizingMain.cpp
 	)
 
-	add_custom_command(TARGET SizingMain POST_BUILD
-		# Copying the original .exe to the Bin directory
+	# Conditionally set the output name for different Windows builds
+	# 1   -> Npcap
+	# 1.1 -> WinDivert
+	if(OPERATING_SYSTEM STREQUAL "1")
+		set_target_properties(SizingMain PROPERTIES OUTPUT_NAME "SizingMain_npcap")
+	elseif(OPERATING_SYSTEM STREQUAL "1.1")
+		set_target_properties(SizingMain PROPERTIES OUTPUT_NAME "SizingMain_windivert")
+	endif()
+
+	# Add a post-build command to copy the executable to the Bin directory
+	add_custom_command(
+		TARGET SizingMain
+		POST_BUILD
 		COMMAND ${CMAKE_COMMAND} -E copy_if_different
 			"$<TARGET_FILE:SizingMain>"
 			"${CMAKE_SOURCE_DIR}/Bin/"
+		COMMENT "Copying executable to ${CMAKE_SOURCE_DIR}/Bin/"
 	)
+
+
 	
 	# Linking to the headers
 	target_include_directories(SizingMain PUBLIC ${CMAKE_SOURCE_DIR}/Headers/SizingControllers)
@@ -25,7 +39,7 @@ if (NOT BUILD_TEST)
 		if(OPERATING_SYSTEM STREQUAL "0.1") # CentOS version
 			target_link_libraries(
 				SizingMain
-				Sources.SizingMainCaller
+				Sources.SizingControllers
 				Services.Sizing
 				Models.Commons
 				Models.FileParsers
@@ -40,7 +54,7 @@ if (NOT BUILD_TEST)
 		else() # Other Linux version
 			target_link_libraries(
 				SizingMain
-				Sources.SizingMainCaller
+				Sources.SizingControllers
 				Services.Sizing
 				Models.Commons
 				Models.FileParsers
@@ -65,17 +79,24 @@ if (NOT BUILD_TEST)
 		# For windows compiling because some third party libraries are made by MSVC
 		# Linking to the all library
 		target_link_libraries(
-			SizingMain -static
-			Sources.SizingMainCaller
-			Models.Commons
-			Models.FileParsers
-			Models.PCAP
-			# Windows built-in libraries
-			iphlpapi
-			ws2_32
-			# Vendor-specific libraries
-			${STATIC_LIB_PATH}/cJson/Libs/libcjson.a
-			${STATIC_LIB_PATH}/winDivert/Libs/WinDivert.lib
+			SizingMain
+			PUBLIC
+				Sources.SizingControllers
+				Services.Sizing
+				Models.Commons
+				Models.FileParsers
+				Models.PCAP
+				# Windows built-in libraries
+				iphlpapi
+				ws2_32
+				# Vendor-specific libraries
+				${STATIC_LIB_PATH}/cJson/Libs/libcjson.a
 		)
+
+		if(OPERATING_SYSTEM STREQUAL "1")
+			target_link_libraries(SizingMain PUBLIC ${STATIC_LIB_PATH}/nPcap/Libs/x64/wpcap.lib)
+		elseif(OPERATING_SYSTEM STREQUAL "1.1")
+			target_link_libraries(SizingMain PUBLIC ${STATIC_LIB_PATH}/winDivert/Libs/WinDivert.lib)
+		endif()
 	endif()
 endif()

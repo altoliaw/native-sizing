@@ -1,15 +1,10 @@
 /**
- * @see LinuxSizingMainCaller.hpp
+ * @see WindowsSizingMainController.hpp
  */
-#include "../../Headers/SizingControllers/LinuxSizingMainCaller.hpp"
-#ifdef __linux__
+#include "../../Headers/SizingControllers/WindowsWinDivertSizingMainController.hpp"
+#ifdef _WIN32
 
-// The macro variable is from the compiled process where is in the CMakeLists.txt file from the proper cpp file folder
-// For more variable information, please refer to the file, namely .globalCmakeVariable.cmake
-// When the OS_ID is not defined in the CMakeLists.txt file from the proper cpp file folder,
-// the OS_ID will not be passed defined into compiled process
-#ifndef OS_ID
-namespace SizingMainCaller {
+namespace SizingControllers {
 //===Global Declaration===
 // Variables in .ini file
 // Writing file path
@@ -23,8 +18,12 @@ unsigned int _OUTPUT_LAYOUT_TYPE_ = 0;
 volatile char _IS_PCAP_WORKED_ = 0x1;
 // Determining if the alarm shall be still working, 0x0: halting, 0x1: working
 volatile char _IS_ALARM_WORKED_ = 0x1;
-// Mutual locker
-std::mutex _MUTEX_;
+// Mutual locker(Windows version), using by the critical section (only works on a process on Windows)
+CRITICAL_SECTION _CRITICAL_SECTION_;
+// For the windows timer
+HANDLE _TIMER_ = nullptr;
+// For the windows exit signal
+HANDLE _EXITED_EVENT_ = nullptr;
 
 // Referring to the objects for stopping "pcap_loop"
 std::vector<PCAP::PCAPPrototype*> _PCAP_POINTER_;
@@ -34,19 +33,11 @@ FILE** _FILE_POINTER_ = nullptr;
 //===Static fields Declaration===
 // For reserving the session's previous, the key is a tuple which combines sorted ip and port information;
 // the second one is the session's previous packet type; the value is defined as follows: 0: undefined; 1: TX, and 2: RX
-std::map<std::tuple<uint32_t, uint32_t, uint16_t, uint16_t>, char> LinuxSizingMainCaller::sessionMap;
-// For recording the maximum number of packets which contain SQL per second
-long LinuxSizingMainCaller::currentSqlMaxRequestNumberPerSec = 0;
+std::map<std::tuple <uint32_t, uint32_t, uint16_t, uint16_t>, char> WindowsWinDivertSizingMainController::sessionMap;
+// For recording the maximum number of packets per second
+long WindowsWinDivertSizingMainController::currentSqlMaxRequestNumberPerSec = 0;
 // For reserving the starting time in the beginning or the updating time when the SQL statements receive
-std::chrono::steady_clock::time_point LinuxSizingMainCaller::startingTime = std::chrono::steady_clock::time_point::min();
-// For recording the maximum size of tx packets per second
-long LinuxSizingMainCaller::currentMaxTxSizePerSec = 0;
-// For recording the maximum size of rx packets per second
-long LinuxSizingMainCaller::currentMaxRxSizePerSec = 0;
-// For reserving the starting time in the beginning or the updating time when receiving a tx packet
-std::chrono::steady_clock::time_point LinuxSizingMainCaller::startingTimeTX = std::chrono::steady_clock::time_point::min();
-// For reserving the starting time in the beginning or the updating time when receiving a rx packet
-std::chrono::steady_clock::time_point LinuxSizingMainCaller::startingTimeRX = std::chrono::steady_clock::time_point::min();
+std::chrono::steady_clock::time_point WindowsWinDivertSizingMainController::startingTime = std::chrono::steady_clock::time_point::min();
 
 /**
  * The starting process, the entry of the process
@@ -55,14 +46,14 @@ std::chrono::steady_clock::time_point LinuxSizingMainCaller::startingTimeRX = st
  * @param argV [char**] The array of the argument
  * @return [Commons::POSIXErrors] The status defined in the class "POSIXErrors" The status defined in the class "POSIXErrors"
  */
-Commons::POSIXErrors LinuxSizingMainCaller::start(int argC, char** argV) {
+Commons::POSIXErrors WindowsWinDivertSizingMainController::start(int argC, char** argV) {
     Commons::POSIXErrors result = Commons::POSIXErrors::OK;
 
     // TODO: This section shall be implemented by using "Bison" instead of the section defined in the following.
     // To determine if the argument is passed for the execution
     if (argC == 2 && strcmp(argV[1], "-l") == 0) {
         // Showing the information
-        PCAP::LinuxPCAP::show();
+        PCAP::WindowsWinDivertPCAP::show();
         return result;
     }
 
@@ -90,16 +81,16 @@ Commons::POSIXErrors LinuxSizingMainCaller::start(int argC, char** argV) {
     _WRITING_FILE_LOCATION_ = OuputFilePathWithTime;
 
     // Installing a signal handler, interrupt
-    signal(SIGINT, LinuxSizingMainCaller::signalInterruptedHandler);
+    SetConsoleCtrlHandler(WindowsWinDivertSizingMainController::signalInterruptedHandler, TRUE);
 
-    {  // Creating objects, opening the interfaces, executing the packet calculations
-        // and closing the interfaces; the number of objects is equal to the number of
-        // the interfaces
-        std::vector<PCAP::LinuxPCAP*> pcapObjectOfInterface;  // Here each element shall be a pointer because there exist a pointer which refers to a
-                                                              // resource in the class. When the vector reserve objects, the destructor will occur twice in the following loop.
-                                                              // The best approach is used the dynamic memory allocation with pointers.
+    {                                                           // Creating objects, opening the interfaces, executing the packet calculations
+                                                                // and closing the interfaces; the number of objects is equal to the number of
+                                                                // the interfaces
+        std::vector<PCAP::WindowsWinDivertPCAP*> pcapObjectOfInterface;  // Here each element shall be a pointer because there exist a pointer which refers to a
+                                                                // resource in the class. When the vector reserve objects, the destructor will occur twice in the following loop.
+                                                                // The best approach is used the dynamic memory allocation with pointers.
         for (unsigned int i = 0; i < interfaceNameArray.size(); i++) {
-            PCAP::LinuxPCAP* pcapObject = new PCAP::LinuxPCAP();
+            PCAP::WindowsWinDivertPCAP* pcapObject = new PCAP::WindowsWinDivertPCAP();
             pcapObject->open(interfaceNameArray[i].interfaceName, BUFSIZ, 1, 1000, &(interfaceNameArray[i].port));
 
             // Putting each pcap object into thread array
@@ -111,6 +102,9 @@ Commons::POSIXErrors LinuxSizingMainCaller::start(int argC, char** argV) {
             interfaceNameArray.clear();
             interfaceNameArray.shrink_to_fit();
         }
+
+        // Before the threads, the MUTEX locker on Windows shall be initialized.
+        InitializeCriticalSection(&_CRITICAL_SECTION_);
 
         FILE* fileDescriptor = nullptr;
         // n + 1  threads created; the n is equal to the number of interfaces;
@@ -138,6 +132,9 @@ Commons::POSIXErrors LinuxSizingMainCaller::start(int argC, char** argV) {
         }
         writePacketFileThread.join();
 
+        // After threads have joined, the mutex locker shall be released.
+        DeleteCriticalSection(&_CRITICAL_SECTION_);
+
         // All pcap objects shall call the close function
         for (unsigned int i = 0; i < pcapObjectOfInterface.size(); i++) {
             if (pcapObjectOfInterface[i] != nullptr) {
@@ -164,7 +161,7 @@ Commons::POSIXErrors LinuxSizingMainCaller::start(int argC, char** argV) {
  * @return [Commons::POSIXErrors] The status defined in the class "POSIXErrors" The status
  * defined in the class "POSIXErrors"
  */
-Commons::POSIXErrors LinuxSizingMainCaller::config(std::vector<unitService>* services) {
+Commons::POSIXErrors WindowsWinDivertSizingMainController::config(std::vector<unitService>* services) {
     Commons::POSIXErrors error = Commons::POSIXErrors::OK;
 
     // Loading information from the .json file for the application
@@ -261,10 +258,10 @@ Commons::POSIXErrors LinuxSizingMainCaller::config(std::vector<unitService>* ser
 /**
  * The function for the first type of the threads (n threads), packetThread; the task is to execute the "pcap_loop"
  *
- * @param pcap [PCAP::LinuxPCAP*] The address of the PCAP::LinuxPCAP object
+ * @param pcap [PCAP::WindowsWinDivertPCAP*] The address of the PCAP::WindowsWinDivertPCAP object
  * @param packetHandler [void (*)(u_char*, const pcap_pkthdr*, const u_char*)] The callback function for pcap_loop
  */
-void LinuxSizingMainCaller::packetTask(PCAP::LinuxPCAP* pcap, void (*packetHandler)(u_char*, const pcap_pkthdr*, const u_char*)) {
+void WindowsWinDivertSizingMainController::packetTask(PCAP::WindowsWinDivertPCAP* pcap, void (*packetHandler)(u_char*, const pcap_pkthdr*, const u_char*)) {
     // The only argument will be set; as a result, the pcap object will be passed in the function, packetHandler.
     // For more information, please refer to the function, execute(.).
     pcap->execute(packetHandler);
@@ -278,50 +275,91 @@ void LinuxSizingMainCaller::packetTask(PCAP::LinuxPCAP* pcap, void (*packetHandl
  * which users defined in .json file.
  * @param filePath [const char*] The file path for recording the information
  */
-void LinuxSizingMainCaller::packetFileTask(FILE** fileDescriptor, const char* filePath) {
-    // Installing a signal handler, alarm
-    signal(SIGALRM, LinuxSizingMainCaller::signalAlarmHandler);
-    _FILE_POINTER_ = fileDescriptor;  // Passing to the global variable
+void WindowsWinDivertSizingMainController::packetFileTask(FILE** fileDescriptor, const char* filePath) {
+    // Registering the handler, "exit event"; this variable is used in the WindowsWinDivertSizingMainController::signalInterruptedHandler
+    _EXITED_EVENT_ = CreateEvent(NULL, TRUE, FALSE, NULL);
+    if (_EXITED_EVENT_ == nullptr) {
+        _IS_ALARM_WORKED_ = 0x0;  // Disabled alarm
+        std::cerr << "[Error] CreateEvent failed.\n";
+        return;
+    }
 
-    // The first calling the function
-    alarm(_WRITING_FILE_SECOND_);
+    // Installing a signal handler, alarm, on Windows
+    _TIMER_ = CreateWaitableTimer(nullptr, FALSE, nullptr);
+    if (_TIMER_ == nullptr) {
+        std::cerr << "[Error] Failed to create a waitable timer.\n";
+        _IS_ALARM_WORKED_ = 0x0;  // Disabled alarm
+        return;
+    }
 
+    _FILE_POINTER_ = fileDescriptor;  // Passing as the global variable
     // Opening the file with the file descriptor
     if (*_FILE_POINTER_ == nullptr) {
         *_FILE_POINTER_ = fopen(filePath, "a+");
         if (*_FILE_POINTER_ == nullptr) {
             std::cerr << "Error opening the file!\n";
-            LinuxSizingMainCaller::signalInterruptedHandler(0);  // Going to the end of the thread
+            WindowsWinDivertSizingMainController::signalInterruptedHandler(CTRL_C_EVENT);  // Going to the end of the thread
 
         } else {  // Adding the header information in a line to the file
-            // Outputing the title by the mechanism from the "services" defined in the Services/SizingServices/Sources/Transformer.cpp
-            SizingServices::Transformer::defaultOutputLayoutType = (int)_OUTPUT_LAYOUT_TYPE_;  // Assigning the output format
-            switch ((int)SizingServices::Transformer::defaultOutputLayoutType) {
-                case SizingServices::Transformer::DEFAULT:
-                    // Printing the title; e.g.. UTC\tType\tInterface\tPort ...
-                    SizingServices::Transformer::printContent((unsigned int)SizingServices::Transformer::LayoutFormatAndStringType::TITLE, 11, fileno(*_FILE_POINTER_));
-                    break;
-                case SizingServices::Transformer::FLOWTYPE:
-                    SizingServices::Transformer::printContent((unsigned int)SizingServices::Transformer::LayoutFormatAndStringType::TITLE, 9, fileno(*_FILE_POINTER_));
-                    break;
-            }
-
+            char output[1024] = {'\0'};
+            int length = sprintf(output,
+                                 "UTC\tType\tInterface\tPort\tNumber(amount)\tSize(bytes)\tMaxSize(bytes)\t"
+                                 "SQL number in the time interval\tSQL size(bytes) in the time interval\tAverage SQL number per sec(eps)\tPeak SQL number per sec(eps)\n");
+            fwrite(output, sizeof(char), length, *_FILE_POINTER_);
             if (*_FILE_POINTER_ != nullptr) {
-                SizingServices::Transformer::releaseDescriptors();
                 fclose(*_FILE_POINTER_);
                 *_FILE_POINTER_ = nullptr;
             }
         }
     }
 
-    // Using a global variable to verify if the interrupt occurs
-    while (_IS_ALARM_WORKED_ == 0x1) {
-        sleep(5);  // A routine clock checker
+    // Setting the alarm information
+    LARGE_INTEGER dueTime;
+    dueTime.QuadPart = (LONGLONG)(-1) * (10000000LL) * (LONGLONG)_WRITING_FILE_SECOND_;  // Setting the first execution time when the timer executes
+
+    // Setting the alarm and the callback function, signalAlarmHandler, will awake every "(_WRITING_FILE_SECOND_ * 1000)" milliseconds;
+    // when the SetWaitableTimer(.) successes, the timer will executes periodically
+    if (!SetWaitableTimer(_TIMER_, &dueTime, (_WRITING_FILE_SECOND_ * 1000), nullptr, nullptr, FALSE)) {
+        std::cerr << "[Error] Failed to create a waitable timer.\n";
+        _IS_ALARM_WORKED_ = 0x0;  // Disabled alarm
+        return;
     }
 
-    // Closing the file
-    if (*_FILE_POINTER_ != nullptr) {
-        fclose(*_FILE_POINTER_);
+    // Registering the handlers
+    HANDLE handles[] = {_TIMER_, _EXITED_EVENT_};
+
+    while (_IS_ALARM_WORKED_ == 0x1) {
+        // Waiting the handlers, _TIMER_ and _EXITED_EVENT_, asynchronously
+        DWORD waitedResult = WaitForMultipleObjects(2, handles, FALSE, INFINITE);
+        switch (waitedResult) {
+            case WAIT_OBJECT_0:  // "_TIMER_" case
+                signalAlarmHandler();
+
+            case (WAIT_OBJECT_0 + 1):  // "_EXITED_EVENT_" case
+                break;
+        }
+    }
+
+    {  // Cleaning process
+        // When the exited event does not belong to nullptr, ...
+        if (_EXITED_EVENT_ != nullptr) {
+            // Closing the timer
+            CloseHandle(_EXITED_EVENT_);
+            _EXITED_EVENT_ = nullptr;
+        }
+
+        // When the timer does not belong to nullptr, ...
+        if (_TIMER_ != nullptr) {
+            // Closing the timer
+            CloseHandle(_TIMER_);
+            _TIMER_ = nullptr;
+        }
+
+        // Closing the file if the descriptor does not belong to nullptr
+        if (*_FILE_POINTER_ != nullptr) {
+            fclose(*_FILE_POINTER_);
+            *_FILE_POINTER_ = nullptr;
+        }
     }
 }
 
@@ -329,43 +367,38 @@ void LinuxSizingMainCaller::packetFileTask(FILE** fileDescriptor, const char* fi
  * Calculating the amount of the packets, a callback function to throw into the PCAP module (user defined)
  *
  * @param userData [u_char*]
- * @param pkthdr [const struct pcap_pkthdr*] The address of the packet header
+ * @param pkthdr [const struct pcap_pkthdr*] The address of the packet header (here, the pointer refers to the object of the structure, "WINDIVERT_GROUP_TYPE")
+ * because in the winDivert, the ip header does not contain the information except the ip header
  * @param packet [const u_char*] The address of the packet
  */
-void LinuxSizingMainCaller::packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, const u_char* packet) {
+void WindowsWinDivertSizingMainController::packetHandler(u_char* userData, const pcap_pkthdr* pkthdr, const u_char* packet) {
     // Opening the clock when the value equals to "std::chrono::steady_clock::time_point::min()"
     if (startingTime == std::chrono::steady_clock::time_point::min()) {
-        startingTime = std::chrono::steady_clock::now();  // Assign now to the startingTime variable
+        startingTime = std::chrono::steady_clock::now(); // Assign now to the startingTime variable
     }
-
-    // Opening the clock when the value equals to "std::chrono::steady_clock::time_point::min()"
-    if (startingTimeTX == std::chrono::steady_clock::time_point::min()) {
-        startingTimeTX = std::chrono::steady_clock::now();  // Assign now to the startingTime variable
-    }
-
-    // Opening the clock when the value equals to "std::chrono::steady_clock::time_point::min()"
-    if (startingTimeRX == std::chrono::steady_clock::time_point::min()) {
-        startingTimeRX = std::chrono::steady_clock::now();  // Assign now to the startingTime variable
-    }
-
-    // Due to the setting of the function, execute(.), the data of userData is the object of children classes (LinuxPCAP, WindowsPCAP and so on ...)
+    // Due to the setting of the function, execute(.), the data of userData is the object of children classes (WindowsPCAP, WindowsPCAP and so on ...)
     PCAP::PCAPPrototype* pcapInstance = (PCAP::PCAPPrototype*)userData;
     // Determining what the instance belong to
-    PCAP::LinuxPCAP* linuxPCAP = nullptr;
-    if (dynamic_cast<PCAP::LinuxPCAP*>(pcapInstance)) {
-        linuxPCAP = dynamic_cast<PCAP::LinuxPCAP*>(pcapInstance);
+    PCAP::WindowsWinDivertPCAP* windowsPCAP = nullptr;
+    if (dynamic_cast<PCAP::WindowsWinDivertPCAP*>(pcapInstance)) {
+        windowsPCAP = dynamic_cast<PCAP::WindowsWinDivertPCAP*>(pcapInstance);
     }
 
-    // When the pcap belongs to linux pcap, ...
-    if (linuxPCAP != nullptr) {
-        std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>* tmpMap = &(linuxPCAP->portRelatedInformation);  // Due to less ports in the setting
+    // When the pcap belongs to windows pcap, ...
+    if (windowsPCAP != nullptr) {
+        std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>* tmpMap = &(windowsPCAP->portRelatedInformation);
+
+        // The Ip collection, the variable will be static
+        static std::unordered_map<uint32_t, char> ipMap;
 
         // Obtaining the IP header; the ip_p column implies the protocol;
         // the number of the TCP is 6, and the UDP is 17
-        ip* ip_header = (ip*)(packet + sizeof(ether_header));
+        PWINDIVERT_IPHDR ipHeader = pkthdr->ipHeader;
+        if (ipHeader == nullptr) {
+            return;  // Returning when the ipHeader is nullptr
+        }
 
         // Preparing the headers and the packet source/destination port variables
-        tcphdr* tcpHeader = nullptr;
         udphdr* udpHeader = nullptr;
         uint16_t packetSourcePort = 0;
         uint16_t packetDestinationPort = 0;
@@ -374,24 +407,28 @@ void LinuxSizingMainCaller::packetHandler(u_char* userData, const struct pcap_pk
         // Preparing the flag information of the tcp;
         // when the flag of the tcp is equal to 0x18, the packet belongs to SQL packets
         uint8_t tcpFlag = 0;
-
         bool isKnownProtocol = true;
         // Determining the protocol (TCP or UDP)
-        switch (ip_header->ip_p) {
+        switch (ipHeader->Protocol) {
             case IPPROTO_TCP:  // TCP
-                tcpHeader = (tcphdr*)(packet + sizeof(ether_header) + sizeof(ip));
-                packetSourcePort = ntohs(tcpHeader->th_sport);
-                packetDestinationPort = ntohs(tcpHeader->th_dport);
-                tcpFlag = tcpHeader->th_flags;
-                packetSourceIp = ip_header->ip_src.s_addr;
-                packetDestinationIp = ip_header->ip_dst.s_addr;
+                if (pkthdr->tcpHeader != nullptr) { 
+                    packetSourcePort = ntohs(pkthdr->tcpHeader->SrcPort);
+                    packetDestinationPort = ntohs(pkthdr->tcpHeader->DstPort);
+                    tcpFlag = ((pkthdr->tcpHeader->Fin) | (pkthdr->tcpHeader->Syn << 1) | (pkthdr->tcpHeader->Rst << 2) |
+                                (pkthdr->tcpHeader->Psh << 3) | (pkthdr->tcpHeader->Ack << 4) | (pkthdr->tcpHeader->Urg << 5));
+                    packetSourceIp = pkthdr->ipHeader->SrcAddr;
+                    packetDestinationIp = pkthdr->ipHeader->DstAddr;
+                } else { // When the tcpHeader is nullptr, ...
+                    isKnownProtocol = false;
+                }
                 break;
             case IPPROTO_UDP:  // UDP
-                udpHeader = (udphdr*)(packet + sizeof(ether_header) + sizeof(ip));
-                packetSourcePort = ntohs(udpHeader->uh_sport);
-                packetDestinationPort = ntohs(udpHeader->uh_dport);
-                packetSourceIp = ip_header->ip_src.s_addr;
-                packetDestinationIp = ip_header->ip_dst.s_addr;
+                if (pkthdr->udpHeader != nullptr) {
+                    packetSourcePort = ntohs(pkthdr->udpHeader->SrcPort);
+                    packetDestinationPort = ntohs(pkthdr->udpHeader->DstPort);
+                    packetSourceIp = pkthdr->ipHeader->SrcAddr;
+                    packetDestinationIp = pkthdr->ipHeader->DstAddr;
+                }
                 break;
             default:
                 // Skipping (unknown)
@@ -411,59 +448,50 @@ void LinuxSizingMainCaller::packetHandler(u_char* userData, const struct pcap_pk
             sortedSessionTuple = std::make_tuple(packetDestinationIp, packetSourceIp, packetDestinationPort, packetSourcePort);
         }
 
-        char previousPacketType = 0x0;  // Undefined (0x0); 0x1: TX, and 0x2: RX
+        char previousPacketType = 0x0; // Undefined (0x0); 0x1: TX, and 0x2: RX
         // Critical section, accessing the data area
-        _MUTEX_.lock();
+        EnterCriticalSection(&_CRITICAL_SECTION_);
 
         // Operating the sessionMap, using the emplace for verifying if the session key has been existed;
-        // the returned value contains a pair consisting of an iterator to the inserted element
+        // the returned value contains a pair consisting of an iterator to the inserted element 
         // (or to the element that prevented the insertion) and a bool value;
         // when the key exists, the returned second value is false (e.g., insert failed); when the key does not
         // exist, the returned second value is true (e.g., insert success)
-        std::pair<std::map<std::tuple<uint32_t, uint32_t, uint16_t, uint16_t>, char>::iterator, bool> insertedResult = SizingMainCaller::LinuxSizingMainCaller::sessionMap.emplace(sortedSessionTuple, previousPacketType);
-        if (insertedResult.second == true) {  // Key will inserted ...
+        std::pair<std::map<std::tuple<uint32_t, uint32_t, uint16_t, uint16_t>, char>::iterator, bool> insertedResult = 
+                                WindowsWinDivertSizingMainController::sessionMap.emplace(sortedSessionTuple, previousPacketType);
+        if (insertedResult.second == true) { // Key will inserted ...
             // Do nothing
-        } else {  // Key exist
+        } else { // Key exist
             previousPacketType = (insertedResult.first)->second;
         }
 
+        
         // Comparing source and destination ports with the port to determine the direction
         char packetTypeDetermineSet = 0x0;  // A flag to check if the packet type has been determined
         // For readability, the author uses a variable, packetTypeDetermineSet, to determine the type of the packet. That implies that
-        // a packet only belongs a type to demonstrate the phenomenons of mutual exclusion. The two sections are provided.
+        // a packet only belongs a type to demonstrate the phenomenons of mutual exclusion. The three sections are provided.
         if (packetTypeDetermineSet == 0x0) {  // First, TX packet section; when the packet does not hit the port map
             std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>::iterator it = tmpMap->find((int)packetSourcePort);
             if (it != tmpMap->end()) {  // Hitting
                 // Updating the TX information
                 executePacketInformationUpdate(
-                    (long long)(pkthdr->len),
+                    (long long)(pkthdr->packetLength),
                     &((it->second)->txPacketNumber),
                     &((it->second)->txSize),
                     &((it->second)->maxTxSize),
-                    &(linuxPCAP->txPacketNumber),
-                    &(linuxPCAP->txSize),
-                    &(linuxPCAP->maxTxSize),
-                    &packetTypeDetermineSet);
-
-                {  // Determining if the time has been equal to and larger than 1 sec (tx max size per sec)
-                    currentMaxTxSizePerSec += (long)(pkthdr->len);
-                    std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
-                    std::chrono::duration<double> elapsedSeconds = now - startingTimeTX;
-                    if (elapsedSeconds.count() >= 1.0) {
-                        // Determining if the kept data are lager than current reserved data in the same session
-                        (it->second)->maxTxSizePerSec = ((it->second)->maxTxSizePerSec) > currentMaxTxSizePerSec ? ((it->second)->maxTxSizePerSec) : currentMaxTxSizePerSec;
-                        startingTimeTX = now;
-                        currentMaxTxSizePerSec = 0;
-                    }
-                }
+                    &(windowsPCAP->txPacketNumber),
+                    &(windowsPCAP->txSize),
+                    &(windowsPCAP->maxTxSize),
+                    &packetTypeDetermineSet
+                );
 
                 // Determining if the cyclic direction packets have been detected
                 // When flow change occurs, the previous packet is "undefined" or "RX"
                 if (previousPacketType == 0x0 || previousPacketType == 0x2) {
-                    (it->second)->flowChangeNumber++;                           // Flow change occurs, the previous packet is RX or nothing
-                    (it->second)->rxGroupNumber++;                              // rxGroupNumber in the port shall plus 1.
-                    (insertedResult.first)->second = previousPacketType = 0x1;  // Setting the previous packet type to TX
-                    linuxPCAP->rxGroupNumber++;                                 // rxGroupNumber shall plus 1.
+                    (it->second)->flowChangeNumber++; // Flow change occurs, the previous packet is RX or nothing
+                    (it->second)->rxGroupNumber++; // rxGroupNumber in the port shall plus 1.
+                    (insertedResult.first)->second = previousPacketType = 0x1; // Setting the previous packet type to TX
+                    windowsPCAP->rxGroupNumber++; // rxGroupNumber shall plus 1.
                 }
             }
         }
@@ -473,46 +501,37 @@ void LinuxSizingMainCaller::packetHandler(u_char* userData, const struct pcap_pk
             if (it != tmpMap->end()) {  // Hitting
                 // Updating the RX information
                 executePacketInformationUpdate(
-                    (long long)(pkthdr->len),
+                    (long long)(pkthdr->packetLength),
                     &((it->second)->rxPacketNumber),
                     &((it->second)->rxSize),
                     &((it->second)->maxRxSize),
-                    &(linuxPCAP->rxPacketNumber),
-                    &(linuxPCAP->rxSize),
-                    &(linuxPCAP->maxRxSize),
-                    &packetTypeDetermineSet);
-
-                {  // Determining if the time has been equal to and larger than 1 sec (rx max size per sec)
-                    currentMaxRxSizePerSec += (long)(pkthdr->len);
-                    std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
-                    std::chrono::duration<double> elapsedSeconds = now - startingTimeRX;
-                    if (elapsedSeconds.count() >= 1.0) {
-                        // Determining if the kept data are lager than current reserved data in the same session
-                        (it->second)->maxRxSizePerSec = ((it->second)->maxRxSizePerSec) > currentMaxRxSizePerSec ? ((it->second)->maxRxSizePerSec) : currentMaxRxSizePerSec;
-                        startingTimeRX = now;
-                        currentMaxRxSizePerSec = 0;
-                    }
-                }
-
+                    &(windowsPCAP->rxPacketNumber),
+                    &(windowsPCAP->rxSize),
+                    &(windowsPCAP->maxRxSize),
+                    &packetTypeDetermineSet
+                );
+                
                 // Determining if the cyclic direction packets have been detected
                 // When flow change occurs, the previous packet is "undefined" or "TX"
                 if (previousPacketType == 0x0 || previousPacketType == 0x1) {
-                    (it->second)->flowChangeNumber++;                           // Flow change occurs, the previous packet is RX
-                    (it->second)->txGroupNumber++;                              // txGroupNumber in the port shall plus 1.
-                    (insertedResult.first)->second = previousPacketType = 0x2;  // Setting the previous packet type to TX
-                    linuxPCAP->txGroupNumber++;                                 // txGroupNumber shall plus 1.
+                    (it->second)->flowChangeNumber++; // Flow change occurs, the previous packet is RX
+                    (it->second)->txGroupNumber++; // txGroupNumber in the port shall plus 1.
+                    (insertedResult.first)->second = previousPacketType = 0x2; // Setting the previous packet type to TX
+                    windowsPCAP->txGroupNumber++; // txGroupNumber shall plus 1.
 
                     // In this if section, the meaning implies that the packet from the client to server contain a SQL statement (cyclic direction + PSH + ACK)
-                    if (tcpFlag == 0x18) {  // PSH + ACK flag
+                    if (tcpFlag == 0x18) { // PSH + ACK flag
                         (it->second)->sqlRequestNumber++;
-                        (it->second)->sqlRequestSize += (long long)(pkthdr->len);
-                        currentSqlMaxRequestNumberPerSec++;  // Adding the number
+                        (it->second)->sqlRequestSize += (long long)(pkthdr->packetLength);
+                        currentSqlMaxRequestNumberPerSec++; // Adding the number
                         // Determining if the time has been equal to and larger than 1 sec
                         std::chrono::steady_clock::time_point now = std::chrono::steady_clock::now();
                         std::chrono::duration<double> elapsedSeconds = now - startingTime;
-                        if (elapsedSeconds.count() >= 1.0) {
-                            // Determining if the kept data are lager than current reserved data in the same session
-                            (it->second)->sqlMaxRequestNumberPerSec = ((it->second)->sqlMaxRequestNumberPerSec) > currentSqlMaxRequestNumberPerSec ? ((it->second)->sqlMaxRequestNumberPerSec) : currentSqlMaxRequestNumberPerSec;
+                        if ( elapsedSeconds.count() >= 1.0) {
+                            // Determining if the kept data are lager than current reserved data in the same session 
+                            (it->second)->sqlMaxRequestNumberPerSec = ((it->second)->sqlMaxRequestNumberPerSec) > currentSqlMaxRequestNumberPerSec ?
+                                                                    ((it->second)->sqlMaxRequestNumberPerSec):
+                                                                    currentSqlMaxRequestNumberPerSec;
                             startingTime = now;
                             currentSqlMaxRequestNumberPerSec = 0;
                         }
@@ -522,19 +541,13 @@ void LinuxSizingMainCaller::packetHandler(u_char* userData, const struct pcap_pk
         }
 
         // Critical section end
-        _MUTEX_.unlock();
-    }
-
-    // Verifying if the "pcap_loop" shall be stopped; "_IS_PCAP_WORKED_" is
-    // a global variable and is controlled by the signal mechanism
-    if (_IS_PCAP_WORKED_ == 0x0) {
-        pcap_breakloop((pcap_t*)linuxPCAP->descriptor);
+        LeaveCriticalSection(&_CRITICAL_SECTION_);
     }
 }
 
 /**
  * Updating the RX and TX packet information (according to the parameter)
- *
+ * 
  * @param packetHeaderLength [long long] The packet header length
  * @param portXPacketNumber [long*] The TX/RX packet number from the defined ports
  * @param portXSize [long long*] The TX/RX packet size from the defined ports
@@ -545,28 +558,29 @@ void LinuxSizingMainCaller::packetHandler(u_char* userData, const struct pcap_pk
  * @param packetTypeDetermineSet [char] The flag if the section is exected; 0 is not executed, and 1 is executed
  * @return [void] None
  */
-void LinuxSizingMainCaller::executePacketInformationUpdate(long long packetHeaderLength,
-                                                           long* portXPacketNumber,
-                                                           long long* portXSize,
-                                                           long long* portMaxXSize,
-                                                           long* XPacketNumber,
-                                                           long long* XSize,
-                                                           long long* maxXSize,
-                                                           char* packetTypeDetermineSet) {
+void WindowsWinDivertSizingMainController::executePacketInformationUpdate(long long packetHeaderLength,
+                                  long* portXPacketNumber,
+                                  long long* portXSize,
+                                  long long* portMaxXSize,
+                                  long* XPacketNumber,
+                                  long long* XSize,
+                                  long long* maxXSize,
+                                  char* packetTypeDetermineSet) {
+
     (*portXPacketNumber)++;              // rx/txPacketNumber in the port shall plus 1.
     (*portXSize) += packetHeaderLength;  // rx/txSize in the port shall plus the current one.
 
     // Obtaining the rx/txmaximum size in the port
     if ((*portMaxXSize) < packetHeaderLength) {
-        (*portMaxXSize) = packetHeaderLength;
+    (*portMaxXSize) = packetHeaderLength;
     }
 
-    (*XPacketNumber)++;              // rx/txPacketNumber shall plus 1.
-    (*XSize) += packetHeaderLength;  // rx/txSize shall plus the current one.
+    (*XPacketNumber)++;                  // rx/txPacketNumber shall plus 1.
+    (*XSize) += packetHeaderLength;      // rx/txSize shall plus the current one.
 
     // Obtaining the rx/tx maximum size
     if ((*maxXSize) < packetHeaderLength) {
-        (*maxXSize) = packetHeaderLength;
+    (*maxXSize) = packetHeaderLength;
     }
     (*packetTypeDetermineSet) = 0x1;
 }
@@ -574,15 +588,48 @@ void LinuxSizingMainCaller::executePacketInformationUpdate(long long packetHeade
 /**
  * A handler when receiving the SIGINT signal
  *
- * @param [int] The signal type (ignore)
+ * @param signal [DWORD] The signal type
+ * @return [BOOL WINAPI] The successful result; the TRUE shows okay; otherwise false
  */
-void LinuxSizingMainCaller::signalInterruptedHandler(int) {
-    std::cerr << "\n"
-              << "Interrupted signal occurs, please wait.\n";
-    // Using these two global variables to break the loops in different threads
-    _IS_PCAP_WORKED_ = 0x0;
-    _IS_ALARM_WORKED_ = 0x0;
-    alarm(0);
+BOOL WINAPI WindowsWinDivertSizingMainController::signalInterruptedHandler(DWORD signal) {
+    if (signal == CTRL_C_EVENT) {  // When encountering the interrupted signal
+        std::cerr << "\n"
+                  << "Interrupted signal occurs, please wait.\n";
+        // Using these two global variables to break the loops in different threads
+        _IS_PCAP_WORKED_ = 0x0;
+        _IS_ALARM_WORKED_ = 0x0;
+
+        // Verifying if the "pcap_loop" shall be stopped; "_IS_PCAP_WORKED_" is
+        // a global variable and is controlled by the signal mechanism; when the
+        // value is equal to 0x0, all WinDriverRecv (a blocking function) shall be 
+        // released
+        if (_IS_PCAP_WORKED_ == 0x0) {
+            // Canceling I/O for all WinDivert handles
+            for (std::vector<PCAP::PCAPPrototype*>::iterator it = _PCAP_POINTER_.begin(); 
+                it != _PCAP_POINTER_.end(); 
+                ++it) {
+                if (PCAP::WindowsWinDivertPCAP* winPCAPPointer = dynamic_cast<PCAP::WindowsWinDivertPCAP*>(*it)) {
+                    if (winPCAPPointer->descriptor != INVALID_HANDLE_VALUE) {
+                        CancelIoEx((HANDLE)winPCAPPointer->descriptor, nullptr); // Unblock all "WinDivertRecv" blocking functions
+                    }
+                    // Calling to the pcap_breakloop
+                    winPCAPPointer->pcap_breakloop();
+                }
+            }
+        }
+
+
+        // Setting the event handler and signaling WaitForMultipleObjects to leaving the loop
+        if (_EXITED_EVENT_ != nullptr) {
+            SetEvent(_EXITED_EVENT_);
+        }
+
+        // Cancelling the timer
+        if (_TIMER_ != nullptr) {
+            CancelWaitableTimer(_TIMER_);
+        }
+    }
+    return TRUE;
 }
 
 /**
@@ -591,19 +638,21 @@ void LinuxSizingMainCaller::signalInterruptedHandler(int) {
  *
  * @param signalType [int] The signal type and the parameter is useless in this method
  */
-void LinuxSizingMainCaller::signalAlarmHandler(int) {
+void WindowsWinDivertSizingMainController::signalAlarmHandler() {
     // File writing
+    char output[1024] = {"\0"};
     if (*_FILE_POINTER_ == nullptr) {
         // Opening the file
         *_FILE_POINTER_ = fopen(_WRITING_FILE_LOCATION_, "a+");
 
         if (*_FILE_POINTER_ == nullptr) {
             std::cerr << "Error opening the file!\n";
-            LinuxSizingMainCaller::signalInterruptedHandler(0);  // Going to the end of the thread
+            WindowsWinDivertSizingMainController::signalInterruptedHandler(CTRL_C_EVENT);  // Going to the end of the thread
 
         } else {
-            SizingServices::Transformer::defaultOutputLayoutType = (int)_OUTPUT_LAYOUT_TYPE_;  // Assigning the output format
-            _MUTEX_.lock();
+            // Critical section, accessing the data area
+            EnterCriticalSection(&_CRITICAL_SECTION_);
+
             // "UTC\tType\tPort\tNumber(amount)\tSize(byte)\tMaxSize\tSQL number per time interval(eps)\tSQL size per time interval(eps)\n";
             time_t timeEpoch = Commons::Time::getEpoch();
 
@@ -611,50 +660,46 @@ void LinuxSizingMainCaller::signalAlarmHandler(int) {
             for (std::vector<PCAP::PCAPPrototype*>::iterator it = _PCAP_POINTER_.begin();
                  it != _PCAP_POINTER_.end();
                  it++) {
-                if (dynamic_cast<PCAP::LinuxPCAP*>(*it)) {
+                if (dynamic_cast<PCAP::WindowsWinDivertPCAP*>(*it)) {
                     // Passing the object to the correct type
-                    PCAP::LinuxPCAP* tmp = dynamic_cast<PCAP::LinuxPCAP*>(*it);
+                    PCAP::WindowsWinDivertPCAP* tmp = dynamic_cast<PCAP::WindowsWinDivertPCAP*>(*it);
                     for (std::unordered_map<int, PCAP::PCAPPrototype::PCAPPortInformation*>::iterator it2 = (tmp->portRelatedInformation).begin();
                          it2 != (tmp->portRelatedInformation).end();
                          it2++) {
                         // TX part; in the section, the last two result will be to zero because the packets
                         // from the record set from the SQL server shall be ignored
-                        // Outputing the format with arguments by the mechanism from the "services" defined in the Services/SizingServices/Sources/Transformer.cpp
-                        switch ((int)SizingServices::Transformer::defaultOutputLayoutType) {
-                            case SizingServices::Transformer::DEFAULT:
-                                SizingServices::Transformer::printContent((unsigned int)SizingServices::Transformer::LayoutFormatAndStringType::FORMAT, 11, fileno(*_FILE_POINTER_),
-                                                                          timeEpoch, "TX", (tmp->deviceInterface).c_str(), (it2)->first, tmp->txPacketNumber,
-                                                                          tmp->txSize, tmp->maxTxSize, (long)0, (long long)0, (long long)0,
-                                                                          (long long)0);
-                                break;
-                            case SizingServices::Transformer::FLOWTYPE:
-                                SizingServices::Transformer::printContent((unsigned int)SizingServices::Transformer::LayoutFormatAndStringType::FORMAT, 9, fileno(*_FILE_POINTER_),
-                                                                          timeEpoch, "TX", (tmp->deviceInterface).c_str(), (it2)->first, _WRITING_FILE_SECOND_,
-                                                                          (tmp->txSize / (long)_WRITING_FILE_SECOND_), (it2->second)->maxTxSizePerSec, (long long)0, (long long)0);
-                                break;
-                        }
+                        int length = sprintf(output,
+                                             "%lu\tTX\t%s\t%d\t%lu\t%llu\t%lu\t%lu\t%llu\t%llu\t%llu\n",
+                                             timeEpoch,
+                                             (tmp->deviceInterface).c_str(),
+                                             (it2)->first,  // port number
+                                             tmp->txPacketNumber,
+                                             tmp->txSize,
+                                             tmp->maxTxSize,
+                                             (long)0,
+                                             (long long)0,
+                                             (long long)0,
+                                             (long long)0);
+                        fwrite(output, sizeof(char), length, *_FILE_POINTER_);
                         ((it2)->second)->txGroupNumber = 0;
-                        ((it2)->second)->txPacketNumber = 0;
                         ((it2)->second)->txSize = 0;
                         ((it2)->second)->maxTxSize = 0;
 
                         // RX part
-                        // Outputing the format with arguments by the mechanism from the "services" defined in the Services/SizingServices/Sources/Transformer.cpp
-                        switch ((int)SizingServices::Transformer::defaultOutputLayoutType) {
-                            case SizingServices::Transformer::DEFAULT:
-                                SizingServices::Transformer::printContent((unsigned int)SizingServices::Transformer::LayoutFormatAndStringType::FORMAT, 11, fileno(*_FILE_POINTER_),
-                                                                          timeEpoch, "RX", (tmp->deviceInterface).c_str(), (it2)->first, tmp->rxPacketNumber,
-                                                                          tmp->rxSize, tmp->maxRxSize, (it2->second)->sqlRequestNumber, (it2->second)->sqlRequestSize, (it2->second)->sqlRequestNumber / (long long)_WRITING_FILE_SECOND_,
-                                                                          (it2->second)->sqlMaxRequestNumberPerSec);
-                                break;
-                            case SizingServices::Transformer::FLOWTYPE:
-                                SizingServices::Transformer::printContent((unsigned int)SizingServices::Transformer::LayoutFormatAndStringType::FORMAT, 9, fileno(*_FILE_POINTER_),
-                                                                          timeEpoch, "RX", (tmp->deviceInterface).c_str(), (it2)->first, _WRITING_FILE_SECOND_,
-                                                                          (tmp->rxSize / (long)_WRITING_FILE_SECOND_), (it2->second)->maxRxSizePerSec, (it2->second)->sqlRequestNumber / (long long)_WRITING_FILE_SECOND_, (it2->second)->sqlMaxRequestNumberPerSec);
-                                break;
-                        }
+                        length = sprintf(output,
+                                         "%lu\tRX\t%s\t%d\t%lu\t%llu\t%lu\t%lu\t%llu\t%llu\t%llu\n",
+                                         timeEpoch,
+                                         (tmp->deviceInterface).c_str(),
+                                         (it2)->first,  // port number
+                                         tmp->rxPacketNumber,
+                                         tmp->rxSize,
+                                         tmp->maxRxSize,
+                                         (it2->second)->sqlRequestNumber,
+                                         (it2->second)->sqlRequestSize,
+                                         (it2->second)->sqlRequestNumber / (long long)_WRITING_FILE_SECOND_,
+                                         (it2->second)->sqlMaxRequestNumberPerSec);
+                        fwrite(output, sizeof(char), length, *_FILE_POINTER_);
                         ((it2)->second)->rxGroupNumber = 0;
-                        ((it2)->second)->rxPacketNumber = 0;
                         ((it2)->second)->rxSize = 0;
                         ((it2)->second)->maxRxSize = 0;
                         ((it2)->second)->sqlRequestNumber = 0;
@@ -673,22 +718,20 @@ void LinuxSizingMainCaller::signalAlarmHandler(int) {
                     tmp->maxRxSize = 0;
                 }
             }
-            _MUTEX_.unlock();
-            alarm(_WRITING_FILE_SECOND_);
+            // Critical section end
+            LeaveCriticalSection(&_CRITICAL_SECTION_);
+
             // Closing the file
             if (*_FILE_POINTER_ != nullptr) {
-                SizingServices::Transformer::releaseDescriptors();
                 fclose(*_FILE_POINTER_);
                 *_FILE_POINTER_ = nullptr;
             }
         }
     } else {  // Closing the descriptor and skipping the handling in the ith loop
-        SizingServices::Transformer::releaseDescriptors();
         fclose(*_FILE_POINTER_);
         *_FILE_POINTER_ = nullptr;
     }
 }
 
-}  // namespace SizingMainCaller
-#endif
+}  // namespace SizingControllers
 #endif

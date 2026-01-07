@@ -52,6 +52,23 @@
 			"remove": "rm -rf {{name}}",
 			"windows": true,
 			"linux": false
+		},
+		{
+			"name": "nPcap",
+			"download": "wget -O {{name}}/tmp.zip https://npcap.com/dist/npcap-sdk-1.13.zip",
+			"command": "unzip tmp.zip",
+			"includes": [
+				"Include/*"
+			],
+			"libs": [
+				"Lib/*"
+			],
+			"others": [
+			],
+			"reference": "https://npcap.com/#download",
+			"remove": "rm -rf {{name}}",
+			"windows": true,
+			"linux": false
 		}
 	]
 }

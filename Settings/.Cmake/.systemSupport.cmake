@@ -3,7 +3,7 @@
 ## If the platform does not match Linux or Windows, it will raise an error (exiting the process).
 ## To compile the windows version, users shall use MINGW64 from the MSYS2 environment. However, the platform is still detected as a Linux platform 
 ## in Cmake when compiling; as the result, the OS conditional shall be determine whether RHEL and MSYS2.
-set(OPERATING_SYSTEM_STRING "Operating system flag (string format). 0 for Linux (RHEL), 0.1 for Linux (Centos), and 1 for Windows") # Description of the OPERATING_SYSTEM variable
+set(OPERATING_SYSTEM_STRING "Operating system flag (string format). 0 for Linux (RHEL), 0.1 for Linux (Centos), 1 for Windows (Npcap), and 1.1 for Windows (WinDivert)") # Description of the OPERATING_SYSTEM variable
 if(UNIX)
     STRING(TOUPPER "${CMAKE_SYSTEM_NAME}" UPPER_CMAKE_SYSTEM_NAME) # Upper case CMAKE_SYSTEM_NAME for easier comparison
     ###########################################################################################################
@@ -42,14 +42,18 @@ if(UNIX)
         endif()
 
     elseif(UPPER_CMAKE_SYSTEM_NAME STREQUAL "MSYS") # MSYS2 is a POSIX-compatible environment, but users shall treat it as Windows for the purposes
-        set(OPERATING_SYSTEM 1 CACHE STRING "${OPERATING_SYSTEM_STRING}")
+        if(NOT DEFINED OPERATING_SYSTEM)
+            set(OPERATING_SYSTEM 1 CACHE STRING "${OPERATING_SYSTEM_STRING}")
+        endif()
     else()
         message(STATUS "Hello from subpage.cmake33 = ${CMAKE_SYSTEM_NAME}")
         set(OPERATING_SYSTEM 0 CACHE STRING "${OPERATING_SYSTEM_STRING}")
     endif()
     ###########################################################################################################
 elseif(WIN32)
-    set(OPERATING_SYSTEM 1 CACHE STRING "${OPERATING_SYSTEM_STRING}")
+    if(NOT DEFINED OPERATING_SYSTEM)
+        set(OPERATING_SYSTEM 1 CACHE STRING "${OPERATING_SYSTEM_STRING}")
+    endif()
 else()
     message(FATAL_ERROR "Unsupported platform! Only Linux and Windows are supported.")
 endif()

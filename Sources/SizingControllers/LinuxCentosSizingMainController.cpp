@@ -1,7 +1,7 @@
 /**
  * @see SizingMainCaller.hpp
  */
-#include "../../Headers/SizingControllers/LinuxCentosSizingMainCaller.hpp"
+#include "../../Headers/SizingControllers/LinuxCentosSizingMainController.hpp"
 #ifdef __linux__
 
 // The macro variable is from the compiled process where is in the CMakeLists.txt file from the proper cpp file folder
@@ -10,7 +10,7 @@
 // the OS_ID will not be passed defined into compiled process
 #ifdef OS_ID
 
-namespace SizingMainCaller {
+namespace SizingControllers {
 //===Global Declaration===
 // Variables in .ini file
 // Writing file path
@@ -35,19 +35,19 @@ FILE** _FILE_POINTER_ = nullptr;
 //===Static fields Declaration===
 // For reserving the session's previous, the key is a tuple which combines sorted ip and port information;
 // the second one is the session's previous packet type; the value is defined as follows: 0: undefined; 1: TX, and 2: RX
-std::map<std::tuple <uint32_t, uint32_t, uint16_t, uint16_t>, char> LinuxCentosSizingMainCaller::sessionMap;
+std::map<std::tuple <uint32_t, uint32_t, uint16_t, uint16_t>, char> LinuxCentosSizingMainController::sessionMap;
 // For recording the maximum number of packets which contain SQL per second
-long LinuxCentosSizingMainCaller::currentSqlMaxRequestNumberPerSec = 0;
+long LinuxCentosSizingMainController::currentSqlMaxRequestNumberPerSec = 0;
 // For reserving the starting time in the beginning or the updating time when the SQL statements receive
-std::chrono::steady_clock::time_point LinuxCentosSizingMainCaller::startingTime = std::chrono::steady_clock::time_point::min();
+std::chrono::steady_clock::time_point LinuxCentosSizingMainController::startingTime = std::chrono::steady_clock::time_point::min();
 // For recording the maximum size of tx packets per second
-long LinuxCentosSizingMainCaller::currentMaxTxSizePerSec = 0;
+long LinuxCentosSizingMainController::currentMaxTxSizePerSec = 0;
 // For recording the maximum size of rx packets per second
-long LinuxCentosSizingMainCaller::currentMaxRxSizePerSec = 0;
+long LinuxCentosSizingMainController::currentMaxRxSizePerSec = 0;
 // For reserving the starting time in the beginning or the updating time when receiving a tx packet
-std::chrono::steady_clock::time_point LinuxCentosSizingMainCaller::startingTimeTX = std::chrono::steady_clock::time_point::min();
+std::chrono::steady_clock::time_point LinuxCentosSizingMainController::startingTimeTX = std::chrono::steady_clock::time_point::min();
 // For reserving the starting time in the beginning or the updating time when receiving a rx packet
-std::chrono::steady_clock::time_point LinuxCentosSizingMainCaller::startingTimeRX = std::chrono::steady_clock::time_point::min();
+std::chrono::steady_clock::time_point LinuxCentosSizingMainController::startingTimeRX = std::chrono::steady_clock::time_point::min();
 /**
  * The starting process, the entry of the process
  *
@@ -55,7 +55,7 @@ std::chrono::steady_clock::time_point LinuxCentosSizingMainCaller::startingTimeR
  * @param argV [char**] The array of the argument
  * @return [Commons::POSIXErrors] The status defined in the class "POSIXErrors" The status defined in the class "POSIXErrors"
  */
-Commons::POSIXErrors LinuxCentosSizingMainCaller::start(int argC, char** argV) {
+Commons::POSIXErrors LinuxCentosSizingMainController::start(int argC, char** argV) {
     Commons::POSIXErrors result = Commons::POSIXErrors::OK;
 
     // TODO: This section shall be implemented by using "Bison" instead of the section defined in the following.
@@ -90,7 +90,7 @@ Commons::POSIXErrors LinuxCentosSizingMainCaller::start(int argC, char** argV) {
     _WRITING_FILE_LOCATION_ = OuputFilePathWithTime;
 
     // Installing a signal handler, interrupt
-    signal(SIGINT, LinuxCentosSizingMainCaller::signalInterruptedHandler);
+    signal(SIGINT, LinuxCentosSizingMainController::signalInterruptedHandler);
 
     {  // Creating objects, opening the interfaces, executing the packet calculations
         // and closing the interfaces; the number of objects is equal to the number of
@@ -164,7 +164,7 @@ Commons::POSIXErrors LinuxCentosSizingMainCaller::start(int argC, char** argV) {
  * @return [Commons::POSIXErrors] The status defined in the class "POSIXErrors" The status
  * defined in the class "POSIXErrors"
  */
-Commons::POSIXErrors LinuxCentosSizingMainCaller::config(std::vector<unitService>* services) {
+Commons::POSIXErrors LinuxCentosSizingMainController::config(std::vector<unitService>* services) {
     Commons::POSIXErrors error = Commons::POSIXErrors::OK;
 
     // Loading information from the .json file for the application
@@ -264,7 +264,7 @@ Commons::POSIXErrors LinuxCentosSizingMainCaller::config(std::vector<unitService
  * @param pcap [PCAP::LinuxPCAP*] The address of the PCAP::LinuxPCAP object
  * @param packetHandler [void (*)(u_char*, const pcap_pkthdr*, const u_char*)] The callback function for pcap_loop
  */
-void LinuxCentosSizingMainCaller::packetTask(PCAP::LinuxPCAP* pcap, void (*packetHandler)(u_char*, const pcap_pkthdr*, const u_char*)) {
+void LinuxCentosSizingMainController::packetTask(PCAP::LinuxPCAP* pcap, void (*packetHandler)(u_char*, const pcap_pkthdr*, const u_char*)) {
     // The only argument will be set; as a result, the pcap object will be passed in the function, packetHandler.
     // For more information, please refer to the function, execute(.).
     pcap->execute(packetHandler);
@@ -278,9 +278,9 @@ void LinuxCentosSizingMainCaller::packetTask(PCAP::LinuxPCAP* pcap, void (*packe
  * which users defined in .json file.
  * @param filePath [const char*] The file path for recording the information
  */
-void LinuxCentosSizingMainCaller::packetFileTask(FILE** fileDescriptor, const char* filePath) {
+void LinuxCentosSizingMainController::packetFileTask(FILE** fileDescriptor, const char* filePath) {
     // Installing a signal handler, alarm
-    signal(SIGALRM, LinuxCentosSizingMainCaller::signalAlarmHandler);
+    signal(SIGALRM, LinuxCentosSizingMainController::signalAlarmHandler);
     _FILE_POINTER_ = fileDescriptor;  // Passing to the global variable
 
     // The first calling the function
@@ -291,7 +291,7 @@ void LinuxCentosSizingMainCaller::packetFileTask(FILE** fileDescriptor, const ch
         *_FILE_POINTER_ = fopen(filePath, "a+");
         if (*_FILE_POINTER_ == nullptr) {
             std::cerr << "Error opening the file!\n";
-            LinuxCentosSizingMainCaller::signalInterruptedHandler(0);  // Going to the end of the thread
+            LinuxCentosSizingMainController::signalInterruptedHandler(0);  // Going to the end of the thread
 
         } else {  // Adding the header information in a line to the file
             // Outputing the title by the mechanism from the "services" defined in the Services/SizingServices/Sources/Transformer.cpp
@@ -332,7 +332,7 @@ void LinuxCentosSizingMainCaller::packetFileTask(FILE** fileDescriptor, const ch
  * @param pkthdr [const struct pcap_pkthdr*] The address of the packet header
  * @param packet [const u_char*] The address of the packet
  */
-void LinuxCentosSizingMainCaller::packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, const u_char* packet) {
+void LinuxCentosSizingMainController::packetHandler(u_char* userData, const struct pcap_pkthdr* pkthdr, const u_char* packet) {
     // Opening the clock when the value equals to "std::chrono::steady_clock::time_point::min()"
     if (startingTime == std::chrono::steady_clock::time_point::min()) {
         startingTime = std::chrono::steady_clock::now(); // Assign now to the startingTime variable
@@ -426,7 +426,7 @@ void LinuxCentosSizingMainCaller::packetHandler(u_char* userData, const struct p
         // (or to the element that prevented the insertion) and a bool value;
         // when the key exists, the returned second value is false (e.g., insert failed); when the key does not
         // exist, the returned second value is true (e.g., insert success)
-        std::pair<std::map<std::tuple<uint32_t, uint32_t, uint16_t, uint16_t>, char>::iterator, bool> insertedResult = SizingMainCaller::LinuxCentosSizingMainCaller::sessionMap.emplace(sortedSessionTuple, previousPacketType);
+        std::pair<std::map<std::tuple<uint32_t, uint32_t, uint16_t, uint16_t>, char>::iterator, bool> insertedResult = SizingControllers::LinuxCentosSizingMainController::sessionMap.emplace(sortedSessionTuple, previousPacketType);
         if (insertedResult.second == true) { // Key will inserted ...
             // Do nothing
         } else { // Key exist
@@ -557,7 +557,7 @@ void LinuxCentosSizingMainCaller::packetHandler(u_char* userData, const struct p
  * @param packetTypeDetermineSet [char] The flag if the section is exected; 0 is not executed, and 1 is executed
  * @return [void] None
  */
-void LinuxCentosSizingMainCaller::executePacketInformationUpdate(long long packetHeaderLength,
+void LinuxCentosSizingMainController::executePacketInformationUpdate(long long packetHeaderLength,
                                 long* portXPacketNumber,
                                 long long* portXSize,
                                 long long* portMaxXSize,
@@ -589,7 +589,7 @@ void LinuxCentosSizingMainCaller::executePacketInformationUpdate(long long packe
  *
  * @param [int] The signal type (ignore)
  */
-void LinuxCentosSizingMainCaller::signalInterruptedHandler(int) {
+void LinuxCentosSizingMainController::signalInterruptedHandler(int) {
     std::cerr << "\n"
               << "Interrupted signal occurs, please wait.\n";
     // Using these two global variables to break the loops in different threads
@@ -604,7 +604,7 @@ void LinuxCentosSizingMainCaller::signalInterruptedHandler(int) {
  *
  * @param signalType [int] The signal type and the parameter is useless in this method
  */
-void LinuxCentosSizingMainCaller::signalAlarmHandler(int) {
+void LinuxCentosSizingMainController::signalAlarmHandler(int) {
     // File writing
     if (*_FILE_POINTER_ == nullptr) {
         // Opening the file
@@ -612,7 +612,7 @@ void LinuxCentosSizingMainCaller::signalAlarmHandler(int) {
 
         if (*_FILE_POINTER_ == nullptr) {
             std::cerr << "Error opening the file!\n";
-            LinuxCentosSizingMainCaller::signalInterruptedHandler(0);  // Going to the end of the thread
+            LinuxCentosSizingMainController::signalInterruptedHandler(0);  // Going to the end of the thread
 
         } else {
             SizingServices::Transformer::defaultOutputLayoutType = (int)_OUTPUT_LAYOUT_TYPE_;  // Assigning the output format
@@ -702,6 +702,6 @@ void LinuxCentosSizingMainCaller::signalAlarmHandler(int) {
     }
 }
 
-}  // namespace SizingMainCaller
+}  // namespace SizingMainController
 #endif
 #endif
